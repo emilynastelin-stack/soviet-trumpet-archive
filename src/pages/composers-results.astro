@@ -790,7 +790,15 @@
           const res = await fetch('/api/sheets?sheet=' + encodeURIComponent(sname));
           const jr = await res.json();
           try{ console.debug('COMPOSER_DEBUG fetched sheet', sname, Array.isArray(jr)?jr.length:typeof jr); }catch(e){}
-          if (Array.isArray(jr) && jr.length){ rows = jr; rows.__sheet = sname; break; }
+          if (Array.isArray(jr) && jr.length){
+            // ensure this sheet actually looks like CompDet by checking for known header names
+            const sample = jr[0];
+            const headerKeys = (sample && typeof sample === 'object') ? Object.keys(sample) : [];
+            const norm = k => String(k||'').toLowerCase().replace(/[^^\p{L}\p{N}]+/gu,'');
+            const hasCompLike = headerKeys.some(h=> ['lifespan','composer','композитор'].includes(norm(h)));
+            if (hasCompLike){ rows = jr; rows.__sheet = sname; break; }
+            // else skip this sheet because it doesn't look like the aggregated composer detail sheet
+          }
         }catch(_e){ /* ignore individual sheet fetch errors */ }
       }
       // if nothing found via server API, try client-side GViz fetch for each candidate
@@ -800,6 +808,10 @@
             const g = await gvizFetch(sname);
             if (g && g.rows && g.rows.length){
               const headers = g.cols.map((h,i) => h && String(h).trim() ? String(h).trim() : `col_${i}`);
+              // quick check: ensure headers include Lifespan or Composer
+              const norm = k => String(k||'').toLowerCase().replace(/[^^\p{L}\p{N}]+/gu,'');
+              const hasCompLike = headers.some(h => ['lifespan','composer','композитор'].includes(norm(h)));
+              if (!hasCompLike) { continue; }
               rows = g.rows.map(r => { const o={}; for(let i=0;i<headers.length;i++){ o[headers[i]] = r[i] !== undefined && r[i] !== null ? r[i] : ''; } return o; });
               rows.__sheet = sname;
               break;
@@ -811,7 +823,13 @@
       if ((!rows || rows.length === 0)){
         const res = await fetch('/api/sheets?sheet=Sheet2');
         const jr = await res.json();
-        if (Array.isArray(jr)) { rows = jr; rows.__sheet = 'Sheet2'; }
+        if (Array.isArray(jr)) {
+          const sample = jr[0];
+          const headerKeys = (sample && typeof sample === 'object') ? Object.keys(sample) : [];
+          const norm = k => String(k||'').toLowerCase().replace(/[^^\p{L}\p{N}]+/gu,'');
+          const hasCompLike = headerKeys.some(h=> ['lifespan','composer','композитор'].includes(norm(h)));
+          if (hasCompLike){ rows = jr; rows.__sheet = 'Sheet2'; }
+        }
       }
   try{ console.debug('COMPOSER_DEBUG fetched rows', Array.isArray(rows)?rows.length:typeof rows, 'sheet', rows && rows.__sheet); }catch(e){}
       let foundVal = null;
