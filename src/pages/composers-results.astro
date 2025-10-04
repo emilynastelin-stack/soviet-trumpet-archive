@@ -855,8 +855,16 @@
           // If colE is still empty, try a quick fallback: lookup the composer in Sheet1 and return its 5th column
           if (!colE || String(colE).trim() === ''){
             try{
-              const s1 = await fetch('/api/sheets?sheet=Sheet1');
-              const s1rows = await s1.json();
+              // try multiple possible names for the main music list if the tab was renamed
+              const sCandidates = ['MusicList','Sheet1','Sheet2','CompDet','Composers'];
+              let s1rows = [];
+              for (const sname of sCandidates){
+                try{
+                  const s1 = await fetch('/api/sheets?sheet=' + encodeURIComponent(sname));
+                  const jr = await s1.json();
+                  if (Array.isArray(jr) && jr.length){ s1rows = jr; s1rows.__sheet = sname; break; }
+                }catch(_){ }
+              }
               if (Array.isArray(s1rows) && s1rows.length){
                 const targetNorm = normalize(foundVal || String(matchRow && (matchRow.Composer || matchRow.Composer || matchRow['Composer']) || ''));
                 for (const r1 of s1rows){
