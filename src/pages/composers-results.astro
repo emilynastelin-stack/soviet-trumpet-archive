@@ -706,6 +706,12 @@
   async function loadResults(rowsParam, options = { resetPage: true }){
     try{
       const rows = rowsParam || await (await fetch('/api/sheets')).json();
+      // Defensive: ensure we have an array of rows. If the API returned an error object, show it instead
+      if (!Array.isArray(rows)){
+        const errText = typeof rows === 'object' ? JSON.stringify(rows) : String(rows);
+        document.getElementById('results').innerText = 'Load failed: unexpected /api/sheets response: ' + errText;
+        return;
+      }
       const qv = normalize(qinput.value || '');
   // read selected countries
   const checked = Array.from(document.querySelectorAll('#filter-country input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
