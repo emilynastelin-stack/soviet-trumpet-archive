@@ -742,72 +742,92 @@
     }catch(e){ document.getElementById('results').innerText = 'Load failed: ' + String(e); }
   }
 
-  function populateComposerBox(name, row){
+  async function populateComposerBox(name, row){
     const box = document.getElementById('composer-box');
     const content = document.getElementById('composer-content');
     const clearBtn = document.getElementById('clear-composer');
     if (!content) return;
     if (!name){ content.innerHTML = 'Select a result to view composer details.'; return; }
-    // basic composer info from the clicked row (if provided) or from the dataset
-    const title = escapeHtml(name);
-    const nationality = escapeHtml(row && (row.Nationality || row.Country) ? (row.Nationality || row.Country) : '');
-    const born = escapeHtml(row && (row.Born || row['Year']) ? (row.Born || row['Year']) : '');
-    let comps = '';
-    try{ if (row && row.Compositions) comps = escapeHtml(row.Compositions); }catch(e){}
-  // determine column-based values: Column B (index 1), Column C (index 2), Column M (index 12), Column N (index 13), Column O (index 14)
-  const keys = row ? Object.keys(row) : [];
-  const colBKey = keys[1];
-  const colCKey = keys[2];
-  const colMKey = keys[12];
-  const colNKey = keys[13];
-  const colOKey = keys[14];
-  const colBVal = colBKey ? (row[colBKey] || '') : '';
-  const colCVal = colCKey ? (row[colCKey] || '') : '';
-  // Use the cell value from column M of this row as the label for column C's value
-  // (previously we used the key/header name; now we use the row-specific value)
-  const colMLabel = colMKey ? (row[colMKey] || '') : '';
-  const rawColN = colNKey ? (row[colNKey] || '') : '';
-  const rawColO = colOKey ? (row[colOKey] || '') : '';
 
-  // Heuristic: if one of the two columns contains a URL/link and the other does not,
-  // treat the URL-containing cell as the Learn-more link (column O) and the other as column N.
-  function looksLikeUrl(s){ if(!s) return false; try{ return /^(https?:\/\/|www\.)/i.test(String(s).trim()); }catch(e){ return false; } }
-  let colNVal = rawColN;
-  let colOVal = rawColO;
-  const rawNIsUrl = looksLikeUrl(rawColN);
-  const rawOIsUrl = looksLikeUrl(rawColO);
-  if (rawNIsUrl && !rawOIsUrl){
-    // URL ended up in N; swap so link is used as Learn more and N shows the other value
-    colOVal = rawColN;
-    colNVal = rawColO;
-  } else if (rawOIsUrl && !rawNIsUrl){
-    // expected case: O is URL and N is non-url; keep as-is
-    colNVal = rawColN;
-    colOVal = rawColO;
-  } else {
-    // ambiguous case (both URL or both non-url): prefer the explicit columns as-is
-    colNVal = rawColN;
-    colOVal = rawColO;
-  }
-
-    let extraHtml = '';
-    // Russian: value from column B
-    if (colBVal) extraHtml += `<p><strong>Russian:</strong> ${escapeHtml(colBVal)}</p>`;
-    // second line: label from column M (the cell value), value from column C — only if column C has a value
-    if (colCVal) {
-      let label = colMLabel ? String(colMLabel).trim() : '';
-      // remove trailing colon if present in the cell value
-      if (label.endsWith(':')) label = label.slice(0, -1).trim();
-      const dispLabel = label ? escapeHtml(label) : '';
-      extraHtml += `<p><strong>${dispLabel}:</strong> ${escapeHtml(colCVal)}</p>`;
+    // Fetch all rows to aggregate composer info across all pieces
+    let rows = [];
+    try{ rows = await (await fetch('/api/sheets')).json(); }catch(e){ rows = []; }
+    if (!rows || rows.length === 0){
+      // fallback to using the single provided row
+      rows = row ? [row] : [];
     }
 
-  // If column N has a value, display it directly under the composer's name (small, muted)
-  const colNHtml = colNVal ? `<div style="margin-top:4px;margin-bottom:8px;color:#6b7280;font-size:0.95rem">${escapeHtml(colNVal)}</div>` : '';
-  // render column O as a 'Learn more' link beneath the column M/C data if present
-  const safeHref = colOVal ? escapeHtml(String(colOVal).trim()) : '';
-  const learnMoreHtml = safeHref ? `<div style="margin-top:8px;"><a href="${safeHref}" target="_blank" rel="noopener noreferrer">Learn more</a></div>` : '';
-  content.innerHTML = `<div><strong style="color:var(--accent)">${title}</strong>${colNHtml}<div class="muted">${nationality}</div>${extraHtml}${learnMoreHtml}<div style="margin-top:8px;">${comps}</div></div>`;
+    const normName = normalize(name || '');
+    const matches = rows.filter(r => {
+      const comp = (r['Composer'] || r.Composer || r['composer'] || '').toString();
+      return normalize(comp).includes(normName);
+    });
+    // If no matches found with full dataset, fallback to the single row if provided
+    if (matches.length === 0 && row) matches.push(row);
+
+    // Determine header keys (assume sheet uses consistent headers)
+    const headerKeys = (rows && rows.length) ? Object.keys(rows[0]) : (row ? Object.keys(row) : []);
+    const colBKey = headerKeys[1];
+    const colCKey = headerKeys[2];
+    const colMKey = headerKeys[12];
+    const colNKey = headerKeys[13];
+    const colOKey = headerKeys[14];
+
+    // aggregate values
+    const russianSet = new Set();
+    const colCSet = new Set();
+    const colMLabelCounts = {};
+    const colNSet = new Set();
+    let colOLink = '';
+    const compositions = new Set();
+    const nationalitySet = new Set();
+
+    function looksLikeUrl(s){ if(!s) return false; try{ return /^(https?:\/\/|www\.)/i.test(String(s).trim()); }catch(e){ return false; } }
+
+    matches.forEach(r =>{
+      if (colBKey && r[colBKey]) russianSet.add(String(r[colBKey]).trim());
+      if (colCKey && r[colCKey]) colCSet.add(String(r[colCKey]).trim());
+      if (colMKey && r[colMKey]) { const lab = String(r[colMKey]).trim(); colMLabelCounts[lab] = (colMLabelCounts[lab] || 0) + 1; }
+      if (colNKey && r[colNKey]) colNSet.add(String(r[colNKey]).trim());
+      if (colOKey && r[colOKey] && !colOLink && looksLikeUrl(r[colOKey])) colOLink = String(r[colOKey]).trim();
+      // also check the other-way in case URL landed in N
+      if (!colOLink && colNKey && r[colNKey] && looksLikeUrl(r[colNKey])) colOLink = String(r[colNKey]).trim();
+      // compositions: combine Title and Year
+      const title = r.Title || r.Title || r['Title'] || r['Composition'] || r['Compositions'] || '';
+      const year = r.Year || r['Year'] || r['Published'] || '';
+      const compText = (title ? String(title).trim() : '') + (year ? (title ? ', ' + String(year).trim() : String(year).trim()) : '');
+      if (compText) compositions.add(compText);
+      const nat = r.Nationality || r.Country || r['Nationality'] || r['Country'] || '';
+      if (nat) nationalitySet.add(String(nat).trim());
+    });
+
+    // choose most frequent colM label if present
+    let colMLabel = '';
+    if (Object.keys(colMLabelCounts).length){
+      colMLabel = Object.keys(colMLabelCounts).sort((a,b)=> colMLabelCounts[b]-colMLabelCounts[a])[0];
+    }
+
+    const title = escapeHtml(name || '');
+    const nationality = Array.from(nationalitySet).filter(Boolean).join(', ');
+    const colBHtml = Array.from(russianSet).map(s=> escapeHtml(s)).join('; ');
+    const colCHtml = Array.from(colCSet).map(s=> escapeHtml(s)).join('; ');
+    const colNHtml = Array.from(colNSet).map(s=> escapeHtml(s)).join('; ');
+    const compsHtml = Array.from(compositions).map(s => `<li>${escapeHtml(s)}</li>`).join('');
+
+    // Render aggregated composer box
+    let extraHtml = '';
+    if (colBHtml) extraHtml += `<p><strong>Russian:</strong> ${colBHtml}</p>`;
+    if (colCHtml) {
+      const dispLabel = colMLabel ? escapeHtml(colMLabel.replace(/:$/,'')) : '';
+      const labelHtml = dispLabel ? `<strong>${dispLabel}:</strong> ` : '';
+      extraHtml += `<p>${labelHtml}${colCHtml}</p>`;
+    }
+
+    const colNSection = colNHtml ? `<div style="margin-top:4px;margin-bottom:8px;color:#6b7280;font-size:0.95rem">${colNHtml}</div>` : '';
+    const learnMoreHtml = colOLink ? `<div style="margin-top:8px;"><a href="${escapeHtml(colOLink)}" target="_blank" rel="noopener noreferrer">Learn more</a></div>` : '';
+    const compsListHtml = compsHtml ? `<div style="margin-top:8px;"><strong>Compositions:</strong><ul style="margin:6px 0 0 18px;padding:0">${compsHtml}</ul></div>` : '';
+
+    content.innerHTML = `<div><strong style="color:var(--accent)">${title}</strong>${colNSection}<div class="muted">${escapeHtml(nationality)}</div>${extraHtml}${learnMoreHtml}${compsListHtml}</div>`;
     if (clearBtn) { clearBtn.style.display = 'inline-block'; clearBtn.onclick = ()=>{ selectedComposer = ''; if (clearBtn) clearBtn.style.display='none'; populateComposerBox('', null); currentPage = 1; loadResults(); }; }
   }
 
