@@ -756,100 +756,83 @@
       const rows = await res.json();
       try{ console.debug('COMPOSER_DEBUG fetched rows', Array.isArray(rows)?rows.length:typeof rows); }catch(e){}
       let foundVal = null;
+      let matchRow = null;
       if (rows && rows.length){
         const target = String(name || '').trim();
         const normTarget = normalize(target);
         for (const r of rows){
-          let first = '';
-          if (r === null || r === undefined){ first = ''; }
-          else if (typeof r === 'object'){
+          if (r === null || r === undefined) continue;
+          // Build a small set of candidate name values from the row (prefer named keys over object order)
+          const candidates = [];
+          if (typeof r === 'object'){
             if (Array.isArray(r)){
-              first = r.length ? String(r[0]||'').trim() : '';
+              if (r.length) candidates.push(String(r[0]||'').trim());
             } else {
-              const vals = Object.values(r || {});
-              first = vals && vals.length ? String(vals[0]||'').trim() : '';
+              // prefer common header names
+              const preferKeys = ['Composer','Композитор','Native','Name','name','composer'];
+              for (const k of preferKeys){ if (k in r) candidates.push(String(r[k]||'').trim()); }
+              // fallback to the first value (if no preferred keys matched)
+              if (!candidates.length){ const vals = Object.values(r||{}); if (vals && vals.length) candidates.push(String(vals[0]||'').trim()); }
             }
           } else {
-            first = String(r).trim();
+            candidates.push(String(r).trim());
           }
-          const normFirst = normalize(first);
-          // tolerant matching: exact, normalized-equal, or normalized-contains
-          if (first === target || normFirst === normTarget || normFirst.includes(normTarget) || normTarget.includes(normFirst)){
-            foundVal = first; break;
+
+          for (const cand of candidates){
+            if (!cand) continue;
+            const nc = normalize(cand);
+            if (cand === target || nc === normTarget || nc.includes(normTarget) || normTarget.includes(nc)){
+              foundVal = cand;
+              matchRow = r;
+              break;
+            }
           }
+          if (matchRow) break;
         }
       }
-      if (foundVal !== null){
-        try{ console.debug('COMPOSER_DEBUG match found', foundVal); }catch(e){}
-        // also try to read column E (5th column, index 4) from the matched row
+      if (matchRow !== null){
+        try{ console.debug('COMPOSER_DEBUG match found', foundVal, matchRow); }catch(e){}
+        // Extract column E (5th column) in a robust way: prefer explicit Title-like keys, then fallback to index
         let colE = '';
         try{
-          const matchRow = rows.find(r => {
-            if (r === null || r === undefined) return false;
-            if (typeof r === 'object'){
-              if (Array.isArray(r)) return String((r[0]||'')).trim() === String(foundVal).trim();
-              const vals = Object.values(r||{}); return vals && vals.length ? String(vals[0]||'').trim() === String(foundVal).trim() : false;
+          if (Array.isArray(matchRow)){
+            colE = matchRow.length > 4 ? matchRow[4] : '';
+          } else if (typeof matchRow === 'object'){
+            const titleKeys = ['Title','title','Title, Year','Title,Year','Titl','Title Year','Title, Year','Title,Year'];
+            for (const k of titleKeys){ if (k in matchRow && String(matchRow[k]||'').trim()){ colE = matchRow[k]; break; } }
+            if (!colE){
+              // fallback to the 5th value when explicit title keys are not present
+              const vals = Object.values(matchRow||{});
+              if (vals && vals.length > 4) colE = vals[4];
             }
-            return String(r).trim() === String(foundVal).trim();
-          });
-          if (matchRow !== undefined && matchRow !== null){
-            if (typeof matchRow === 'object'){
-              if (Array.isArray(matchRow)) {
-                colE = matchRow.length > 4 ? matchRow[4] : '';
-              } else {
-                // Prefer access by key to ensure we read the 5th column from this row object
-                const keys = Object.keys(matchRow || {});
-                if (keys && keys.length > 4) {
-                  const keyE = keys[4];
-                  colE = matchRow[keyE];
-                } else {
-                  // fallback to values if keys aren't available
-                  const vals = Object.values(matchRow||{});
-                  colE = vals.length > 4 ? vals[4] : '';
-                }
-                // If colE looks like serialized JSON (someone pasted the full Sheet1 row into a cell), try parsing it
-                try{
-                  const maybe = String(colE||'').trim();
-                  if (maybe && (maybe.startsWith('{') || maybe.startsWith('['))){
-                    try{
-                      const parsed = JSON.parse(maybe);
-                      // If parsed is an object, try to prefer 'Title' property; otherwise if array take index 4
-                      if (parsed && typeof parsed === 'object'){
-                        if (!Array.isArray(parsed) && parsed.Title) {
-                          colE = parsed.Title;
-                        } else if (Array.isArray(parsed) && parsed.length > 4) {
-                          colE = parsed[4];
-                        } else if (!Array.isArray(parsed)) {
-                          // if object but no Title, pick the 5th key's value if present
-                          const pkeys = Object.keys(parsed||{});
-                          if (pkeys && pkeys.length > 4) colE = parsed[pkeys[4]];
-                        }
-                      }
-                    }catch(_){ /* ignore parse errors */ }
+
+            // If we found something that looks like serialized JSON inside a cell, try to parse and prefer Title
+            const maybe = String(colE||'').trim();
+            if (maybe && (maybe.startsWith('{') || maybe.startsWith('['))){
+              try{
+                const parsed = JSON.parse(maybe);
+                if (parsed && typeof parsed === 'object'){
+                  if (!Array.isArray(parsed) && parsed.Title) {
+                    colE = parsed.Title;
+                  } else if (Array.isArray(parsed) && parsed.length > 4) {
+                    colE = parsed[4];
+                  } else {
+                    const pvals = Object.values(parsed||{});
+                    if (pvals && pvals.length > 4) colE = pvals[4];
                   }
-                }catch(_e){}
-              }
-            } else {
-              colE = '';
+                }
+              }catch(_){ /* ignore parse errors */ }
             }
           }
         }catch(e){ colE = ''; }
-  // sanitize newlines/tabs in displayed values
-  function cleanDisplay(s){ return String(s||'').replace(/[\r\n\t]+/g,' ').replace(/\s+/g,' ').trim(); }
-  const dispFound = cleanDisplay(foundVal);
-  const dispColE = cleanDisplay(colE);
+        // sanitize newlines/tabs in displayed values
+        function cleanDisplay(s){ return String(s||'').replace(/[\r\n\t]+/g,' ').replace(/\s+/g,' ').trim(); }
+        const dispFound = cleanDisplay(foundVal);
+        const dispColE = cleanDisplay(colE);
         const colEHtml = dispColE ? `<div style="margin-top:4px;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(dispColE)}</div>` : '';
         // DEBUG: show raw matched Sheet2 row for inspection (temporary)
         let rawJsonHtml = '';
         try{
-          const matchRow = rows.find(r => {
-            if (r === null || r === undefined) return false;
-            if (typeof r === 'object'){
-              if (Array.isArray(r)) return String((r[0]||'')).trim() === String(foundVal).trim();
-              const keys = Object.keys(r||{}); return keys && keys.length ? String(r[keys[0]]||'').trim() === String(foundVal).trim() : false;
-            }
-            return String(r).trim() === String(foundVal).trim();
-          });
           rawJsonHtml = matchRow ? `<pre style="max-height:220px;overflow:auto;background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;margin-top:8px;font-size:0.85rem">${escapeHtml(JSON.stringify(matchRow, null, 2))}</pre>` : '';
         }catch(e){ rawJsonHtml = ''; }
         content.innerHTML = `<div><strong style="color:var(--accent)">${escapeHtml(dispFound)}</strong>${colEHtml}${rawJsonHtml}</div>`;
