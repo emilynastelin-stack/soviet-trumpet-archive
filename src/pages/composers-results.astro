@@ -911,9 +911,9 @@
         }catch(e){ colE = ''; }
         // sanitize newlines/tabs in displayed values
         function cleanDisplay(s){ return String(s||'').replace(/[\r\n\t]+/g,' ').replace(/\s+/g,' ').trim(); }
-        const dispFound = cleanDisplay(foundVal);
-        const dispColE = cleanDisplay(colE);
-        const colEHtml = dispColE ? `<div style="margin-top:4px;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(dispColE)}</div>` : '';
+  const dispFound = cleanDisplay(foundVal);
+  // placeholder; we'll set this after we compute the mapped values so Lifespan takes precedence
+  let colEHtml = '';
         // DEBUG: show source sheet, headers, and raw matched row for inspection (temporary)
         let rawJsonHtml = '';
         try{
@@ -984,6 +984,12 @@
           const v = getValForLabels(aliases);
           return v == null ? '' : String(v);
         });
+
+        // Prefer the Lifespan value (from mapped values). If missing, fall back to previously-extracted colE.
+        const lifespanIndex = desired.indexOf('Lifespan');
+        const lifespanRaw = (lifespanIndex >= 0 ? (values[lifespanIndex] || '') : '') || colE || '';
+        const dispColE = cleanDisplay(lifespanRaw);
+        colEHtml = dispColE ? `<div style="margin-top:4px;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(dispColE)}</div>` : '';
 
         // Render as a small preformatted block with tab-separated headers and values
         const preStyle = 'background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;margin-top:8px;font-size:0.95rem;white-space:pre-wrap';
