@@ -98,14 +98,14 @@ export async function GET(request) {
           try{
             const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: rng });
             const data = await parseRowsToJson(res.data.values || []);
-            return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json' } });
+            return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json', 'Content-Disposition': 'inline; filename="sheets.json"' } });
           }catch(errRange){ lastErr = errRange; /* try next */ }
         }
         // if none succeeded, return last error message
-        return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(lastErr && lastErr.message ? lastErr.message : lastErr) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(lastErr && lastErr.message ? lastErr.message : lastErr) }), { status: 502, headers: { 'Content-Type': 'application/json', 'Content-Disposition': 'inline; filename="sheets.json"' } });
       } catch (errAuth) {
         // Surface auth errors to the caller to help debugging (message only, no secrets)
-        return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(errAuth && errAuth.message ? errAuth.message : errAuth) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(errAuth && errAuth.message ? errAuth.message : errAuth) }), { status: 502, headers: { 'Content-Type': 'application/json', 'Content-Disposition': 'inline; filename="sheets.json"' } });
       }
     } catch (e) {
       // Unexpected - fall through to other methods
@@ -126,10 +126,10 @@ export async function GET(request) {
         try{
           const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: rng });
           const data = await parseRowsToJson(res.data.values || []);
-          return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json' } });
+          return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json', 'Content-Disposition': 'inline; filename="sheets.json"' } });
         }catch(errRange){ lastErr = errRange; }
       }
-      return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(lastErr && lastErr.message ? lastErr.message : lastErr) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(lastErr && lastErr.message ? lastErr.message : lastErr) }), { status: 502, headers: { 'Content-Type': 'application/json', 'Content-Disposition': 'inline; filename="sheets.json"' } });
     }
   } catch (err) {
     console.error('Service-account fetch failed:', err && err.message ? err.message : err);
@@ -139,15 +139,15 @@ export async function GET(request) {
   const apiKey = process.env.GOOGLE_API_KEY || process.env.NPM_CONFIG_GOOGLE_API_KEY;
   if (apiKey) {
     try {
-      const urlStr = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?key=${apiKey}`;
+      const urlStr = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(primaryRange)}?key=${apiKey}`;
       const res = await fetch(urlStr);
       if (!res.ok) {
         const txt = await res.text();
-        return new Response(JSON.stringify({ error: 'Google API fetch failed', status: res.status, body: txt }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: 'Google API fetch failed', status: res.status, body: txt }), { status: 502, headers: { 'Content-Type': 'application/json', 'Content-Disposition': 'inline; filename="sheets.json"' } });
       }
       const json = await res.json();
       const data = await parseRowsToJson(json.values || []);
-      return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json', 'Content-Disposition': 'inline; filename="sheets.json"' } });
     } catch (err) {
       return new Response(JSON.stringify({ error: 'Failed to fetch via API key', message: String(err) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
     }
@@ -172,8 +172,8 @@ export async function GET(request) {
         const rows = (json.table.rows || []).map(r => (r.c || []).map(cell => (cell && cell.v !== undefined && cell.v !== null) ? cell.v : ''));
         // build values array with header row first
         const values = [cols, ...rows];
-        const data = await parseRowsToJson(values || []);
-        return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  const data = await parseRowsToJson(values || []);
+  return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json', 'Content-Disposition': 'inline; filename="sheets.json"' } });
       }
     }
   } catch (err) {
