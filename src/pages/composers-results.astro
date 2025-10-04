@@ -807,6 +807,27 @@
                   const vals = Object.values(matchRow||{});
                   colE = vals.length > 4 ? vals[4] : '';
                 }
+                // If colE looks like serialized JSON (someone pasted the full Sheet1 row into a cell), try parsing it
+                try{
+                  const maybe = String(colE||'').trim();
+                  if (maybe && (maybe.startsWith('{') || maybe.startsWith('['))){
+                    try{
+                      const parsed = JSON.parse(maybe);
+                      // If parsed is an object, try to prefer 'Title' property; otherwise if array take index 4
+                      if (parsed && typeof parsed === 'object'){
+                        if (!Array.isArray(parsed) && parsed.Title) {
+                          colE = parsed.Title;
+                        } else if (Array.isArray(parsed) && parsed.length > 4) {
+                          colE = parsed[4];
+                        } else if (!Array.isArray(parsed)) {
+                          // if object but no Title, pick the 5th key's value if present
+                          const pkeys = Object.keys(parsed||{});
+                          if (pkeys && pkeys.length > 4) colE = parsed[pkeys[4]];
+                        }
+                      }
+                    }catch(_){ /* ignore parse errors */ }
+                  }
+                }catch(_e){}
               }
             } else {
               colE = '';
