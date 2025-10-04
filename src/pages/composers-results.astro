@@ -823,6 +823,19 @@
                 }
               }catch(_){ /* ignore parse errors */ }
             }
+
+            // Additional fallback: if no Title found, try to extract from 'Title, Year' style fields
+            if (!colE || String(colE).trim() === ''){
+              const titleYearKeys = ['Title, Year','Title,Year','Title Year','Titl','Title, Year'];
+              for (const tk of titleYearKeys){
+                if (tk in matchRow && String(matchRow[tk]||'').trim()){
+                  const candidate = String(matchRow[tk]||'').trim();
+                  // take text before the first comma (the bare title), and strip stray leading commas
+                  colE = candidate.split(',')[0].replace(/^,*/,'').trim();
+                  if (colE) break;
+                }
+              }
+            }
           }
         }catch(e){ colE = ''; }
         // sanitize newlines/tabs in displayed values
