@@ -721,7 +721,7 @@
   // loadResults optionally accepts rows (pre-fetched) and an options object { resetPage: true }
   async function loadResults(rowsParam, options = { resetPage: true }){
     try{
-      const rows = rowsParam || await (await fetch('/api/sheets')).json();
+  let rows = rowsParam || await (await fetch('/api/sheets')).json();
       // Defensive: ensure we have an array of rows. If the API returned an error object, try GViz fallback
       if (!Array.isArray(rows)){
         try{
@@ -942,8 +942,9 @@
 
         // helper: find a key in rowObj matching a header (case-insensitive, strip non-alphanum)
         const findKey = (label)=>{
-          const normLabel = String(label||'').toLowerCase().replace(/[^a-z0-9а-яёіїևօұұա-ң]+/gi,'');
-          return Object.keys(rowObj||{}).find(k=> String(k||'').toLowerCase().replace(/[^a-z0-9а-яёіїևօұұա-ң]+/gi,'') === normLabel) || null;
+          // Normalize label by lowercasing and removing any non-letter/number using Unicode property escapes
+          const normLabel = String(label||'').toLowerCase().replace(/[^^\p{L}\p{N}]+/gu,'');
+          return Object.keys(rowObj||{}).find(k=> String(k||'').toLowerCase().replace(/[^^\p{L}\p{N}]+/gu,'') === normLabel) || null;
         };
 
         const values = desired.map(h=>{
