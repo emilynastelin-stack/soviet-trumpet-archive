@@ -378,6 +378,22 @@
 
   function normalize(s){ if(!s) return ''; try{ return s.toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase(); }catch(e){ return s.toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); } }
 
+  // Client-side GViz fetch fallback for public spreadsheets.
+  async function gvizFetch(sheetName, range = 'A1:Z1000'){
+    try{
+      const id = '1UiK8QDq98C-9wCpQjdQAVpSdH8mZkpxYgMMEHM3uaGk'; // same spreadsheet id as server
+      const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&range=${encodeURIComponent(range)}`;
+      const txt = await (await fetch(url)).text();
+      const m = txt.match(/google\.visualization\.Query\.setResponse\((.*)\);?/s);
+      if (!m || !m[1]) return null;
+      const json = JSON.parse(m[1]);
+      if (!json || !json.table) return null;
+      const cols = (json.table.cols || []).map(c => (c && (c.label || c.id)) ? String(c.label || c.id) : '');
+      const rows = (json.table.rows || []).map(r => (r.c || []).map(cell => (cell && cell.v !== undefined && cell.v !== null) ? cell.v : ''));
+      return { cols, rows };
+    }catch(_){ return null; }
+  }
+
   // pagination state
   const PAGE_SIZE = 25;
   let currentPage = 1;
@@ -706,11 +722,20 @@
   async function loadResults(rowsParam, options = { resetPage: true }){
     try{
       const rows = rowsParam || await (await fetch('/api/sheets')).json();
-      // Defensive: ensure we have an array of rows. If the API returned an error object, show it instead
+      // Defensive: ensure we have an array of rows. If the API returned an error object, try GViz fallback
       if (!Array.isArray(rows)){
-        const errText = typeof rows === 'object' ? JSON.stringify(rows) : String(rows);
-        document.getElementById('results').innerText = 'Load failed: unexpected /api/sheets response: ' + errText;
-        return;
+        try{
+          const g = await gvizFetch('MusicList');
+          if (g && g.rows && g.rows.length){
+            // build objects from headers
+            const headers = g.cols.map((h,i) => h && String(h).trim() ? String(h).trim() : `col_${i}`);
+            rows = g.rows.map(r => { const o={}; for(let i=0;i<headers.length;i++){ o[headers[i]] = r[i] !== undefined && r[i] !== null ? r[i] : ''; } return o; });
+          } else {
+            const errText = typeof rows === 'object' ? JSON.stringify(rows) : String(rows);
+            document.getElementById('results').innerText = 'Load failed: unexpected /api/sheets response: ' + errText;
+            return;
+          }
+        }catch(e){ const errText = typeof rows === 'object' ? JSON.stringify(rows) : String(rows); document.getElementById('results').innerText = 'Load failed: unexpected /api/sheets response: ' + errText; return; }
       }
       const qv = normalize(qinput.value || '');
   // read selected countries
@@ -767,6 +792,20 @@
           try{ console.debug('COMPOSER_DEBUG fetched sheet', sname, Array.isArray(jr)?jr.length:typeof jr); }catch(e){}
           if (Array.isArray(jr) && jr.length){ rows = jr; rows.__sheet = sname; break; }
         }catch(_e){ /* ignore individual sheet fetch errors */ }
+      }
+      // if nothing found via server API, try client-side GViz fetch for each candidate
+      if ((!rows || rows.length === 0)){
+        for (const sname of candidates){
+          try{
+            const g = await gvizFetch(sname);
+            if (g && g.rows && g.rows.length){
+              const headers = g.cols.map((h,i) => h && String(h).trim() ? String(h).trim() : `col_${i}`);
+              rows = g.rows.map(r => { const o={}; for(let i=0;i<headers.length;i++){ o[headers[i]] = r[i] !== undefined && r[i] !== null ? r[i] : ''; } return o; });
+              rows.__sheet = sname;
+              break;
+            }
+          }catch(_){ }
+        }
       }
       // final fallback: try default Sheet2 if nothing found (rare)
       if ((!rows || rows.length === 0)){
