@@ -15,6 +15,24 @@ async function parseRowsToJson(rows) {
 }
 
 export async function GET() {
+  // If a service account JSON is provided via env (useful on Vercel), try it first.
+  const serviceAccountEnv = process.env.SERVICE_ACCOUNT_JSON;
+  if (serviceAccountEnv) {
+    try {
+      const creds = JSON.parse(serviceAccountEnv);
+      const auth = new google.auth.GoogleAuth({
+        credentials: creds,
+        scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+      });
+      const sheets = google.sheets({ version: 'v4', auth });
+      const res = await sheets.spreadsheets.values.get({ spreadsheetId, range });
+      const data = await parseRowsToJson(res.data.values || []);
+      return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    } catch (err) {
+      console.error('Service-account (env) fetch failed:', err && err.message ? err.message : err);
+      // fall through to try file-based approach or API key
+    }
+  }
   // Try service account file first (local secrets/service-account.json)
   try {
     const keyPath = path.resolve('./secrets/service-account.json');
