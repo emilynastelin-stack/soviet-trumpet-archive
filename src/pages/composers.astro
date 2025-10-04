@@ -712,30 +712,34 @@
     // debug retry wiring
     const dbgRetry = document.getElementById('debugRetry'); if (dbgRetry) dbgRetry.addEventListener('click', ()=>{ fetchData(); });
 
-    // Randomize button: pick a random composer card and open it
-    const randomizeBtn = Array.from(document.querySelectorAll('.cta-add')).find(a=>/randomize/i.test(a.textContent || ''));
-    if (randomizeBtn){
-      randomizeBtn.addEventListener('click', (e)=>{
+    // Randomize button: pick a random composer and open the results page filtered to that composer
+    const randomizeBtn = Array.from(document.querySelectorAll('.cta-add')).find(a => /randomize/i.test(a.textContent || ''));
+    if (randomizeBtn) {
+      randomizeBtn.addEventListener('click', async (e) => {
         e.preventDefault();
-        (async function(){
-          try{
-            if (!DATA || DATA.length === 0) await fetchData();
-            // ensure results are rendered
-            if (!hasSearched){ hasSearched = true; renderResults(DATA); }
-            // wait a frame for DOM
-            await new Promise(r => requestAnimationFrame(r));
-            const cards = resultsEl.querySelectorAll('.card');
-            if (!cards || cards.length === 0) return;
-            const idx = Math.floor(Math.random() * cards.length);
-            const chosen = cards[idx];
-            // close others
-            cards.forEach(c => { if (c !== chosen) c.classList.remove('open'); });
-            chosen.classList.add('open');
-            try{ syncAccordionVisuals(); }catch(e){}
-            // scroll into view smoothly and center
-            chosen.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }catch(err){ console.error('Randomize failed', err); }
-        })();
+        try {
+          if (!DATA || DATA.length === 0) await fetchData();
+          if (!DATA || DATA.length === 0) return;
+
+          // find a reasonable key for composer name (try common header names, otherwise first column)
+          const sample = DATA.find(r => r && Object.keys(r).length);
+          let nameKey = null;
+          if (sample) {
+            for (const k of Object.keys(sample)) {
+              if (/composer/i.test(k) || /композитор/i.test(k)) { nameKey = k; break; }
+            }
+          }
+          if (!nameKey) nameKey = Object.keys(DATA[0])[0];
+
+          const names = DATA.map(r => (r && r[nameKey]) ? String(r[nameKey]).trim() : '').filter(Boolean);
+          if (!names || names.length === 0) return;
+          const chosen = names[Math.floor(Math.random() * names.length)];
+
+          const url = `/composers-results?q=${encodeURIComponent(chosen)}&random=1`;
+          window.location.href = url;
+        } catch (err) {
+          console.error('Randomize redirect failed', err);
+        }
       });
     }
 
