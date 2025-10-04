@@ -794,8 +794,20 @@
           });
           if (matchRow !== undefined && matchRow !== null){
             if (typeof matchRow === 'object'){
-              if (Array.isArray(matchRow)) colE = matchRow.length > 4 ? matchRow[4] : '';
-              else { const vals = Object.values(matchRow||{}); colE = vals.length > 4 ? vals[4] : ''; }
+              if (Array.isArray(matchRow)) {
+                colE = matchRow.length > 4 ? matchRow[4] : '';
+              } else {
+                // Prefer access by key to ensure we read the 5th column from this row object
+                const keys = Object.keys(matchRow || {});
+                if (keys && keys.length > 4) {
+                  const keyE = keys[4];
+                  colE = matchRow[keyE];
+                } else {
+                  // fallback to values if keys aren't available
+                  const vals = Object.values(matchRow||{});
+                  colE = vals.length > 4 ? vals[4] : '';
+                }
+              }
             } else {
               colE = '';
             }
