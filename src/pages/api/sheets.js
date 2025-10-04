@@ -58,6 +58,7 @@ export async function GET(request) {
   const sheetName = q && q.get('sheet');
   const overrideRange = q && q.get('range');
   const primaryRange = overrideRange || (sheetName ? `${sheetName}!A1:Z1000` : DEFAULT_SHEET_RANGE);
+  const strictRequest = Boolean(sheetName || overrideRange);
   // If callers didn't provide a sheet explicitly and DEFAULT_SHEET_RANGE references 'Sheet1',
   // try a small set of likely renamed tabs (e.g. MusicList) to be tolerant of renames.
   const candidateRanges = [];
@@ -104,6 +105,16 @@ export async function GET(request) {
           try{
             const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: rng });
             const data = await parseRowsToJson(res.data.values || []);
+            // if caller requested a specific sheet/range, be strict: ensure the returned data looks like CompDet
+            if (strictRequest){
+              const sample = Array.isArray(data) && data.length ? data[0] : null;
+              const keys = sample ? Object.keys(sample).map(k=>String(k||'').toLowerCase()) : [];
+              const hasCompLike = keys.some(k=> ['lifespan','composer','композитор','learn more','learnmore','native'].includes(k));
+              if (!hasCompLike){
+                lastErr = new Error('Requested sheet did not contain CompDet-like headers');
+                break; // don't try other fallbacks when strict
+              }
+            }
             return jsonResponse(data, 200, rng);
           }catch(errRange){ lastErr = errRange; /* try next */ }
         }
@@ -119,7 +130,7 @@ export async function GET(request) {
     }
   }
 
-  try {
+      try {
     const keyPath = path.resolve('./secrets/service-account.json');
     if (fs.existsSync(keyPath)) {
       const auth = new google.auth.GoogleAuth({
@@ -132,6 +143,12 @@ export async function GET(request) {
         try{
           const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: rng });
           const data = await parseRowsToJson(res.data.values || []);
+            if (strictRequest){
+              const sample = Array.isArray(data) && data.length ? data[0] : null;
+              const keys = sample ? Object.keys(sample).map(k=>String(k||'').toLowerCase()) : [];
+              const hasCompLike = keys.some(k=> ['lifespan','composer','композитор','learn more','learnmore','native'].includes(k));
+              if (!hasCompLike){ lastErr = new Error('Requested sheet did not contain CompDet-like headers'); break; }
+            }
           return jsonResponse(data, 200, rng);
         }catch(errRange){ lastErr = errRange; }
       }
@@ -153,6 +170,12 @@ export async function GET(request) {
       }
       const json = await res.json();
       const data = await parseRowsToJson(json.values || []);
+      if (strictRequest){
+        const sample = Array.isArray(data) && data.length ? data[0] : null;
+        const keys = sample ? Object.keys(sample).map(k=>String(k||'').toLowerCase()) : [];
+        const hasCompLike = keys.some(k=> ['lifespan','composer','композитор','learn more','learnmore','native'].includes(k));
+        if (!hasCompLike) return jsonResponse({ error: 'SHEET_CONTENT_MISMATCH', message: 'Requested sheet did not appear to contain CompDet headers' }, 422, primaryRange);
+      }
       return jsonResponse(data, 200, primaryRange);
     } catch (err) {
       return jsonResponse({ error: 'Failed to fetch via API key', message: String(err) }, 502, primaryRange);
@@ -168,7 +191,7 @@ export async function GET(request) {
     const rangePart = 'A1:Z1000';
     const gvizUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetParam)}&range=${encodeURIComponent(rangePart)}`;
     const gresp = await fetch(gvizUrl);
-    if (gresp && gresp.ok){
+      if (gresp && gresp.ok){
       const text = await gresp.text();
       // response wraps JSON in google.visualization.Query.setResponse(...)
       const m = text.match(/google\.visualization\.Query\.setResponse\((.*)\);?/s);
@@ -179,6 +202,12 @@ export async function GET(request) {
         // build values array with header row first
         const values = [cols, ...rows];
   const data = await parseRowsToJson(values || []);
+  if (strictRequest){
+    const sample = Array.isArray(data) && data.length ? data[0] : null;
+    const keys = sample ? Object.keys(sample).map(k=>String(k||'').toLowerCase()) : [];
+    const hasCompLike = keys.some(k=> ['lifespan','composer','композитор','learn more','learnmore','native'].includes(k));
+    if (!hasCompLike) return jsonResponse({ error: 'SHEET_CONTENT_MISMATCH', message: 'Requested sheet did not appear to contain CompDet headers' }, 422, sheetParam + '!A1:Z1000');
+  }
   return jsonResponse(data, 200, sheetParam + '!A1:Z1000');
       }
     }
