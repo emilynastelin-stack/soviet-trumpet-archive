@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProQuest Results Style</title>
+  <style>
+    :root { --accent:#8b0000; --muted:#6b7280; --bg:#f7f9fc; }
+    * { box-sizing:border-box; }
+    body { padding-bottom:64px; }
+    header { background:white; border-bottom:1px solid #e6e9ef; position:sticky; top:0; z-index:30; }
+    header .container { width:100%; max-width:none; margin:0; padding:12px 20px; }
+    #navEnglish { display:inline-block; padding-left:0; }
+    .container { max-width:1100px; margin:0 auto; padding:20px; }
+    .nav { display:flex; align-items:center; gap:18px; }
+    .logo { font-weight:800; color:var(--accent); font-size:20px; }
+    .nav-english { color:var(--accent); font-weight:800; }
+    .nav-pipe { color:#000; margin:0 8px; }
+    .nav-russian { color:var(--muted); }
+    .lang-toggle { position:relative; display:inline-block; margin-right:12px; }
+    .lang-btn { background:transparent; border:1px solid #e6e9ef; padding:6px 8px; border-radius:6px; cursor:pointer; font-weight:600; }
+    .lang-dropdown { position:absolute; top:100%; right:0; background:white; border:1px solid #e6e9ef; border-radius:6px; padding:6px; box-shadow:0 6px 18px rgba(16,24,40,0.06); display:none; min-width:140px; }
+    .lang-dropdown.open { display:block; }
+    .lang-option { padding:6px 8px; cursor:pointer; }
+    .lang-option:hover { background:#f3f4f6; }
+    #fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#8b0000; color:white; z-index:60; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
+    .fixed-footer-inner { width:100%; max-width:none; margin:0; padding:0 20px; display:flex; gap:12px; justify-content:space-between; align-items:center; }
+    .footer-left { display:flex; flex-direction:column; transform: translateY(-5px); }
+    .footer-left .title { font-weight:700; color:white; font-size:16px; line-height:1.1; padding:12px 0 0 0; margin-left:0; }
+    .footer-left .subtitle { color:rgba(255,255,255,0.8); font-size:13px; margin-top:0; margin-left:0; padding-left:0; }
+    .fixed-footer-center { flex:1; display:flex; align-items:center; justify-content:center; transform: translateY(-3px); }
+    .fixed-footer-center .links { color:white; font-size:13px; text-align:center; }
+    .fixed-footer-center .links a { color:inherit; text-decoration:none; margin:0 8px; }
+    .fixed-footer-right { display:flex; align-items:center; justify-content:flex-end; min-width:220px; transform: translateY(-3px); }
+    .fixed-footer-right .copyright { color:rgba(255,255,255,0.9); font-size:13px; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: transparent; /* show the overlay behind the page */
+      color: #333;
+    }
+
+    /* Navbar: match composers page height and style */
+    header {
+      background: white;
+      border-bottom: 1px solid #e6e9ef;
+      position: sticky;
+      top: 0;
+        z-index: 40;
+    }
+    header .container { width:100%; max-width:none; margin:0; padding:12px 20px; display:flex; align-items:center; justify-content:space-between; }
+    .logo { font-weight:800; color:var(--accent); font-size:20px; line-height:1; }
+    header h1 { margin:0; font-size:1.5rem; color:var(--accent); }
+
+    .search-bar {
+      background: #e9ecef;
+      opacity: 0.75; /* make the gray search box 75% opaque */
+      padding: 1rem;
+      text-align: center;
+      display:flex;
+      flex-direction:row;
+      align-items:center;
+      gap:8px;
+      justify-content:center;
+        position: relative;
+        z-index: 42; /* make sure search bar sits above background overlay */
+    }
+    .search-bar input {
+      width: 60%;
+      padding: 0.5rem;
+      font-size: 1rem;
+    }
+    .search-bar button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      margin-left: .5rem;
+      background: var(--accent); /* maroon */
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    .container {
+      display: grid;
+  /* left filters, main results, right composer box (composer box widened to align with search button) */
+  grid-template-columns: 250px 1fr 420px;
+      gap: 1rem;
+      /* full-bleed container so left column (filters) sits flush to viewport left */
+      padding: 1rem 10px 1rem 0;
+      position: relative;
+      z-index: 10; /* put main content above the background overlay */
+      max-width: none;
+      margin: 0;
+      width: 100%;
+    }
+
+    .filters {
+      background: #fffff7;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(16,24,40,0.12);
+      /* previously offset from the viewport edge; removed margin so headings/dividers align with other boxes */
+      margin-left: 0;
+    }
+    .filters h3 {
+      /* legacy rule - headings now use .section-header for consistent Results-style headings */
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .filters label {
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+    .list-title { color: #000; font-weight:700; margin-bottom:6px; font-size:0.95rem; }
+
+    .results {
+      background: #fffff7;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(16,24,40,0.12);
+    }
+
+    /* Right-hand composer box (matches filters box style) */
+    .composer-box {
+      background: #fffff7;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(16,24,40,0.12);
+      margin-right: 0; /* flush to the right column edge */
+    }
+    /* composer link (clickable composer names) should be maroon to match site accent */
+    .composer-link { color: var(--accent); font-weight:700; text-decoration:none; }
+    .composer-link:hover { text-decoration:underline; }
+  .composer-box h3 { font-size:1rem; margin-bottom:0.5rem; }
+
+  /* Shared section header that matches the Results header (color, size, line-height) */
+  .section-header { margin:0; padding:0; color:var(--accent); font-size:1.125rem; font-weight:700; line-height:1; }
+  /* force identical spacing for headings inside the three primary boxes so dividers align */
+  .results > .results-header > .section-header,
+  .filters > .section-header,
+  .composer-box > div > .section-header { display:block; margin:0; padding:0; font-size:1.125rem; line-height:1; }
+  /* nudge the Filters heading slightly lower for perfect alignment */
+  .filters > .section-header { transform: translateY(3px); }
+  .section-divider { border-bottom:1px solid #e6e9ef; margin-top:8px; margin-bottom:12px; }
+  /* nudge only the Filters box divider down slightly to match visual alignment */
+  .filters > .section-divider { transform: translateY(3px); }
+    .pagination { display:flex; gap:8px; align-items:center; justify-content:center; margin-top:12px; }
+    .pagination button { padding:6px 10px; border-radius:6px; border:1px solid #d1d5db; background:white; cursor:pointer; }
+    .pagination button.active { background:var(--accent); color:white; border-color:var(--accent); }
+    .result-item {
+      border-bottom: 1px solid #e6e9ef; /* subtle gray divider between entries */
+      padding: 1rem 0;
+    }
+    .result-item:last-child {
+      border-bottom: none;
+    }
+    .result-item h2 {
+      font-size: 1.2rem;
+      margin: 0;
+      color: #004d7a;
+      cursor: pointer;
+    }
+    .result-item p {
+      margin: 0.25rem 0;
+    }
+
+    /* Make bold text maroon to match site accent */
+    strong, .filters h3 strong { color: var(--accent); font-weight:700; }
+
+    footer {
+      background: #004d7a;
+      color: white;
+      text-align: center;
+      padding: 1rem;
+      margin-top: 2rem;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- background overlay (copied from front page) -->
+  <div id="bg-overlay" aria-hidden="true">
+    <img id="bg-img" src="/assets/bg-K13qQAs.png" alt="" />
+  </div>
+
+  <!-- Background adjustment control (visible for quick tweaks) -->
+  <div id="bg-adjust-control" aria-hidden="false">
+    <button id="bg-up" title="Move background up">▲</button>
+    <div id="bg-value">18</div>
+    <button id="bg-down" title="Move background down">▼</button>
+    <button id="bg-reset" title="Reset background">Reset</button>
+  </div>
+
+  <style>
+  /* make the background overlay cover the viewport and sit behind content but above page background */
+  #bg-overlay { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+  #bg-overlay img { position:absolute; left:0; top:0; width:100vw; height:100vh; object-fit:cover; will-change:left,top,width,height; }
+    #bg-adjust-control{position:fixed;left:12px;bottom:80px;z-index:80;background:rgba(255,255,255,0.95);border:1px solid #e6e9ef;padding:6px 8px;border-radius:8px;display:flex;gap:6px;align-items:center;box-shadow:0 6px 18px rgba(16,24,40,0.08)}
+    #bg-adjust-control button{background:#fff;border:1px solid #d1d5db;padding:6px;border-radius:6px;cursor:pointer}
+    #bg-adjust-control #bg-value{min-width:36px;text-align:center;font-weight:600}
+    @media (max-width:600px){ #bg-adjust-control{left:8px;bottom:92px} }
+  </style>
+
+  <script>
+    (function(){
+      // Image natural dimensions and the focal point in image coordinates
+      const IMG_W = 1920, IMG_H = 1080;
+      const FOCUS_X = 955, FOCUS_Y = 325;
+      const img = document.getElementById('bg-img');
+      const overlay = document.getElementById('bg-overlay');
+      if (!img || !overlay) return;
+
+      // tweak this value (px) to nudge the background vertically: positive moves it down
+      // read saved value from localStorage so adjustments persist
+      const BG_Y_ADJUST_KEY = 'bg_y_adjust';
+      let BG_Y_ADJUST = (function(){
+        try{ const v = parseInt(localStorage.getItem(BG_Y_ADJUST_KEY)); return Number.isFinite(v) ? v : 18; }catch(e){ return 18; }
+      })();
+  let _pending = false;
+      function applyFocus(){
+        if (_pending) return;
+        _pending = true;
+        requestAnimationFrame(()=>{
+          try{
+            // make the background flush to all viewport corners
+            const vw = Math.max(window.innerWidth || document.documentElement.clientWidth, 0);
+            const vh = Math.max(window.innerHeight || document.documentElement.clientHeight, 0);
+            img.style.width = vw + 'px';
+            img.style.height = vh + 'px';
+            img.style.left = '0px';
+            // allow a small saved vertical nudge while keeping the image covering the viewport
+            img.style.top = (typeof BG_Y_ADJUST === 'number' ? BG_Y_ADJUST : 0) + 'px';
+          }catch(e){
+            console.error('applyFocus error', e);
+          }finally{
+            _pending = false;
+          }
+        });
+      }
+
+      // re-run on resize and when image loads; also run on window load and when fonts/images settle
+      img.addEventListener('load', applyFocus);
+      window.addEventListener('resize', applyFocus);
+      // Run once on window load to ensure layout is stable
+      window.addEventListener('load', ()=>{ setTimeout(applyFocus, 80); });
+      // If the page uses the Font Loading API, re-run when fonts are ready
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(()=> setTimeout(applyFocus, 60)).catch(()=>{});
+      }
+      // run shortly after load in case other layout shifts occur
+      setTimeout(applyFocus, 250);
+      // initial apply
+      if (img.complete) applyFocus();
+      else setTimeout(()=>{ if(img.complete) applyFocus(); }, 200);
+    })();
+  </script>
+
+  <script>
+    // Wire up the BG adjust controls to persist and re-run applyFocus
+    (function(){
+      const up = document.getElementById('bg-up');
+      const down = document.getElementById('bg-down');
+      const val = document.getElementById('bg-value');
+      const reset = document.getElementById('bg-reset');
+      if (!up || !down || !val || !reset) return;
+      function read(){ return (function(){ try{ const v = parseInt(localStorage.getItem('bg_y_adjust')); return Number.isFinite(v) ? v : 18; }catch(e){ return 18; } })(); }
+      function write(v){ try{ localStorage.setItem('bg_y_adjust', String(v)); }catch(e){} }
+      function updateDisplay(){ const n = read(); val.textContent = n; window.dispatchEvent(new Event('resize')); setTimeout(()=>{ try{ document.querySelector('#bg-img') && document.querySelector('#bg-img').dispatchEvent(new Event('load')); }catch(e){} }, 60); }
+      up.addEventListener('click', ()=>{ const n = read() - 1; write(n); updateDisplay(); });
+      down.addEventListener('click', ()=>{ const n = read() + 1; write(n); updateDisplay(); });
+      reset.addEventListener('click', ()=>{ write(18); updateDisplay(); });
+      // init
+      val.textContent = read();
+    })();
+  </script>
+
+  <header>
+    <div class="container nav" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="logo">
+        <span class="nav-english" id="navEnglish">Archive of Soviet Trumpet Music</span>
+        <span class="nav-pipe">|</span>
+        <span class="nav-russian" id="navRussian">Архив советской трубной музыки</span>
+      </div>
+      <div class="lang-toggle" id="langToggle">
+        <button class="lang-btn" id="langBtn">EN ▾</button>
+        <div class="lang-dropdown" id="langDropdown">
+          <div class="lang-option" data-locale="en">English</div>
+          <div class="lang-option" data-locale="de">Deutsch</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+<div class="search-bar">
+  <input id="qinput" type="text" placeholder="Search ProQuest...">
+  <button id="qbtn">Search</button>
+</div>
+
+<!-- pagination controls will be injected inside the results box so the right edge can align with the results column -->
+
+<div class="container">
+  <aside class="filters">
+    <h3 class="section-header"><strong>Filters</strong></h3>
+    <div class="section-divider"></div>
+  <h4 class="section-header" style="font-weight:600;margin-top:6px;margin-bottom:6px;"><strong>Country</strong></h4>
+  <div class="section-divider"></div>
+  <div id="filter-country" style="margin-bottom:12px;">&nbsp;</div>
+
+  <h4 class="section-header" style="font-weight:600;margin-top:6px;margin-bottom:6px;"><strong>Decade</strong></h4>
+  <div class="section-divider"></div>
+    <div id="filter-decade" style="margin-bottom:12px;">&nbsp;</div>
+
+    <h4 class="section-header" style="font-weight:600;margin-top:6px;margin-bottom:6px;"><strong>Type of piece</strong></h4>
+    <div class="section-divider"></div>
+    <div id="filter-type" style="margin-bottom:12px;">&nbsp;</div>
+  </aside>
+
+  <main class="results" id="results">
+    <div class="results-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <h3 class="section-header">Results</h3>
+      <div id="results-pagination-top" style="display:flex;align-items:center;justify-content:flex-end;"></div>
+    </div>
+    <div class="section-divider"></div>
+    <div id="results-list">
+      <div class="result-item"><em>Loading results…</em></div>
+    </div>
+  </main>
+
+  <aside class="composer-box" id="composer-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <h3 class="section-header">Composer</h3>
+      <div style="margin-left:auto;">
+        <button id="clear-composer" style="display:none;padding:6px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear composer</button>
+      </div>
+    </div>
+    <div class="section-divider"></div>
+    <div id="composer-content" style="margin-top:8px;">Select a result to view composer details.</div>
+  </aside>
+</div>
+
+  <!-- Fixed footer bar locked to viewport (shared with main site) -->
+  <div id="fixed-footer" aria-hidden="false" role="contentinfo">
+    <div class="fixed-footer-inner">
+      <div class="footer-left">
+        <div class="title">Archive of Soviet Trumpet Music</div>
+        <div class="subtitle">Архив советской трубной музыки</div>
+      </div>
+      <div class="fixed-footer-center">
+        <div class="links">
+          <a href="/about">About</a>
+          <a href="#">Contact</a>
+          <a href="#">Help</a>
+        </div>
+      </div>
+      <div class="fixed-footer-right">
+        <div class="copyright">© 2025 Archive of Soviet Trumpet Music</div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // populate the search input from query param and match front-page placeholder
+  const params = new URLSearchParams(window.location.search);
+  const q = params.get('q') || '';
+  const qinput = document.getElementById('qinput');
+  qinput.placeholder = 'Search composers, countries, or pieces...';
+  qinput.value = decodeURIComponent(q);
+
+  // language toggle: simple behavior to set locale and reload
+  const langBtn = document.getElementById('langBtn');
+  const langDropdown = document.getElementById('langDropdown');
+  if (langBtn && langDropdown){
+    langBtn.addEventListener('click', ()=>{ langDropdown.classList.toggle('open'); langBtn.setAttribute('aria-expanded', String(langDropdown.classList.contains('open'))); });
+    langDropdown.addEventListener('click', (e)=>{ const opt = e.target.closest('.lang-option'); if (!opt) return; const locale = opt.dataset.locale; try{ localStorage.setItem('locale', locale); }catch(e){} window.location.reload(); });
+    document.addEventListener('click', (e)=>{ if (!langBtn.contains(e.target) && !langDropdown.contains(e.target)) langDropdown.classList.remove('open'); });
+  }
+
+  function normalize(s){ if(!s) return ''; try{ return s.toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase(); }catch(e){ return s.toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); } }
+
+  // pagination state
+  const PAGE_SIZE = 25;
+  let currentPage = 1;
+  let lastFiltered = [];
+  let selectedComposer = '';
+  // live update state
+  let lastRowsJson = null;
+  const POLL_INTERVAL = 30000; // 30s
+  let liveTimer = null;
+
+  // populate country checkboxes from translations (canonical EN list + localized labels)
+  async function populateCountryCheckboxes(){
+    const container = document.getElementById('filter-country');
+    if (!container) return;
+    // fallback canonical list
+    const fallbackCountries = ['Russia','Ukraine','Belarus','Armenia','Georgia','Latvia','Estonia','Lithuania','Kazakhstan','Uzbekistan','Other'];
+    try{
+      const res = await fetch('/i18n/translations.json');
+      const json = await res.json();
+      const en = json && json.en ? json.en : null;
+      const canonical = en && en.countries ? en.countries : fallbackCountries;
+      // determine locale for localized labels
+      const locale = (function(){ try{ return localStorage.getItem('locale') || 'en'; }catch(e){ return 'en'; } })();
+      const localized = (json && json[locale] && json[locale].countries) ? json[locale].countries : canonical;
+      // build title + checkbox list; controls will be placed at the bottom
+  container.innerHTML = '';
+      // build checkbox list
+      for (let i=0;i<canonical.length;i++){
+        const val = canonical[i];
+        const lab = (localized && localized[i]) ? localized[i] : val;
+        const id = 'country_cb_' + i;
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" /> ${lab}</label>`;
+        container.appendChild(wrapper);
+      }
+      // build controls (Select All / Clear) placed at bottom
+      const controls = document.createElement('div');
+      controls.style.marginTop = '8px';
+      controls.innerHTML = `<button id="country-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="country-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`;
+      container.appendChild(controls);
+      // attach change handler to all checkboxes
+      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ currentPage = 1; loadResults(); }));
+      // wire select all / clear
+      const selAll = document.getElementById('country-select-all');
+      const clr = document.getElementById('country-clear');
+      if (selAll) selAll.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
+      if (clr) clr.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
+    }catch(e){
+      // fallback: render simple list + controls
+  container.innerHTML = fallbackCountries.map((c,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(c)}" id="country_cb_f${i}" /> ${c}</label>`).join('');
+  const controlsWrap = document.createElement('div');
+  controlsWrap.style.marginTop = '8px';
+  controlsWrap.innerHTML = `<button id="country-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="country-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`;
+  container.appendChild(controlsWrap);
+      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ currentPage = 1; loadResults(); }));
+      const selAll = document.getElementById('country-select-all');
+      const clr = document.getElementById('country-clear');
+      if (selAll) selAll.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
+      if (clr) clr.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
+    }
+  }
+
+  // populate decades checkboxes from translations
+  async function populateDecadeCheckboxes(){
+    const container = document.getElementById('filter-decade');
+    if (!container) return;
+    const fallbackDecades = ['1920s','1930s','1940s','1950s','1960s','1970s','1980s'];
+    try{
+      const res = await fetch('/i18n/translations.json');
+      const json = await res.json();
+      const en = json && json.en ? json.en : null;
+      const canonical = en && en.decades ? en.decades : fallbackDecades;
+      const locale = (function(){ try{ return localStorage.getItem('locale') || 'en'; }catch(e){ return 'en'; } })();
+      const localized = (json && json[locale] && json[locale].decades) ? json[locale].decades : canonical;
+      // title + checkbox list; put controls at the bottom
+      container.innerHTML = '';
+      const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Decade'; container.appendChild(title);
+      for (let i=0;i<canonical.length;i++){
+        const val = canonical[i];
+        const lab = (localized && localized[i]) ? localized[i] : val;
+        const id = 'decade_cb_' + i;
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" /> ${lab}</label>`;
+        container.appendChild(wrapper);
+      }
+      const controls = document.createElement('div'); controls.style.marginTop = '8px'; controls.innerHTML = `<button id="decade-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="decade-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controls);
+      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ currentPage = 1; loadResults(); }));
+      const selAll = document.getElementById('decade-select-all');
+      const clr = document.getElementById('decade-clear');
+      if (selAll) selAll.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
+      if (clr) clr.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
+    }catch(e){
+      container.innerHTML = '';
+      const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Decade'; container.appendChild(title);
+      container.innerHTML += fallbackDecades.map((d,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(d)}" id="decade_cb_f${i}" /> ${d}</label>`).join('');
+      const controlsWrap = document.createElement('div'); controlsWrap.style.marginTop = '8px'; controlsWrap.innerHTML = `<button id="decade-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="decade-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controlsWrap);
+      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ currentPage = 1; loadResults(); }));
+    }
+  }
+
+  // populate type-of-piece checkboxes by deriving unique types from the sheets if translations do not provide them
+  async function populateTypeCheckboxes(){
+    const container = document.getElementById('filter-type');
+    if (!container) return;
+    container.innerHTML = '';
+    try{
+      // try translations first
+      const resT = await fetch('/i18n/translations.json');
+      const jsonT = await resT.json();
+      const en = jsonT && jsonT.en ? jsonT.en : null;
+      const canonicalTypes = en && en.types ? en.types : null;
+      if (canonicalTypes && canonicalTypes.length){
+        const localized = (jsonT && jsonT[(localStorage.getItem('locale')||'en')] && jsonT[(localStorage.getItem('locale')||'en')].types) ? jsonT[(localStorage.getItem('locale')||'en')].types : canonicalTypes;
+        // title + checkboxes, controls at bottom
+        container.innerHTML = '';
+        const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Type of piece'; container.appendChild(title);
+        canonicalTypes.forEach((val,i)=>{
+          const lab = localized && localized[i] ? localized[i] : val;
+          const id = 'type_cb_' + i;
+          const wrapper = document.createElement('div');
+          wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" /> ${lab}</label>`;
+          container.appendChild(wrapper);
+        });
+        const controls = document.createElement('div'); controls.style.marginTop = '8px'; controls.innerHTML = `<button id="type-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="type-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controls);
+        container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ currentPage = 1; loadResults(); }));
+        const selAll = document.getElementById('type-select-all');
+        const clr = document.getElementById('type-clear');
+        if (selAll) selAll.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
+        if (clr) clr.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
+        return;
+      }
+      // otherwise derive types from the sheets
+      const res = await fetch('/api/sheets');
+      const rows = await res.json();
+      const set = new Set();
+      rows.forEach(r => { const t = r.Type || r.type || r['Type of piece'] || r['Type'] || ''; if (t) set.add(String(t).trim()); });
+      const list = Array.from(set).sort();
+      container.innerHTML = '';
+      const titleDyn = document.createElement('div'); titleDyn.className = 'list-title'; titleDyn.textContent = 'Type of piece'; container.appendChild(titleDyn);
+      const controls = document.createElement('div'); controls.style.marginTop = '8px'; controls.innerHTML = `<button id="type-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="type-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controls);
+      list.forEach((val,i)=>{
+        const id = 'type_cb_dyn_' + i;
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" /> ${val}</label>`;
+        container.appendChild(wrapper);
+      });
+      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ currentPage = 1; loadResults(); }));
+      const selAll = document.getElementById('type-select-all');
+      const clr = document.getElementById('type-clear');
+      if (selAll) selAll.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
+      if (clr) clr.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
+    }catch(e){
+      // best-effort fallback
+      container.innerHTML = '';
+    }
+  }
+
+  function renderPage(page){
+    const container = document.getElementById('results-list');
+    container.innerHTML = '';
+    const start = (page - 1) * PAGE_SIZE;
+    const pageItems = lastFiltered.slice(start, start + PAGE_SIZE);
+    if (!pageItems.length) { container.innerHTML = '<div class="result-item">No results</div>'; return; }
+    pageItems.forEach(r =>{
+      const div = document.createElement('div');
+      div.className = 'result-item';
+      const title = (r.Title || r.Compositions || 'Untitled');
+      const author = r['Composer'] || r.Composer || 'Unknown';
+      const published = r.Year || r.Published || r.Decade || '';
+      // remove snippet/source (column J) from display per request
+      const snippet = '';
+      // composer name is clickable
+      const composerEsc = escapeHtml(author);
+      const composerData = encodeURIComponent(String(author || ''));
+      div.innerHTML = `<h2>${escapeHtml(title)}</h2><p><strong>Composer:</strong> <a href="#" class="composer-link" data-name="${composerData}">${composerEsc}</a></p><p><strong>Published:</strong> ${escapeHtml(published)}</p>`;
+      container.appendChild(div);
+      // attach click handler for composer link
+      const link = div.querySelector('.composer-link');
+      if (link){
+        link.addEventListener('click', (e)=>{
+          e.preventDefault();
+          const name = decodeURIComponent(link.dataset.name || '');
+          // populate composer box and set filter
+          selectedComposer = name || '';
+          populateComposerBox(name, r);
+          currentPage = 1;
+          loadResults();
+        });
+      }
+    });
+    renderPagination(Math.ceil(lastFiltered.length / PAGE_SIZE), page);
+  }
+
+  function renderPagination(pageCount, active){
+    // remove existing pagination if any
+    let pag = document.getElementById('pagination');
+    if (pag) pag.remove();
+  // create pagination container inside the results header top area
+  const pagRoot = document.getElementById('results-pagination-top');
+  const resultsEl = document.getElementById('results');
+  if (!resultsEl || !pagRoot) return;
+    pag = document.createElement('div');
+    pag.id = 'pagination';
+    pag.className = 'pagination';
+    // if there is exactly one page, show a '1 of 1' placeholder aligned to the right
+    // helper to clear search and all filters
+    function clearAllFilters(){
+      try{
+        // clear search
+        if (qinput) qinput.value = '';
+        // clear selected composer and composer box
+        selectedComposer = '';
+        const clearComposerBtn = document.getElementById('clear-composer'); if (clearComposerBtn) clearComposerBtn.style.display = 'none';
+        const composerContent = document.getElementById('composer-content'); if (composerContent) composerContent.innerHTML = 'Select a result to view composer details.';
+        // uncheck all filter checkboxes
+        document.querySelectorAll('#filter-country input[type=checkbox], #filter-decade input[type=checkbox], #filter-type input[type=checkbox]').forEach(cb=> cb.checked = false);
+        // reset pagination and reload
+        currentPage = 1;
+        loadResults();
+      }catch(e){ console.error('clearAllFilters failed', e); }
+    }
+
+    if (pageCount === 1) {
+      pagRoot.innerHTML = '';
+      // create container with placeholder and clear button
+      const phWrap = document.createElement('div');
+      phWrap.style.display = 'flex';
+      phWrap.style.alignItems = 'center';
+      phWrap.style.gap = '8px';
+      phWrap.style.justifyContent = 'flex-end';
+      const placeholder = document.createElement('div');
+      placeholder.style.color = '#6b7280';
+      placeholder.style.paddingRight = '6px';
+      placeholder.textContent = '1 of 1';
+      const clearBtn = document.createElement('button');
+      clearBtn.textContent = 'Clear all filters';
+      clearBtn.style.padding = '6px 10px';
+      clearBtn.style.borderRadius = '6px';
+      clearBtn.style.border = '1px solid #d1d5db';
+      clearBtn.style.background = '#fff';
+      clearBtn.addEventListener('click', clearAllFilters);
+      phWrap.appendChild(placeholder);
+      phWrap.appendChild(clearBtn);
+      // Live toggle
+      const liveToggle = document.createElement('button');
+      liveToggle.textContent = 'Live: Off';
+      liveToggle.style.marginLeft = '8px';
+      liveToggle.style.padding = '6px 10px';
+      liveToggle.style.borderRadius = '6px';
+      liveToggle.addEventListener('click', ()=>{ if (liveTimer) { stopLiveUpdates(); liveToggle.textContent='Live: Off'; } else { startLiveUpdates(); liveToggle.textContent='Live: On'; } });
+      phWrap.appendChild(liveToggle);
+      pagRoot.appendChild(phWrap);
+      return;
+    }
+
+  pag = document.createElement('div');
+  pag.id = 'pagination';
+  pag.className = 'pagination';
+    // prev
+    const prev = document.createElement('button'); prev.textContent = 'Prev'; prev.disabled = active === 1; prev.addEventListener('click', ()=>{ if (currentPage>1){ currentPage--; renderPage(currentPage); window.scrollTo({top:0,behavior:'smooth'}); }});
+    pag.appendChild(prev);
+    // page numbers (limit shown if many)
+    const maxButtons = 7;
+    const half = Math.floor(maxButtons/2);
+    let start = Math.max(1, active - half);
+    let end = Math.min(pageCount, start + maxButtons -1);
+    if (end - start < maxButtons -1) start = Math.max(1, end - maxButtons +1);
+    for (let i=start;i<=end;i++){
+      const b = document.createElement('button'); b.textContent = String(i); if (i===active) b.classList.add('active'); b.addEventListener('click', ()=>{ currentPage = i; renderPage(currentPage); window.scrollTo({top:0,behavior:'smooth'}); }); pag.appendChild(b);
+    }
+    // next
+    const next = document.createElement('button'); next.textContent = 'Next'; next.disabled = active >= pageCount; next.addEventListener('click', ()=>{ if (currentPage<pageCount){ currentPage++; renderPage(currentPage); window.scrollTo({top:0,behavior:'smooth'}); }});
+    pag.appendChild(next);
+    // place pagination inside the results element and align to the right edge of the results box
+    // clear any existing pagination top content and insert the new pagination & Clear button
+    pagRoot.innerHTML = '';
+    const topWrap = document.createElement('div');
+    topWrap.style.display = 'flex';
+    topWrap.style.alignItems = 'center';
+    topWrap.style.gap = '8px';
+    topWrap.style.justifyContent = 'flex-end';
+    // Clear button
+    const clearBtn2 = document.createElement('button');
+    clearBtn2.textContent = 'Clear all filters';
+    clearBtn2.style.padding = '6px 10px';
+    clearBtn2.style.borderRadius = '6px';
+    clearBtn2.style.border = '1px solid #d1d5db';
+    clearBtn2.style.background = '#fff';
+    clearBtn2.addEventListener('click', clearAllFilters);
+    topWrap.appendChild(clearBtn2);
+    // Live toggle button
+    const liveToggle2 = document.createElement('button');
+    liveToggle2.textContent = liveTimer ? 'Live: On' : 'Live: Off';
+    liveToggle2.style.marginRight = '8px';
+    liveToggle2.style.padding = '6px 10px';
+    liveToggle2.style.borderRadius = '6px';
+    liveToggle2.addEventListener('click', ()=>{ if (liveTimer) { stopLiveUpdates(); liveToggle2.textContent='Live: Off'; } else { startLiveUpdates(); liveToggle2.textContent='Live: On'; } });
+    topWrap.appendChild(liveToggle2);
+    topWrap.appendChild(pag);
+    pagRoot.appendChild(topWrap);
+  }
+
+  async function pollOnce(){
+    try{
+      const res = await fetch('/api/sheets');
+      const rows = await res.json();
+      const rowsJson = JSON.stringify(rows);
+      if (lastRowsJson !== rowsJson){
+        lastRowsJson = rowsJson;
+        // refresh results without resetting page
+        loadResults(rows, { resetPage: false });
+      }
+    }catch(e){ console.error('poll failed', e); }
+  }
+
+  function startLiveUpdates(){
+    if (liveTimer) return;
+    liveTimer = setInterval(pollOnce, POLL_INTERVAL);
+    // run once immediately
+    pollOnce();
+  }
+
+  function stopLiveUpdates(){ if (!liveTimer) return; clearInterval(liveTimer); liveTimer = null; }
+
+  // loadResults optionally accepts rows (pre-fetched) and an options object { resetPage: true }
+  async function loadResults(rowsParam, options = { resetPage: true }){
+    try{
+      const rows = rowsParam || await (await fetch('/api/sheets')).json();
+      const qv = normalize(qinput.value || '');
+  // read selected countries
+  const checked = Array.from(document.querySelectorAll('#filter-country input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
+  // read selected decades
+  const checkedDecades = Array.from(document.querySelectorAll('#filter-decade input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
+  // read selected types
+  const checkedTypes = Array.from(document.querySelectorAll('#filter-type input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
+  lastFiltered = rows.filter(r => {
+        if (qv && !normalize(Object.values(r||{}).join(' ')).includes(qv)) return false;
+        if (selectedComposer){
+          const comp = (r['Composer'] || r.Composer || '').toString();
+          if (!normalize(comp).includes(normalize(selectedComposer))) return false;
+        }
+        if (checked.length){
+          const countryVal = normalize(r.Country || r.Nationality || '');
+          // match if any selected country appears in the country field
+          const matches = checked.some(sel => normalize(sel) && countryVal.includes(normalize(sel)));
+          if (!matches) return false;
+        }
+        if (checkedDecades.length){
+          const decadeVal = normalize(r.Decade || r.Year || '');
+          const matches = checkedDecades.some(sel => normalize(sel) && decadeVal.includes(normalize(sel)));
+          if (!matches) return false;
+        }
+        if (checkedTypes.length){
+          const typeVal = normalize(r.Type || r.type || r['Type of piece'] || r['Type'] || '');
+          const matches = checkedTypes.some(sel => normalize(sel) && typeVal.includes(normalize(sel)));
+          if (!matches) return false;
+        }
+        return true;
+      });
+      if (options && options.resetPage) currentPage = 1;
+      renderPage(currentPage);
+    }catch(e){ document.getElementById('results').innerText = 'Load failed: ' + String(e); }
+  }
+
+  function populateComposerBox(name, row){
+    const box = document.getElementById('composer-box');
+    const content = document.getElementById('composer-content');
+    const clearBtn = document.getElementById('clear-composer');
+    if (!content) return;
+    if (!name){ content.innerHTML = 'Select a result to view composer details.'; return; }
+    // basic composer info from the clicked row (if provided) or from the dataset
+    const title = escapeHtml(name);
+    const nationality = escapeHtml(row && (row.Nationality || row.Country) ? (row.Nationality || row.Country) : '');
+    const born = escapeHtml(row && (row.Born || row['Year']) ? (row.Born || row['Year']) : '');
+    let comps = '';
+    try{ if (row && row.Compositions) comps = escapeHtml(row.Compositions); }catch(e){}
+  // determine column-based values: Column B (index 1), Column C (index 2), Column M (index 12), Column N (index 13), Column O (index 14)
+  const keys = row ? Object.keys(row) : [];
+  const colBKey = keys[1];
+  const colCKey = keys[2];
+  const colMKey = keys[12];
+  const colNKey = keys[13];
+  const colOKey = keys[14];
+  const colBVal = colBKey ? (row[colBKey] || '') : '';
+  const colCVal = colCKey ? (row[colCKey] || '') : '';
+  // Use the cell value from column M of this row as the label for column C's value
+  // (previously we used the key/header name; now we use the row-specific value)
+  const colMLabel = colMKey ? (row[colMKey] || '') : '';
+  const colNVal = colNKey ? (row[colNKey] || '') : '';
+  const colOVal = colOKey ? (row[colOKey] || '') : '';
+
+    let extraHtml = '';
+    // Russian: value from column B
+    if (colBVal) extraHtml += `<p><strong>Russian:</strong> ${escapeHtml(colBVal)}</p>`;
+    // second line: label from column M (the cell value), value from column C — only if column C has a value
+    if (colCVal) {
+      let label = colMLabel ? String(colMLabel).trim() : '';
+      // remove trailing colon if present in the cell value
+      if (label.endsWith(':')) label = label.slice(0, -1).trim();
+      const dispLabel = label ? escapeHtml(label) : '';
+      extraHtml += `<p><strong>${dispLabel}:</strong> ${escapeHtml(colCVal)}</p>`;
+    }
+
+  // If column N has a value, display it directly under the composer's name (small, muted)
+  // render column N with bottom margin so a visible gap appears before subsequent lines
+  const colNHtml = colNVal ? `<div style="margin-top:4px;margin-bottom:8px;color:#6b7280;font-size:0.95rem">${escapeHtml(colNVal)}</div>` : '';
+  // render column O as a 'Learn more' link beneath the column M/C data if present
+  const safeHref = colOVal ? escapeHtml(String(colOVal).trim()) : '';
+  const learnMoreHtml = safeHref ? `<div style="margin-top:8px;"><a href="${safeHref}" target="_blank" rel="noopener noreferrer">Learn more</a></div>` : '';
+  content.innerHTML = `<div><strong style="color:var(--accent)">${title}</strong>${colNHtml}<div class="muted">${nationality}</div>${extraHtml}${learnMoreHtml}<div style="margin-top:8px;">${comps}</div></div>`;
+    if (clearBtn) { clearBtn.style.display = 'inline-block'; clearBtn.onclick = ()=>{ selectedComposer = ''; if (clearBtn) clearBtn.style.display='none'; populateComposerBox('', null); currentPage = 1; loadResults(); }; }
+  }
+
+  function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  document.getElementById('qbtn').addEventListener('click', ()=>{ loadResults(); });
+  // trigger search on Enter key in input
+  qinput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { e.preventDefault(); loadResults(); } });
+
+  // initial load
+  window.addEventListener('load', async ()=>{ await populateCountryCheckboxes(); await populateDecadeCheckboxes(); await populateTypeCheckboxes(); loadResults(); });
+  document.getElementById('qinput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') loadResults(); });
+
+  // initial load
+  loadResults();
+</script>
+
+</body>
+</html>

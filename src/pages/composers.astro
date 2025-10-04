@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Soviet Trumpet Archive</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Server-side frontmatter notes (Astro) -->
+  <!--
+    FRONTMATTER: fetch initial rows from /api/sheets if available
+    Use Astro server-side fetch to preload DATA during page render.
+    If your dev server blocks internal requests, this can fail silently.
+  -->
+
+  <style>
+    :root { --accent:#8b0000; --muted:#6b7280; --bg:#f7f9fc; }
+    * { box-sizing:border-box; }
+    body {
+      font-family: Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      margin: 0;
+      color: #0f172a;
+      background-color: var(--bg);
+      background-image: none;
+      padding-bottom: 64px; /* reserve space for fixed footer */
+    }
+
+    header {
+      background:white; 
+      border-bottom:1px solid #e6e9ef; 
+      position:sticky; 
+      top:0; 
+      z-index:30;
+    }
+
+  /* Header: span full width so title can be flush left; language selector sits flush right via flex */
+  header .container { width:100%; max-width:none; margin:0; padding:12px 20px; }
+  /* top title absolutely flush left (no left padding) */
+  #navEnglish { display:inline-block; padding-left:0; }
+    .container { max-width:1100px; margin:0 auto; padding:20px; }
+
+    .nav { display:flex; align-items:center; gap:18px; }
+    .logo { font-weight:800; color:var(--accent); font-size:20px; }
+    .nav-english { color:var(--accent); font-weight:800; }
+    .nav-pipe { color:#000; margin:0 8px; }
+    .nav-russian { color:var(--muted); }
+
+    /* language toggle */
+    .lang-toggle { position:relative; display:inline-block; margin-right:12px; }
+    .lang-btn { background:transparent; border:1px solid #e6e9ef; padding:6px 8px; border-radius:6px; cursor:pointer; font-weight:600; }
+    .lang-dropdown { position:absolute; top:100%; right:0; background:white; border:1px solid #e6e9ef; border-radius:6px; padding:6px; box-shadow:0 6px 18px rgba(16,24,40,0.06); display:none; min-width:140px; }
+    .lang-dropdown.open { display:block; }
+    .lang-option { padding:6px 8px; cursor:pointer; }
+    .lang-option:hover { background:#f3f4f6; }
+
+    /* Hero & search panel */
+    .hero { min-height:auto; display:flex; align-items:flex-start; justify-content:center; padding-bottom:12px; }
+    .search-panel {
+      margin:0 auto;
+      max-width:900px;
+      background:white;
+      border-radius:12px;
+      box-shadow:0 6px 18px rgba(16,24,40,0.06);
+      padding:28px;
+    }
+    .search-panel.fixed { position:fixed; left:50%; transform:translateX(-50%); z-index:22; width:min(900px,calc(100% - 32px)); }
+
+    .tint-box {
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      background-color:rgba(186,171,157,0.75);
+      width:900px;
+      max-width:calc(100% - 32px);
+      margin:0 auto;
+      padding-top:0;
+      position:relative;
+      z-index:10;
+    }
+    .tint-box .container { background:transparent; width:100%; }
+
+    .mast { width:100%; display:flex; justify-content:center; margin:0; position:relative; z-index:20; }
+    .mast img { position:relative; width:66%; max-width:532px; height:auto; object-fit:cover; display:block; z-index:25; border-radius:0; background:transparent; }
+
+    .search-row { display:flex; gap:12px; }
+    .search-input { flex:1; padding:14px 16px; border-radius:10px; border:1px solid #e5e7eb; font-size:16px; }
+    .search-cta { padding:12px 18px; border-radius:10px; background:var(--accent); color:white; border:none; font-weight:700; cursor:pointer; }
+    .adv { margin-top:10px; color:var(--muted); font-size:14px; }
+
+    .filters { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; }
+    .filters select, .filters .small-btn, .filters .reset-btn { padding:8px 10px; border-radius:8px; border:1px solid #d1d5db; background:white; cursor:pointer; }
+
+    .grid { display:grid; grid-template-columns:1fr; gap:12px; margin-top:18px; }
+    .card { background:white; border-radius:8px; box-shadow:0 6px 8px rgba(15,23,42,0.04); display:block; overflow:hidden; }
+    .card + .card { margin-top:6px; }
+    .card-header { padding:14px 18px; border-radius:8px 8px 0 0; cursor:pointer; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #e6e9ef; background:#fbfbfb; }
+    .card-header h4 { margin:0; font-size:16px; }
+  .card-content { padding:12px 20px 16px 28px; background:#ffffff; overflow:hidden; max-height:0; transition: max-height 0.25s ease; }
+    .card-content p { margin:6px 0; }
+    .card-content ul { margin:6px 0 0 18px; }
+    .card.open .card-content { max-height:1000px; }
+    .muted { color:var(--muted); font-size:14px; }
+
+    .results-meta { display:flex; justify-content:space-between; align-items:center; margin-top:18px; }
+    .cta-row { text-align:left; display:flex; gap:8px; align-items:center; }
+    .cta-row .cta-add { color:#8b0000; font-weight:600; text-decoration:none; background:#fff; padding:6px 10px; border-radius:6px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 2px 6px rgba(0,0,0,0.04); display:inline-flex; align-items:center; }
+    .cta-row .cta-add .chev { display:inline-block; margin-left:8px; transition:transform .15s ease; }
+    .cta-row .cta-add:hover .chev { transform: translateX(4px); }
+    /* inline spinner for status messages */
+    .spinner { display:inline-block; width:16px; height:16px; vertical-align:middle; margin-right:8px; }
+    .spinner svg { width:100%; height:100%; animation:spin 1s linear infinite; }
+    @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+    .results-count { font-weight:600; }
+
+  footer { margin-top:40px; padding:36px 0; background:transparent; }
+  /* Fixed footer: larger height, left-aligned site title with subtitle, resources on the right */
+  /* Reduced padding to shrink overall footer height by 20px (was 18px) */
+  #fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#8b0000; color:white; z-index:60; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
+  /* make footer inner span the full viewport so left content can be flush to edge */
+  .fixed-footer-inner { width:100%; max-width:none; margin:0; padding:0 20px; display:flex; gap:12px; justify-content:space-between; align-items:center; }
+  .footer-grid { display:flex; gap:24px; flex-wrap:wrap; }
+  .footer-left { display:flex; flex-direction:column; transform: translateY(-5px); }
+  /* bottom title flush left with slightly reduced top padding to balance centered alignment */
+  .footer-left .title { font-weight:700; color:white; font-size:16px; line-height:1.1; padding:12px 0 0 0; margin-left:0; }
+  .footer-left .subtitle { color:rgba(255,255,255,0.8); font-size:13px; margin-top:0; margin-left:0; padding-left:0; }
+  .fixed-footer-right { display:flex; align-items:center; }
+  .fixed-footer-right .small { font-size:13px; color:white; margin-left:8px; }
+    /* layout: left title, centered links, right copyright */
+    .fixed-footer-center { flex:1; display:flex; align-items:center; justify-content:center; transform: translateY(-3px); }
+    .fixed-footer-center .links { color:white; font-size:13px; text-align:center; }
+    .fixed-footer-center .links a { color:inherit; text-decoration:none; margin:0 8px; }
+    .fixed-footer-right { display:flex; align-items:center; justify-content:flex-end; min-width:220px; transform: translateY(-3px); }
+    .fixed-footer-right .copyright { color:rgba(255,255,255,0.9); font-size:13px; }
+
+    @media (max-width:900px) { .grid { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:600px) { .grid{grid-template-columns:1fr;} .search-row{flex-direction:column;} .container{padding:14px;} }
+
+    #bg-overlay { position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
+    #bg-overlay img { position:absolute; left:0; top:0; transform-origin:0 0; will-change:left,top,width,height; }
+
+    /* BG adjust controls */
+    #bg-adjust-control { position:fixed; left:12px; bottom:80px; z-index:80; background:rgba(255,255,255,0.95); border:1px solid #e6e9ef; padding:6px 8px; border-radius:8px; display:flex; gap:6px; align-items:center; box-shadow:0 6px 18px rgba(16,24,40,0.08); }
+    #bg-adjust-control button { background:#fff; border:1px solid #d1d5db; padding:6px; border-radius:6px; cursor:pointer; }
+    #bg-adjust-control #bg-value { min-width:36px; text-align:center; font-weight:600; }
+    @media (max-width:600px){ #bg-adjust-control{left:8px; bottom:92px;} }
+  </style>
+</head>
+<body>
+  <!-- background overlay: positions the provided image so a specified image point is centered -->
+  <div id="bg-overlay" aria-hidden="true">
+    <img id="bg-img" src="/assets/bg-K13qQAs.png" alt="" />
+  </div>
+
+  <!-- Inject server-side fetched initial data to avoid client fetch failures -->
+  <!-- Astro frontmatter fetch: attempt to load /api/sheets server-side during render -->
+  <!-- If this file is served from another host/port in production, update BASE accordingly. -->
+  <script>
+    (function(){
+      try{
+        // Attempt to read preloaded data injected by the server render (Astro frontmatter)
+        // Note: If server couldn't load data, this global may be undefined.
+        // window.__INIT_DATA__ will be set below by server-side rendering when available.
+      }catch(e){}
+    })();
+  </script>
+
+  <script>
+    (function(){
+      // Image natural dimensions and the focal point in image coordinates
+      const IMG_W = 1920, IMG_H = 1080;
+      const FOCUS_X = 955, FOCUS_Y = 325;
+      const img = document.getElementById('bg-img');
+      const overlay = document.getElementById('bg-overlay');
+      if (!img || !overlay) return;
+
+      // tweak this value (px) to nudge the background vertically: positive moves it down
+      // read saved value from localStorage so adjustments persist
+      const BG_Y_ADJUST_KEY = 'bg_y_adjust';
+      let BG_Y_ADJUST = (function(){
+        try{ const v = parseInt(localStorage.getItem(BG_Y_ADJUST_KEY)); return Number.isFinite(v) ? v : 18; }catch(e){ return 18; }
+      })();
+  let _pending = false;
+      function applyFocus(){
+        if (_pending) return;
+        _pending = true;
+        requestAnimationFrame(()=>{
+          try{
+            const vw = Math.max(window.innerWidth || document.documentElement.clientWidth, 0);
+            const vh = Math.max(window.innerHeight || document.documentElement.clientHeight, 0);
+            // cover scale
+            const scale = Math.max(vw / IMG_W, vh / IMG_H);
+            const scaledW = IMG_W * scale;
+            const scaledH = IMG_H * scale;
+
+            // size the image element to the scaled size
+            img.style.width = Math.round(scaledW) + 'px';
+            img.style.height = Math.round(scaledH) + 'px';
+
+            // scaled coordinates of the focus point
+            const fx = FOCUS_X * scale;
+            const fy = FOCUS_Y * scale;
+
+            // compute center of the mast image in viewport coordinates
+            const mastEl = document.querySelector('.mast img') || document.querySelector('.mast');
+            let mastCenterX = vw / 2;
+            let mastCenterY = vh / 2;
+            if (mastEl) {
+              const mRect = mastEl.getBoundingClientRect();
+              // If mast hasn't been laid out yet, fallback to viewport center
+              if (mRect.width > 0 && mRect.height > 0) {
+                mastCenterX = mRect.left + (mRect.width / 2);
+                mastCenterY = mRect.top + (mRect.height / 2);
+              }
+            }
+
+            // place the background image so the scaled focus point aligns with mast center
+            const left = mastCenterX - fx;
+            // apply a small vertical nudge (BG_Y_ADJUST) to lower/raise the background
+            const top = mastCenterY - fy + (typeof BG_Y_ADJUST === 'number' ? BG_Y_ADJUST : 0);
+            img.style.left = Math.round(left) + 'px';
+            img.style.top = Math.round(top) + 'px';
+          }catch(e){
+            console.error('applyFocus error', e);
+          }finally{
+            _pending = false;
+          }
+        });
+      }
+
+      // re-run on resize and when image loads; also run on window load and when fonts/images settle
+      img.addEventListener('load', applyFocus);
+      window.addEventListener('resize', applyFocus);
+      // Run once on window load to ensure layout is stable
+      window.addEventListener('load', ()=>{ setTimeout(applyFocus, 80); });
+      // If the page uses the Font Loading API, re-run when fonts are ready
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(()=> setTimeout(applyFocus, 60)).catch(()=>{});
+      }
+      // run shortly after load in case other layout shifts occur
+      setTimeout(applyFocus, 250);
+      // initial apply
+      if (img.complete) applyFocus();
+      else setTimeout(()=>{ if(img.complete) applyFocus(); }, 200);
+    })();
+  </script>
+  <!-- Background adjustment control (visible for quick tweaks) -->
+  <div id="bg-adjust-control" aria-hidden="false">
+    <button id="bg-up" title="Move background up">▲</button>
+    <div id="bg-value">18</div>
+    <button id="bg-down" title="Move background down">▼</button>
+    <button id="bg-reset" title="Reset background">Reset</button>
+  </div>
+  <style>
+    #bg-adjust-control{position:fixed;left:12px;bottom:80px;z-index:80;background:rgba(255,255,255,0.95);border:1px solid #e6e9ef;padding:6px 8px;border-radius:8px;display:flex;gap:6px;align-items:center;box-shadow:0 6px 18px rgba(16,24,40,0.08)}
+    #bg-adjust-control button{background:#fff;border:1px solid #d1d5db;padding:6px;border-radius:6px;cursor:pointer}
+    #bg-adjust-control #bg-value{min-width:36px;text-align:center;font-weight:600}
+    @media (max-width:600px){ #bg-adjust-control{left:8px;bottom:92px} }
+  </style>
+  <script>
+    // Wire up the BG adjust controls to persist and re-run applyFocus
+    (function(){
+      const up = document.getElementById('bg-up');
+      const down = document.getElementById('bg-down');
+      const val = document.getElementById('bg-value');
+      const reset = document.getElementById('bg-reset');
+      if (!up || !down || !val || !reset) return;
+      function read(){ return (function(){ try{ const v = parseInt(localStorage.getItem('bg_y_adjust')); return Number.isFinite(v) ? v : 18; }catch(e){ return 18; } })(); }
+      function write(v){ try{ localStorage.setItem('bg_y_adjust', String(v)); }catch(e){} }
+      function updateDisplay(){ const n = read(); val.textContent = n; window.dispatchEvent(new Event('resize')); setTimeout(()=>{ try{ document.querySelector('#bg-img') && document.querySelector('#bg-img').dispatchEvent(new Event('load')); }catch(e){} }, 60); }
+      up.addEventListener('click', ()=>{ const n = read() - 1; write(n); updateDisplay(); });
+      down.addEventListener('click', ()=>{ const n = read() + 1; write(n); updateDisplay(); });
+      reset.addEventListener('click', ()=>{ write(18); updateDisplay(); });
+      // init
+      val.textContent = read();
+    })();
+  </script>
+  <!-- full-width navbar (moved outside tint box so it spans the viewport) -->
+  <header>
+    <div class="container nav" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="logo">
+        <span class="nav-english" id="navEnglish">Archive of Soviet Trumpet Music</span>
+        <span class="nav-pipe">|</span>
+        <span class="nav-russian" id="navRussian">Архив советской трубной музыки</span>
+      </div>
+      <div class="lang-toggle" id="langToggle">
+        <button class="lang-btn" id="langBtn">EN ▾</button>
+        <div class="lang-dropdown" id="langDropdown">
+          <div class="lang-option" data-locale="en">English</div>
+          <div class="lang-option" data-locale="de">Deutsch</div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <!-- translucent centered box that spans the full page height -->
+  <div class="tint-box">
+  <!-- mast: centered image placed inside the tint box -->
+  <div class="mast">
+    <img src="/assets/logo.png" alt="Soviet Trumpet Logo" />
+  </div>
+  <!-- place the search panel immediately after the mast so it naturally sits below the image -->
+  <div class="container" style="padding-top:0;margin-top:0">
+    <div class="search-panel" style="margin-top:5px">
+      <h1 style="margin:0 0 6px;font-size:28px">Discover Soviet-era trumpet music</h1>
+      <p class="muted" style="margin:6px 0 18px">Search composers and pieces from across the Soviet republics.</p>
+
+      <div class="search-row">
+        <input id="q" class="search-input" placeholder="Search composers, countries, or pieces..." />
+        <button id="searchBtn" class="search-cta">Search</button>
+      </div>
+
+      <!-- FILTERS -->
+      <div class="filters">
+        <select id="genderFilter">
+          <option value="All">Filter by Gender</option>
+          <option>Male</option>
+          <option>Female</option>
+          <option>Other</option>
+        </select>
+
+        <select id="decadeFilter">
+          <option value="All">Filter by Decade</option>
+          <option value="1920s">1920s</option>
+          <option value="1930s">1930s</option>
+          <option value="1940s">1940s</option>
+          <option value="1950s">1950s</option>
+          <option value="1960s">1960s</option>
+          <option value="1970s">1970s</option>
+          <option value="1980s">1980s</option>
+        </select>
+
+        <select id="countryFilter">
+          <option value="All">Filter by Country/Republic</option>
+          <option>Russia</option>
+          <option>Ukraine</option>
+          <option>Belarus</option>
+          <option>Armenia</option>
+          <option>Georgia</option>
+          <option>Latvia</option>
+          <option>Estonia</option>
+          <option>Lithuania</option>
+          <option>Kazakhstan</option>
+          <option>Uzbekistan</option>
+          <option>Other</option>
+        </select>
+
+        <button id="showAll" class="small-btn">Show All</button>
+        <button id="resetFilters" class="reset-btn">Reset Filters</button>
+      </div>
+
+  <div class="cta-row" style="max-width:900px;margin:8px auto;padding:6px 0;justify-content:flex-start;">
+        <a href="#" class="cta-add">Make additions to the archive <span class="chev">›</span></a>
+  <a href="/about" class="cta-add">About this project <span class="chev">›</span></a>
+  <a href="#" class="cta-add">Randomize <span class="chev">›</span></a>
+      </div>
+
+      <div class="results-meta">
+        <div class="results-count" id="resultsCount"></div>
+        <div class="muted" id="statusMsg"></div>
+      </div>
+
+      <div id="debugPanel" style="max-width:900px;margin:12px auto 0;padding:8px;background:#fff;border-radius:8px;border:1px solid #eee">
+        <div style="font-weight:700;margin-bottom:4px">Debug</div>
+        <div id="debugFetch" style="font-family:monospace;color:#333">not started</div>
+        <div style="margin-top:8px"><button id="debugRetry" class="small-btn">Retry fetch</button></div>
+      </div>
+
+      <div id="results" class="grid" style="margin-top:14px"></div>
+    </div>
+  </div>
+
+  <main>
+    <section class="container hero">
+      <!-- hero section left intentionally minimal; search panel sits above inside the tint box -->
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-grid">
+      <!-- original tint-box footer removed per request; keep footer element for semantics but empty visually -->
+    </div>
+  </footer>
+
+  <!-- Fixed footer bar locked to viewport -->
+  <div id="fixed-footer" aria-hidden="false" role="contentinfo">
+    <div class="fixed-footer-inner">
+      <div class="footer-left">
+        <div class="title">Archive of Soviet Trumpet Music</div>
+        <div class="subtitle">Архив советской трубной музыки</div>
+      </div>
+      <div class="fixed-footer-center">
+        <div class="links">
+          <a href="/about">About</a>
+          <a href="#">Contact</a>
+          <a href="#">Help</a>
+        </div>
+      </div>
+      <div class="fixed-footer-right">
+        <div class="copyright">© 2025 Archive of Soviet Trumpet Music</div>
+      </div>
+    </div>
+  </div>
+  </div><!-- .tint-box -->
+
+  <script>
+    let TRANSLATIONS = null;
+    let LOCALE = localStorage.getItem('locale') || 'en';
+    const langBtn = document.getElementById('langBtn');
+    const langDropdown = document.getElementById('langDropdown');
+    const langToggle = document.getElementById('langToggle');
+    async function loadTranslations(){
+      try{
+        const res = await fetch('/i18n/translations.json');
+        TRANSLATIONS = await res.json();
+      }catch(e){
+        console.error('Failed to load translations', e);
+        TRANSLATIONS = null;
+      }
+    }
+
+    function applyLocale(locale){
+      LOCALE = locale;
+      localStorage.setItem('locale', locale);
+      const map = (TRANSLATIONS && TRANSLATIONS[locale]) ? TRANSLATIONS[locale] : ((TRANSLATIONS && TRANSLATIONS['en']) ? TRANSLATIONS['en'] : null);
+      // fallback defaults if translations are unavailable
+      const fallback = {
+        placeholder: 'Search composers, countries, or pieces...',
+        search: 'Search',
+        showAll: 'Show All',
+        reset: 'Reset Filters',
+        loading: 'Loading…',
+        enterSearch: 'Enter a search or click "Show All" to display results.',
+        labels: { native:'Native', compositions:'Composition(s)', year:'Year', type:'Type', nationality:'Nationality', country:'Country', gender:'Gender', leader:'Leader', source:'Source' },
+        navEnglish: 'Archive of Soviet Trumpet Music',
+        heroTitle: 'Discover Soviet-era trumpet music',
+        heroSubtitle: 'Search composers and pieces from across the Soviet republics.',
+        decades: ['1920s','1930s','1940s','1950s','1960s','1970s','1980s'],
+        countries: ['Russia','Ukraine','Belarus','Armenia','Georgia','Latvia','Estonia','Lithuania','Kazakhstan','Uzbekistan','Other'],
+        genderOptions: ['Male','Female','Other']
+      };
+  const labels = map || fallback;
+  qEl.placeholder = labels.placeholder;
+  searchBtn.textContent = labels.search;
+  showAllBtn.textContent = labels.showAll;
+  document.getElementById('resetFilters').textContent = labels.reset;
+      document.getElementById('resultsCount').textContent = '';
+      // update status / helper text
+      statusMsg.textContent = '';
+  resultsEl.innerHTML = `<div class="muted">${labels.enterSearch}</div>`;
+  langBtn.textContent = (locale === 'en' ? 'EN ▾' : 'DE ▾');
+  // update nav and hero strings
+  document.getElementById('navEnglish').textContent = labels.navEnglish || document.getElementById('navEnglish').textContent;
+  const heroTitle = document.querySelector('.search-panel h1');
+  const heroSubtitle = document.querySelector('.search-panel p.muted');
+  if (heroTitle) heroTitle.textContent = labels.heroTitle || heroTitle.textContent;
+  if (heroSubtitle) heroSubtitle.textContent = labels.heroSubtitle || heroSubtitle.textContent;
+
+      // populate filter options from translations
+      const decadeFilterEl = document.getElementById('decadeFilter');
+      const countryFilterEl = document.getElementById('countryFilter');
+      const genderFilterEl = document.getElementById('genderFilter');
+      // helper: build options using canonical values from EN and localized labels
+      function buildSelectOptions(el, canonicalList, localizedList, placeholderKey){
+        if (!el) return;
+        // fallback label from translations for placeholder
+        const placeholder = (labels && labels[placeholderKey]) ? labels[placeholderKey] : placeholderKey;
+        let html = `<option value="All">${placeholder}</option>`;
+        // canonicalList is expected to be an array of canonical keys (from EN), localizedList parallel array of same length
+        for (let i = 0; i < canonicalList.length; i++){
+          const val = canonicalList[i];
+          const label = (localizedList && localizedList[i]) ? localizedList[i] : val;
+          html += `<option value="${encodeURIComponent(String(val))}">${label}</option>`;
+        }
+        el.innerHTML = html;
+      }
+
+      // Use canonical lists from EN to keep filter values stable
+      const enMap = (TRANSLATIONS && TRANSLATIONS['en']) ? TRANSLATIONS['en'] : null;
+      const canonicalDecades = enMap ? enMap.decades : (labels.decades || []);
+      const canonicalCountries = enMap ? enMap.countries : (labels.countries || []);
+      const canonicalGenders = enMap ? enMap.genderOptions : (labels.genderOptions || []);
+
+      buildSelectOptions(decadeFilterEl, canonicalDecades, labels.decades, 'filterDecade');
+      buildSelectOptions(countryFilterEl, canonicalCountries, labels.countries, 'filterCountry');
+      buildSelectOptions(genderFilterEl, canonicalGenders, labels.genderOptions, 'filterGender');
+
+      // helper: if data is already loaded and user has searched or shown results, re-render with new locale
+      if (DATA && DATA.length && (hasSearched || document.getElementById('results').children.length > 0)){
+        applyFilters();
+      }
+    }
+    // accessible dropdown: toggle and keyboard
+    langBtn.addEventListener('click', (e)=>{ langDropdown.classList.toggle('open'); langBtn.setAttribute('aria-expanded', langDropdown.classList.contains('open')); });
+    langBtn.setAttribute('aria-haspopup', 'listbox');
+    langBtn.setAttribute('aria-expanded', 'false');
+    langBtn.addEventListener('keydown', (e)=>{ if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); langDropdown.classList.add('open'); langDropdown.querySelector('.lang-option').focus(); } });
+    // select option
+    langDropdown.addEventListener('click', (e)=>{ const opt = e.target.closest('.lang-option'); if (!opt) return; const locale = opt.dataset.locale; applyLocale(locale); langDropdown.classList.remove('open'); langBtn.setAttribute('aria-expanded','false'); });
+    // keyboard navigation inside dropdown
+    langDropdown.addEventListener('keydown', (e)=>{
+      const items = Array.from(langDropdown.querySelectorAll('.lang-option'));
+      const idx = items.indexOf(document.activeElement);
+      if (e.key === 'ArrowDown') { e.preventDefault(); const next = items[(idx + 1) % items.length]; next && next.focus(); }
+      if (e.key === 'ArrowUp') { e.preventDefault(); const prev = items[(idx - 1 + items.length) % items.length]; prev && prev.focus(); }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); document.activeElement.click(); }
+      if (e.key === 'Escape') { langDropdown.classList.remove('open'); langBtn.focus(); }
+    });
+    // close on outside click
+    document.addEventListener('click', (e)=>{ if (!langToggle.contains(e.target)) { langDropdown.classList.remove('open'); langBtn.setAttribute('aria-expanded','false'); } });
+  // translations will be loaded and applied in the initial load wrapper below
+
+    // tiny helpers
+    function normalize(s){
+      if(!s) return '';
+      try{ return s.toString().normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase(); }catch(e){ return s.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+    }
+
+    const qEl = document.getElementById('q');
+    const searchBtn = document.getElementById('searchBtn');
+    const showAllBtn = document.getElementById('showAll');
+    const genderFilter = document.getElementById('genderFilter');
+    const decadeFilter = document.getElementById('decadeFilter');
+    const countryFilter = document.getElementById('countryFilter');
+    const resultsEl = document.getElementById('results');
+    const resultsCount = document.getElementById('resultsCount');
+    const statusMsg = document.getElementById('statusMsg');
+
+    let DATA = [];
+    let HEADERS = [];
+    let hasSearched = false; // don't display results until a search or Show All
+
+    async function fetchData(){
+      // show inline spinner while loading
+      statusMsg.innerHTML = '<span class="spinner"><svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg"><circle cx="25" cy="25" r="20" fill="none" stroke="#8b0000" stroke-width="5" stroke-linecap="round" stroke-dasharray="31.4 31.4"/></svg></span>Loading…';
+      // update debug panel
+      const dbg = document.getElementById('debugFetch'); if (dbg) dbg.textContent = 'Starting fetch...';
+      try{
+        // use absolute URL and cache-busting to avoid service-worker or caching quirks
+        const url = (window.location && window.location.origin ? window.location.origin : '') + '/api/sheets?_=' + Date.now();
+        if (dbg) dbg.textContent = 'fetching ' + url;
+        const res = await fetch(url, { method: 'GET', mode: 'same-origin', cache: 'no-store' });
+        if(!res.ok) {
+          const txt = await res.text();
+          throw new Error('Fetch failed: ' + res.status + ' ' + txt);
+        }
+        const json = await res.json();
+        if (dbg) dbg.textContent = `fetch ok, rows=${Array.isArray(json)?json.length:'?'} `;
+        if (!Array.isArray(json) || json.length === 0){
+          DATA = [];
+          resultsEl.innerHTML = '<div class="muted">No data available</div>';
+          statusMsg.textContent = '';
+          resultsCount.textContent = '';
+          return;
+        }
+        DATA = json;
+        HEADERS = Object.keys(DATA[0] || {});
+  statusMsg.textContent = '';
+        if (dbg) dbg.textContent += ' loaded headers=' + HEADERS.length;
+        resultsCount.textContent = '';
+        resultsEl.innerHTML = '<div class="muted">Enter a search or click "Show All" to display results.</div>';
+      }catch(err){
+        console.error(err);
+        statusMsg.textContent = 'Failed to load data';
+        resultsEl.innerHTML = `<div class="muted">Error loading data: ${String(err)}</div>`;
+        if (dbg) dbg.textContent = 'fetch error: ' + String(err);
+  }
+    }
+
+    function applyFilters(){
+      hasSearched = true;
+      const q = normalize(qEl.value || '');
+      const gender = (genderFilter.value || 'All');
+      const decade = (decadeFilter.value || 'All');
+      const country = (countryFilter.value || 'All');
+
+      let rows = DATA.slice();
+      if (q) rows = rows.filter(r => normalize(Object.values(r||{}).join(' ')).includes(q));
+      if (gender && gender !== 'All') rows = rows.filter(r => normalize(r.Gender || r.gender || '').includes(normalize(gender)));
+      if (decade && decade !== 'All') rows = rows.filter(r => (r.Decade || '').toString() === decade);
+      if (country && country !== 'All') rows = rows.filter(r => normalize(r.Country || r.Nationality || '').includes(normalize(country)));
+
+      renderResults(rows);
+    }
+
+  function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  
+  // Ensure DOM visuals (display + maxHeight) match .open state for all accordion items
+  function syncAccordionVisuals(){
+    try{
+      const cards = (resultsEl && resultsEl.querySelectorAll) ? resultsEl.querySelectorAll('.card') : document.querySelectorAll('.card');
+      cards.forEach(c => {
+        const cnt = c.querySelector('.card-content');
+        const hdr = c.querySelector('.card-header');
+        if (!cnt) return;
+        if (c.classList.contains('open')){
+          // make visible and animate open. Start invisible and fade in so text doesn't flash
+          cnt.style.display = 'block';
+          cnt.style.pointerEvents = '';
+          cnt.style.opacity = '0';
+          cnt.style.maxHeight = '0px';
+          // allow layout then set to measured height and fade to full opacity
+          requestAnimationFrame(()=>{ try{ cnt.style.maxHeight = (cnt.scrollHeight || cnt.offsetHeight || 0) + 'px'; cnt.style.opacity = '1'; }catch(e){} });
+          if (hdr) hdr.setAttribute('aria-expanded','true');
+        } else {
+          // collapse and hide after transition. Fade out immediately to hide text even if layout lags
+          try{
+            cnt.style.pointerEvents = 'none';
+            cnt.style.opacity = '0';
+            // ensure starting height is measured to animate smoothly
+            cnt.style.maxHeight = (cnt.scrollHeight || cnt.offsetHeight || 0) + 'px';
+            // force layout
+            // eslint-disable-next-line no-unused-expressions
+            cnt.offsetHeight;
+            requestAnimationFrame(()=>{ cnt.style.maxHeight = '0px'; });
+            const onEnd = function(){ try{ cnt.style.display = 'none'; }catch(e){} finally{ cnt.removeEventListener('transitionend', onEnd); } };
+            cnt.addEventListener('transitionend', onEnd);
+          }catch(e){ cnt.style.display = 'none'; cnt.style.maxHeight = '0px'; cnt.style.opacity = '0'; }
+          if (hdr) hdr.setAttribute('aria-expanded','false');
+        }
+      });
+    }catch(e){ /* ignore */ }
+  }
+
+  // Debug helper: logs computed styles for each card-content to the console
+  function logAccordionDebug(){
+    try{
+      const cards = (resultsEl && resultsEl.querySelectorAll) ? resultsEl.querySelectorAll('.card') : document.querySelectorAll('.card');
+      cards.forEach((c,i)=>{
+        const cnt = c.querySelector('.card-content');
+        if(!cnt) return;
+        const comp = window.getComputedStyle(cnt);
+        console.group(`card[${i}] ${c.querySelector('h4')?c.querySelector('h4').textContent.trim():'<unknown>'}`);
+        console.log('classList', c.classList.toString());
+        console.log('display', comp.display, 'maxHeight', comp.maxHeight, 'height', comp.height, 'overflow', comp.overflow, 'opacity', comp.opacity);
+        console.log('scrollHeight', cnt.scrollHeight, 'offsetHeight', cnt.offsetHeight);
+        console.groupEnd();
+      });
+    }catch(e){ console.error('logAccordionDebug failed', e); }
+  }
+  function renderResults(rows) {
+  // Normalize TRANSLATIONS map
+  const map = (TRANSLATIONS && TRANSLATIONS[LOCALE]) 
+    ? TRANSLATIONS[LOCALE] 
+    : ((TRANSLATIONS && TRANSLATIONS['en']) ? TRANSLATIONS['en'] : null);
+
+  // We no longer render accordions here. Instead present a short helper and link to the plain results page.
+  resultsEl.innerHTML = '';
+  const help = document.createElement('div');
+  help.innerHTML = `
+    <div style="padding:12px;background:#fff;border-radius:8px;border:1px solid #eee;">
+      <p style="margin:0 0 8px">Results are shown on a dedicated page. Click the button below to open a plain results view (unstyled).</p>
+      <div><button id="openResultsInline" class="small-btn">Open results page</button></div>
+    </div>`;
+  resultsEl.appendChild(help);
+  const btn = document.getElementById('openResultsInline');
+  if (btn) btn.addEventListener('click', ()=>{ const q = encodeURIComponent(qEl.value||''); const gender = encodeURIComponent(genderFilter.value||'All'); const decade = encodeURIComponent(decadeFilter.value||'All'); const country = encodeURIComponent(countryFilter.value||'All'); const url = `/composers-results?q=${q}&gender=${gender}&decade=${decade}&country=${country}`; window.location.href = url; });
+}
+
+    // events
+    // When the user hits Search, open a new plain results page with the current filters as query params
+    function openResultsPage(){
+      const q = encodeURIComponent(qEl.value || '');
+      const gender = encodeURIComponent(genderFilter.value || 'All');
+      const decade = encodeURIComponent(decadeFilter.value || 'All');
+      const country = encodeURIComponent(countryFilter.value || 'All');
+      const url = `/composers-results?q=${q}&gender=${gender}&decade=${decade}&country=${country}`;
+  window.location.href = url;
+    }
+    searchBtn.addEventListener('click', openResultsPage);
+    qEl.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') openResultsPage(); });
+    genderFilter.addEventListener('change', applyFilters);
+    decadeFilter.addEventListener('change', applyFilters);
+    countryFilter.addEventListener('change', applyFilters);
+  showAllBtn.addEventListener('click', ()=>{ qEl.value=''; genderFilter.value='All'; decadeFilter.value='All'; countryFilter.value='All'; hasSearched=true; const url = `/composers-results?q=&gender=All&decade=All&country=All`; window.location.href = url; });
+    const resetBtn = document.getElementById('resetFilters');
+  resetBtn.addEventListener('click', ()=>{ qEl.value=''; genderFilter.value='All'; decadeFilter.value='All'; countryFilter.value='All'; hasSearched=false; resultsEl.innerHTML = '<div class="muted">Enter a search or click "Show All" to display results.</div>'; resultsCount.textContent=''; statusMsg.textContent=''; try{ syncAccordionVisuals(); }catch(e){} });
+
+    // initial load: fetch translations first, then load data so UI messages are localized
+    // loadTranslations() is already called elsewhere; if TRANSLATIONS is not yet loaded, ensure fetch happens after it.
+    (async function(){
+      try{
+        if (!TRANSLATIONS) {
+          await loadTranslations();
+        }
+        try{ applyLocale(LOCALE); }catch(e){ console.error('applyLocale failed', e); }
+        // now load data
+        statusMsg.textContent = (TRANSLATIONS && TRANSLATIONS[LOCALE] && TRANSLATIONS[LOCALE].loading) ? TRANSLATIONS[LOCALE].loading : 'Loading…';
+        await fetchData();
+      }catch(err){
+        console.error('Initial load error', err);
+        statusMsg.textContent = 'Initialization failed';
+        resultsEl.innerHTML = `<div class="muted">Initialization error: ${String(err)}</div>`;
+      }
+    })();
+
+    // Watchdog: if DATA not loaded after 1s, attempt a direct fetch (helps if translations or locale code blocked earlier)
+    setTimeout(()=>{
+      const dbg = document.getElementById('debugFetch'); if (dbg) dbg.textContent = (dbg.textContent || '') + ' [watchdog check]';
+      if (!DATA || DATA.length === 0){
+        try{ fetchData(); }catch(e){ console.error('watchdog fetch failed', e); }
+      }
+    }, 1000);
+
+    // Ensure fetchData runs once DOM content is loaded (defensive against ordering issues)
+    if (document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', ()=>{ try{ fetchData(); }catch(e){} });
+    } else {
+      try{ fetchData(); }catch(e){}
+    }
+
+    // debug retry wiring
+    const dbgRetry = document.getElementById('debugRetry'); if (dbgRetry) dbgRetry.addEventListener('click', ()=>{ fetchData(); });
+
+    // Randomize button: pick a random composer card and open it
+    const randomizeBtn = Array.from(document.querySelectorAll('.cta-add')).find(a=>/randomize/i.test(a.textContent || ''));
+    if (randomizeBtn){
+      randomizeBtn.addEventListener('click', (e)=>{
+        e.preventDefault();
+        (async function(){
+          try{
+            if (!DATA || DATA.length === 0) await fetchData();
+            // ensure results are rendered
+            if (!hasSearched){ hasSearched = true; renderResults(DATA); }
+            // wait a frame for DOM
+            await new Promise(r => requestAnimationFrame(r));
+            const cards = resultsEl.querySelectorAll('.card');
+            if (!cards || cards.length === 0) return;
+            const idx = Math.floor(Math.random() * cards.length);
+            const chosen = cards[idx];
+            // close others
+            cards.forEach(c => { if (c !== chosen) c.classList.remove('open'); });
+            chosen.classList.add('open');
+            try{ syncAccordionVisuals(); }catch(e){}
+            // scroll into view smoothly and center
+            chosen.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }catch(err){ console.error('Randomize failed', err); }
+        })();
+      });
+    }
+
+    // global error hooks: report to debug panel so browser runtime errors are visible in-page
+    (function(){
+      const dbgEl = () => document.getElementById('debugFetch');
+      window.onerror = function(message, source, lineno, colno, error){
+        try{ const d = dbgEl(); if (d) d.textContent = `onerror: ${message} at ${source}:${lineno}:${colno}`; }catch(e){}
+        return false;
+      };
+      window.onunhandledrejection = function(evt){ try{ const d = dbgEl(); if (d) d.textContent = `unhandledrejection: ${String(evt.reason)}`; }catch(e){} };
+
+      // safe retry: if debug shows no progress after 1.2s, try fetch again once
+      setTimeout(()=>{
+        try{
+          const d = dbgEl(); if (d && /Starting fetch|fetching/.test(d.textContent || '')) return; // already started
+          fetchData().catch(err=>{ const d2 = dbgEl(); if(d2) d2.textContent = 'retry fetch failed: '+String(err); });
+        }catch(e){}
+      }, 1200);
+    })();
+  </script>
+
+  <script>
+    // Flow-based hero positioning: keep the .search-panel in-flow but make sure
+    // it sits a short distance below the visible mast image. Use rAF for scroll
+    // updates and clamp the margin to a sensible min/max to avoid huge gaps.
+    (function(){
+      const img = document.querySelector('.mast img');
+      const panel = document.querySelector('.search-panel');
+      const tint = document.querySelector('.tint-box');
+      if (!img || !panel || !tint) return;
+
+      let ticking = false;
+  const MIN_MT = 5;   // minimum margin-top inside tint-box (allow 5px gap per request)
+      const MAX_MT = 180;  // maximum margin-top clamp to avoid excessive gaps
+
+      function computeAndApply(){
+        try{
+          // With the mast image now in-flow, compute the image bottom relative to the tint container
+          // so the panel remains in the document flow and scrolls as expected.
+          const imgRect = img.getBoundingClientRect();
+          const tintRect = tint.getBoundingClientRect();
+          // image bottom relative to tint.top (in pixels)
+          // Compute how far to move the panel so its top equals image.bottom + 5px
+          const imageBottom = imgRect.bottom;
+          const panelRect = panel.getBoundingClientRect();
+          const computed = window.getComputedStyle(panel);
+          const currentMargin = parseFloat(computed.marginTop) || 0;
+
+          // Use document coordinates to compute exact desired margin so panel.top === image.bottom + 5px
+          const scrollY = window.scrollY || window.pageYOffset || 0;
+          const imageBottomDoc = Math.round(imgRect.bottom + scrollY);
+          const parent = panel.parentElement || panel;
+          const parentRect = parent.getBoundingClientRect();
+          const parentTopDoc = Math.round(parentRect.top + scrollY);
+
+          let desiredMarginTop = imageBottomDoc + 5 - parentTopDoc;
+          // clamp to safe bounds
+          desiredMarginTop = Math.max(MIN_MT, Math.min(MAX_MT, Math.round(desiredMarginTop)));
+
+          // Ensure the panel stays in-flow (not fixed) and remove transforms
+          panel.classList.remove('fixed');
+          panel.style.position = '';
+          panel.style.left = '';
+          panel.style.top = '';
+          panel.style.zIndex = '';
+          panel.style.width = '';
+          panel.style.transform = '';
+
+          panel.style.marginTop = desiredMarginTop + 'px';
+          console.debug && console.debug('hero-position: imageBottomDoc', imageBottomDoc, 'parentTopDoc', parentTopDoc, 'desiredMarginTop', desiredMarginTop);
+        }catch(err){
+          console.error('hero-position update failed', err);
+        }finally{
+          ticking = false;
+        }
+      }
+
+      function update(){
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(computeAndApply);
+      }
+
+      window.addEventListener('load', update);
+      window.addEventListener('resize', update);
+      window.addEventListener('scroll', update, {passive:true});
+      // run once shortly after load in case fonts/images shift layout
+      setTimeout(update, 150);
+    })();
+  </script>
+</body>
+</html>

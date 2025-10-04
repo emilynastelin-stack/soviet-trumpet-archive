@@ -1,0 +1,76 @@
+{
+  "en": {
+    "navEnglish": "Archive of Soviet Trumpet Music",
+    "navRussian": "Архив советской трубной музыки",
+    "heroTitle": "Discover Soviet-era trumpet music",
+    "heroSubtitle": "Music composed for trumpet from the October Revolution to the fall of the Soviet Union.",
+    "placeholder": "Search composers, countries, or pieces...",
+    "search": "Search",
+    "showAll": "Show All",
+    "reset": "Reset Filters",
+    "loading": "Loading…",
+    "enterSearch": "Enter a search or click \"Show All\" to display results.",
+    "noResults": "No results. Try adjusting your search or filters.",
+    "labels": {
+      "native": "Native",
+      "compositions": "Composition(s)",
+      "year": "Year",
+      "type": "Type",
+      "nationality": "Nationality",
+      "country": "Country",
+      "gender": "Gender",
+      "leader": "Leader",
+      "source": "Source"
+    },
+    "decades": ["1920s","1930s","1940s","1950s","1960s","1970s","1980s"],
+    "countries": ["Russia","Ukraine","Belarus","Armenia","Georgia","Latvia","Estonia","Lithuania","Kazakhstan","Uzbekistan","Other"],
+    "genderOptions": ["Male","Female","Other"],
+  "filterDecade": "Filter by Decade",
+  "filterCountry": "Filter by Country/Republic",
+  "filterGender": "Filter by Gender",
+    "languages": {
+      "russian": "Russian",
+      "ukrainian": "Ukrainian",
+      "belarusian": "Belarusian",
+      "english": "English"
+    },
+    "footerText": "· About · Contact · Help · © 2025 Archive of Soviet Trumpet Music"
+  },
+  "de": {
+    "navEnglish": "Archiv der sowjetischen Trompetenmusik",
+    "navRussian": "Архив советской трубной музыки",
+    "heroTitle": "Entdecken Sie Trompetenmusik aus der Sowjetzeit",
+    "heroSubtitle": "Für Trompete komponierte Musik von der Oktoberrevolution bis zum Zerfall der Sowjetunion.",
+    "placeholder": "Suche Komponisten, Länder oder Stücke...",
+    "search": "Suchen",
+    "showAll": "Alle anzeigen",
+    "reset": "Filter zurücksetzen",
+    "loading": "Lade…",
+    "enterSearch": "Geben Sie eine Suche ein oder klicken Sie auf \"Alle anzeigen\", um Ergebnisse anzuzeigen.",
+    "noResults": "Keine Ergebnisse. Versuchen Sie, Ihre Suche oder Filter anzupassen.",
+    "labels": {
+      "native": "Einheimisch",
+      "compositions": "Komposition(en)",
+      "year": "Jahr",
+      "type": "Art",
+      "nationality": "Nationalität",
+      "country": "Land",
+      "gender": "Geschlecht",
+      "leader": "Führer",
+      "source": "Quelle"
+    },
+    "decades": ["1920er","1930er","1940er","1950er","1960er","1970er","1980er"],
+    "countries": ["Russland","Ukraine","Weißrussland","Armenien","Georgien","Lettland","Estland","Litauen","Kasachstan","Usbekistan","Andere"],
+    "genderOptions": ["Männlich","Weiblich","Andere"],
+  "filterDecade": "Nach Jahrzehnt filtern",
+  "filterCountry": "Nach Land/Republik filtern",
+  "filterGender": "Nach Geschlecht filtern",
+    "languages": {
+      "russian": "Russisch",
+      "ukrainian": "Ukrainisch",
+      "belarusian": "Belarussisch",
+      "english": "Englisch"
+    },
+    "footerText": "· Über · Kontakt · Hilfe · © 2025 Archiv der sowjetischen Trompetenmusik"
+  }
+}

@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Soviet Trumpet Archive — Sheet Table</title>
+    <style>
+      body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; padding: 18px; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+      th { background: #f3f4f6; }
+      caption { font-weight: 700; margin-bottom: 8px; }
+      .accordion-item { border-bottom: 1px solid #ddd; }
+      .accordion-header { cursor: pointer; padding: 10px; font-weight: bold; background: #f9f9f9; }
+      .accordion-content { overflow: hidden; max-height: 0; transition: max-height 0.3s ease; padding: 0 10px; }
+      .accordion-header.active { background: #e5e7eb; }
+      .accordion-content p { margin: 8px 0; }
+    </style>
+  </head>
+  <body>
+    <h1>Soviet Trumpet Archive</h1>
+    <p>Live table from the spreadsheet — loading below.</p>
+    <div id="table-wrap">
+      <table id="data-table">
+        <caption>Composers</caption>
+        <thead id="data-head"></thead>
+        <tbody id="data-body"></tbody>
+      </table>
+    </div>
+
+    <script>
+      async function loadTable(){
+        const head = document.getElementById('data-head');
+        const body = document.getElementById('data-body');
+        try{
+          const res = await fetch('/api/sheets');
+          if(!res.ok) throw new Error('Fetch failed: ' + res.status + ' ' + await res.text());
+          const data = await res.json();
+          if(!Array.isArray(data) || data.length === 0){
+            body.innerHTML = '<tr><td colspan="99">No data available</td></tr>';
+            return;
+          }
+
+          const keys = Object.keys(data[0]);
+          const tr = document.createElement('tr');
+          keys.forEach(k=>{ const th=document.createElement('th'); th.textContent = k; tr.appendChild(th); });
+          head.appendChild(tr);
+
+          data.forEach(row => {
+            const r = document.createElement('tr');
+            keys.forEach(k=>{
+              const td = document.createElement('td');
+              const v = row[k];
+              td.textContent = v === null || v === undefined ? '' : String(v);
+              r.appendChild(td);
+            });
+            body.appendChild(r);
+          });
+        }catch(err){
+          const wrap = document.getElementById('table-wrap');
+          wrap.innerHTML = '<p style="color:maroon">Error loading sheet: ' + (err && err.message) + '</p>';
+          console.error(err);
+        }
+      }
+      loadTable();
+
+      // Accordion rendering
+      function showResults(data) {
+        const container = document.getElementById('results');
+        if (!container) {
+          const wrap = document.getElementById('table-wrap');
+          const div = document.createElement('div'); div.id = 'results'; div.style.marginTop = '18px'; wrap.parentNode.insertBefore(div, wrap.nextSibling);
+        }
+        const resultsEl = document.getElementById('results');
+        resultsEl.innerHTML = '';
+
+        if (!data.rows || data.rows.length === 0) {
+          resultsEl.innerHTML = `<p>${(window.currentLang==='de')?'Keine Ergebnisse gefunden':'No results found'}</p>`;
+          return;
+        }
+
+        const nativeLabels = {
+          'Armenia': 'Armenian','Azerbaijan': 'Azerbaijani','Belarus': 'Belarusian','Estonia': 'Estonian',
+          'Georgia': 'Georgian','Kazakhstan': 'Kazakh','Kyrgyzstan': 'Kyrgyz','Latvia': 'Latvian',
+          'Lithuania': 'Lithuanian','Moldova': 'Romanian','Russia': 'Russian','Tajikistan': 'Tajik',
+          'Turkmenistan': 'Turkmen','Ukraine': 'Ukrainian','Uzbekistan': 'Uzbek'
+        };
+
+        const headers = data.headers || [];
+        const idxMap = {
+          Russian: headers.indexOf((window.currentLang==='de')?'Компонист':'Composer'),
+          Native: headers.indexOf((window.currentLang==='de')?'Muttersprache':'Native'),
+          Title: headers.indexOf((window.currentLang==='de')?'Titel, Jahr':'Title, Year'),
+          Nationality: headers.indexOf((window.currentLang==='de')?'Land':'Country')
+        };
+
+        data.rows.forEach(row => {
+          const item = document.createElement('div');
+          item.className = 'accordion-item';
+
+          const header = document.createElement('div');
+          header.className = 'accordion-header';
+          header.textContent = row[idxMap.Russian] || '—';
+          item.appendChild(header);
+
+          const content = document.createElement('div');
+          content.className = 'accordion-content';
+
+          const russian = row[idxMap.Russian];
+          const nativeText = row[idxMap.Native];
+          const country = row[idxMap.Nationality];
+          const nativeLabel = nativeLabels[country] || country || 'Native';
+
+          // Line 1: Russian; Native if exists
+          let line1 = `<strong>Russian:</strong> ${russian}`;
+          if (nativeText && nativeText.trim() !== '') {
+            line1 += `; <strong>${nativeLabel}:</strong> ${nativeText}`;
+          }
+          content.innerHTML += `<p>${line1}</p>`;
+
+          // Line 2: Title(s)
+          if (row[idxMap.Title] && row[idxMap.Title].trim() !== '') {
+            content.innerHTML += `<p>${row[idxMap.Title]}</p>`;
+          }
+
+          // Line 3: Nationality
+          if (country && country.trim() !== '') {
+            content.innerHTML += `<p><strong>Nationality:</strong> ${country}</p>`;
+          }
+
+          item.appendChild(content);
+          resultsEl.appendChild(item);
+
+          header.addEventListener('click', () => {
+            const isActive = header.classList.contains('active');
+            document.querySelectorAll('.accordion-header').forEach(h => h.classList.remove('active'));
+            document.querySelectorAll('.accordion-content').forEach(c => c.style.maxHeight = null);
+
+            if (!isActive) {
+              header.classList.add('active');
+              content.style.maxHeight = content.scrollHeight + 'px';
+            }
+          });
+        });
+      }
+
+      // Load accordion
+      (async function(){
+        try{
+          const res = await fetch('/api/sheets');
+          if (!res.ok) return;
+          const obj = await res.json();
+          if (!Array.isArray(obj) || obj.length===0) return;
+          const headers = Object.keys(obj[0]);
+          const rows = obj.map(r => headers.map(h => r[h] ?? ''));
+          showResults({ headers, rows });
+        }catch(e){ console.error('showResults load failed', e); }
+      })();
+    </script>
+  </body>
+</html>
+                                      content.innerHTML += `<p>${line1}</p>`;
+
+                                      // Line 2: Title(s)
+                                      if (row[idxMap.Title] && row[idxMap.Title].trim() !== '') {
+                                        content.innerHTML += `<p>${row[idxMap.Title]}</p>`;
+                                      }
+
+                                      // Line 3: Nationality
+                                      if (country && country.trim() !== '') {
+                                        content.innerHTML += `<p><strong>Nationality:</strong> ${country}</p>`;
+                                      }
+
+                                      item.appendChild(content);
+                                      resultsEl.appendChild(item);
+
+                                      header.addEventListener('click', () => {
+                                        const isActive = header.classList.contains('active');
+                                        document.querySelectorAll('.accordion-header').forEach(h => h.classList.remove('active'));
+                                        document.querySelectorAll('.accordion-content').forEach(c => c.style.maxHeight = null);
+
+                                        if (!isActive) {
+                                          header.classList.add('active');
+                                          content.style.maxHeight = content.scrollHeight + 'px';
+                                        }
+                                      });
+                                    });
+                                  }
+
+                                  // Load accordion
+                                  (async function(){
+                                    try{
+                                      const res = await fetch('/api/sheets');
+                                      if (!res.ok) return;
+                                      const obj = await res.json();
+                                      if (!Array.isArray(obj) || obj.length===0) return;
+                                      const headers = Object.keys(obj[0]);
+                                      const rows = obj.map(r => headers.map(h => r[h] ?? ''));
+                                      showResults({ headers, rows });
+                                    }catch(e){ console.error('showResults load failed', e); }
+                                  })();
+                                </script>
+                              </body>
+                            </html>

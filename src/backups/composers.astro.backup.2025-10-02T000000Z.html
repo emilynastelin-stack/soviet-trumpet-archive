@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Soviet Trumpet Archive</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Server-side frontmatter notes (Astro) -->
+  <!--
+    FRONTMATTER: fetch initial rows from /api/sheets if available
+    Use Astro server-side fetch to preload DATA during page render.
+    If your dev server blocks internal requests, this can fail silently.
+  -->
+
+  <style>
+    :root { --accent:#8b0000; --muted:#6b7280; --bg:#f7f9fc; }
+    * { box-sizing:border-box; }
+    body {
+      font-family: Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      margin: 0;
+      color: #0f172a;
+      background-color: var(--bg);
+      background-image: none;
+      padding-bottom: 64px; /* reserve space for fixed footer */
+    }
+
+    header {
+      background:white; 
+      border-bottom:1px solid #e6e9ef; 
+      position:sticky; 
+      top:0; 
+      z-index:30;
+    }
+
+    header .container { max-width:100%; margin:0; padding:12px 20px; }
+    .container { max-width:1100px; margin:0 auto; padding:20px; }
+
+    .nav { display:flex; align-items:center; gap:18px; }
+    .logo { font-weight:800; color:var(--accent); font-size:20px; }
+    .nav-english { color:var(--accent); font-weight:800; }
+    .nav-pipe { color:#000; margin:0 8px; }
+    .nav-russian { color:var(--muted); }
+
+    /* language toggle */
+    .lang-toggle { position:relative; display:inline-block; margin-right:12px; }
+    .lang-btn { background:transparent; border:1px solid #e6e9ef; padding:6px 8px; border-radius:6px; cursor:pointer; font-weight:600; }
+    .lang-dropdown { position:absolute; top:100%; right:0; background:white; border:1px solid #e6e9ef; border-radius:6px; padding:6px; box-shadow:0 6px 18px rgba(16,24,40,0.06); display:none; min-width:140px; }
+    .lang-dropdown.open { display:block; }
+    .lang-option { padding:6px 8px; cursor:pointer; }
+    .lang-option:hover { background:#f3f4f6; }
+
+    /* Hero & search panel */
+    .hero { min-height:auto; display:flex; align-items:flex-start; justify-content:center; padding-bottom:12px; }
+    .search-panel {
+      margin:0 auto;
+      max-width:900px;
+      background:white;
+      border-radius:12px;
+      box-shadow:0 6px 18px rgba(16,24,40,0.06);
+      padding:28px;
+    }
+    .search-panel.fixed { position:fixed; left:50%; transform:translateX(-50%); z-index:22; width:min(900px,calc(100% - 32px)); }
+
+    .tint-box {
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      background-color:rgba(186,171,157,0.75);
+      width:900px;
+      max-width:calc(100% - 32px);
+      margin:0 auto;
+      padding-top:0;
+      position:relative;
+      z-index:10;
+    }
+    .tint-box .container { background:transparent; width:100%; }
+
+    .mast { width:100%; display:flex; justify-content:center; margin:0; position:relative; z-index:20; }
+    .mast img { position:relative; width:66%; max-width:532px; height:auto; object-fit:cover; display:block; z-index:25; border-radius:0; background:transparent; }
+
+    .search-row { display:flex; gap:12px; }
+    .search-input { flex:1; padding:14px 16px; border-radius:10px; border:1px solid #e5e7eb; font-size:16px; }
+    .search-cta { padding:12px 18px; border-radius:10px; background:var(--accent); color:white; border:none; font-weight:700; cursor:pointer; }
+    .adv { margin-top:10px; color:var(--muted); font-size:14px; }
+
+    .filters { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; }
+    .filters select, .filters .small-btn, .filters .reset-btn { padding:8px 10px; border-radius:8px; border:1px solid #d1d5db; background:white; cursor:pointer; }
+
+    .grid { display:grid; grid-template-columns:1fr; gap:12px; margin-top:18px; }
+    .card { background:white; border-radius:8px; box-shadow:0 6px 8px rgba(15,23,42,0.04); display:block; overflow:hidden; }
+    .card + .card { margin-top:6px; }
+    .card-header { padding:14px 18px; border-radius:8px 8px 0 0; cursor:pointer; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #e6e9ef; background:#fbfbfb; }
+    .card-header h4 { margin:0; font-size:16px; }
+  .card-content { padding:12px 20px 16px 28px; background:#ffffff; overflow:hidden; max-height:0; transition: max-height 0.25s ease; }
+    .card-content p { margin:6px 0; }
+    .card-content ul { margin:6px 0 0 18px; }
+    .card.open .card-content { max-height:1000px; }
+    .muted { color:var(--muted); font-size:14px; }
+
+    .results-meta { display:flex; justify-content:space-between; align-items:center; margin-top:18px; }
+    .results-count { font-weight:600; }
+
+    footer { margin-top:40px; padding:36px 0; background:transparent; }
+    #fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#8b0000; color:white; z-index:60; box-shadow:0 -6px 18px rgba(11,10,10,0.2); }
+    .fixed-footer-inner { max-width:1100px; margin:0 auto; padding:12px 20px; display:flex; gap:12px; align-items:center; }
+    .footer-grid { display:flex; gap:24px; flex-wrap:wrap; }
+    .small { font-size:13px; color:var(--muted); }
+
+    @media (max-width:900px) { .grid { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:600px) { .grid{grid-template-columns:1fr;} .search-row{flex-direction:column;} .container{padding:14px;} }
+  </style>
+</head>
+<body>
+... (file truncated in backup)

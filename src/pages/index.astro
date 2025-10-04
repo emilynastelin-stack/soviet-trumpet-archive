@@ -1,0 +1,110 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Soviet Trumpet Archive — Sheet Table</title>
+    <style>
+      body { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; padding: 18px; }
+      table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+      th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+      th { background: #f3f4f6; }
+      caption { font-weight: 700; margin-bottom: 8px; }
+      .accordion-item { border-bottom: 1px solid #ddd; }
+      .accordion-header { cursor: pointer; padding: 10px; font-weight: bold; background: #f9f9f9; }
+      .accordion-content { overflow: hidden; max-height: 0; transition: max-height 0.3s ease; padding: 0 10px; }
+      .accordion-header.active { background: #e5e7eb; }
+      .accordion-content p { margin: 8px 0; }
+    </style>
+  </head>
+  <body>
+    <h1>Fart</h1>
+    <p>Live table from the spreadsheet — loading below.</p>
+
+    <div id="table-wrap">
+      <table id="data-table">
+        <caption>Composers</caption>
+        <thead id="data-head"></thead>
+        <tbody id="data-body"></tbody>
+      </table>
+    </div>
+
+    <div id="results"></div>
+    
+
+    <script>
+    console.log('Live data script loaded');
+
+async function renderLiveData() {
+  try {
+    const res = await fetch('/api/sheets?t=' + Date.now());
+    const data = await res.json();
+    console.log('Fetched data:', data);
+
+    // Table render
+    const head = document.getElementById('data-head');
+    const body = document.getElementById('data-body');
+    head.innerHTML = '';
+    body.innerHTML = '';
+
+    if (!data || data.length === 0) {
+      body.innerHTML = '<tr><td colspan="99">No data</td></tr>';
+      return;
+    }
+
+    const keys = Object.keys(data[0]);
+    const trHead = document.createElement('tr');
+    keys.forEach(k => { const th = document.createElement('th'); th.textContent = k; trHead.appendChild(th); });
+    head.appendChild(trHead);
+
+    data.forEach(row => {
+      const tr = document.createElement('tr');
+      keys.forEach(k => {
+        const td = document.createElement('td');
+        td.textContent = row[k] ?? '';
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+
+    // Accordion render
+    const container = document.getElementById('results');
+    container.innerHTML = '';
+    data.forEach(row => {
+      const composer = row['Composer'] || row['Композитор'] || '—';
+      const item = document.createElement('div');
+      item.className = 'accordion-item';
+
+      const header = document.createElement('div');
+      header.className = 'accordion-header';
+      header.textContent = composer;
+      item.appendChild(header);
+
+      const content = document.createElement('div');
+      content.className = 'accordion-content';
+      content.innerHTML = `<p>${composer}</p>`;
+      item.appendChild(content);
+
+      header.addEventListener('click', () => {
+        const isActive = header.classList.contains('active');
+        document.querySelectorAll('.accordion-header').forEach(h => h.classList.remove('active'));
+        document.querySelectorAll('.accordion-content').forEach(c => c.style.maxHeight = null);
+        if (!isActive) {
+          header.classList.add('active');
+          content.style.maxHeight = content.scrollHeight + 'px';
+        }
+      });
+
+      container.appendChild(item);
+    });
+
+  } catch (e) {
+    console.error('Render failed', e);
+  }
+}
+
+// Initial render
+renderLiveData();
+</script>
+  </body>
+</html>
