@@ -51,7 +51,20 @@ export async function GET(request) {
   const q = url ? url.searchParams : null;
   const sheetName = q && q.get('sheet');
   const overrideRange = q && q.get('range');
-  const range = overrideRange || (sheetName ? `${sheetName}!A1:Z1000` : DEFAULT_SHEET_RANGE);
+  const primaryRange = overrideRange || (sheetName ? `${sheetName}!A1:Z1000` : DEFAULT_SHEET_RANGE);
+  // If callers didn't provide a sheet explicitly and DEFAULT_SHEET_RANGE references 'Sheet1',
+  // try a small set of likely renamed tabs (e.g. MusicList) to be tolerant of renames.
+  const candidateRanges = [];
+  if (overrideRange) candidateRanges.push(overrideRange);
+  else if (sheetName) candidateRanges.push(`${sheetName}!A1:Z1000`);
+  // always include the primary range as first preference
+  if (!candidateRanges.includes(primaryRange)) candidateRanges.push(primaryRange);
+  // additional fallbacks when default references a legacy name
+  if (!sheetName && String(primaryRange).includes('Sheet1')){
+    candidateRanges.push('MusicList!A1:Z1000');
+    candidateRanges.push('MusicList!A1:O1000');
+    candidateRanges.push('CompDet!A1:Z1000');
+  }
 
   const serviceAccountEnv = process.env.SERVICE_ACCOUNT_JSON;
   if (serviceAccountEnv) {
@@ -79,9 +92,17 @@ export async function GET(request) {
           scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
         });
         const sheets = google.sheets({ version: 'v4', auth });
-        const res = await sheets.spreadsheets.values.get({ spreadsheetId, range });
-        const data = await parseRowsToJson(res.data.values || []);
-        return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        // try candidate ranges in order until one succeeds
+        let lastErr = null;
+        for (const rng of candidateRanges){
+          try{
+            const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: rng });
+            const data = await parseRowsToJson(res.data.values || []);
+            return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json' } });
+          }catch(errRange){ lastErr = errRange; /* try next */ }
+        }
+        // if none succeeded, return last error message
+        return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(lastErr && lastErr.message ? lastErr.message : lastErr) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
       } catch (errAuth) {
         // Surface auth errors to the caller to help debugging (message only, no secrets)
         return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(errAuth && errAuth.message ? errAuth.message : errAuth) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
@@ -100,9 +121,15 @@ export async function GET(request) {
         scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
       });
       const sheets = google.sheets({ version: 'v4', auth });
-      const res = await sheets.spreadsheets.values.get({ spreadsheetId, range });
-      const data = await parseRowsToJson(res.data.values || []);
-      return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      let lastErr = null;
+      for (const rng of candidateRanges){
+        try{
+          const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: rng });
+          const data = await parseRowsToJson(res.data.values || []);
+          return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }catch(errRange){ lastErr = errRange; }
+      }
+      return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(lastErr && lastErr.message ? lastErr.message : lastErr) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
     }
   } catch (err) {
     console.error('Service-account fetch failed:', err && err.message ? err.message : err);
