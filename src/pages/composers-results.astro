@@ -921,10 +921,40 @@
         }catch(e){ rawJsonHtml = ''; }
         const sourceName = (rows && rows.__sheet) ? String(rows.__sheet) : '';
         const sourceHtml = sourceName ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Source: ${escapeHtml(sourceName)}</div>` : '';
-        // show header keys available on the matched sheet (if any)
-        const headerKeys = (matchRow && typeof matchRow === 'object') ? Object.keys(matchRow) : (rows && rows.length ? Object.keys(rows[0]||{}) : []);
-        const hdrHtml = headerKeys && headerKeys.length ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Headers: ${escapeHtml(headerKeys.join(', '))}</div>` : '';
-        content.innerHTML = `<div><strong style="color:var(--accent)">${escapeHtml(dispFound)}</strong>${colEHtml}${sourceHtml}${hdrHtml}${rawJsonHtml}</div>`;
+        // Build a deterministic object for the matched row (convert arrays to keyed object using sample headers når available)
+        let rowObj = {};
+        if (Array.isArray(matchRow)){
+          const sampleObj = (rows && rows.length && typeof rows[0] === 'object') ? rows[0] : null;
+          if (sampleObj){
+            const sampleKeys = Object.keys(sampleObj);
+            for (let i=0;i<matchRow.length;i++){
+              rowObj[sampleKeys[i] || `col${i+1}`] = matchRow[i];
+            }
+          } else {
+            for (let i=0;i<matchRow.length;i++) rowObj[`col${i+1}`] = matchRow[i];
+          }
+        } else if (typeof matchRow === 'object' && matchRow){
+          rowObj = matchRow;
+        }
+
+        // Desired CompDet header order to display
+        const desired = ['Composer','Композитор','Native','FALSE','Lifespan','Country','Soviet republic','Language','Learn more','Notes','Nationality'];
+
+        // helper: find a key in rowObj matching a header (case-insensitive, strip non-alphanum)
+        const findKey = (label)=>{
+          const normLabel = String(label||'').toLowerCase().replace(/[^a-z0-9а-яёіїևօұұա-ң]+/gi,'');
+          return Object.keys(rowObj||{}).find(k=> String(k||'').toLowerCase().replace(/[^a-z0-9а-яёіїևօұұա-ң]+/gi,'') === normLabel) || null;
+        };
+
+        const values = desired.map(h=>{
+          const k = findKey(h) || findKey(h.replace(/\s+/g,'').replace(/[-_]/g,''));
+          const v = k ? rowObj[k] : '';
+          return v == null ? '' : String(v);
+        });
+
+        // Render as a small preformatted block with tab-separated headers and values
+        const preStyle = 'background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;margin-top:8px;font-size:0.95rem;white-space:pre-wrap';
+        content.innerHTML = `<div><strong style="color:var(--accent)">${escapeHtml(dispFound)}</strong>${colEHtml}${sourceHtml}<pre style="${preStyle}">${escapeHtml(desired.join('\t'))}\n${escapeHtml(values.join('\t'))}</pre></div>`;
       } else {
         try{ console.debug('COMPOSER_DEBUG no match for', name); }catch(e){}
         content.innerHTML = `<div>No composer info found in Sheet2 for <strong>${escapeHtml(name)}</strong></div>`;
