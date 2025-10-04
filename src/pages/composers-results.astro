@@ -798,23 +798,23 @@
           if (Array.isArray(matchRow)){
             colE = matchRow.length > 4 ? matchRow[4] : '';
           } else if (typeof matchRow === 'object'){
-            const titleKeys = ['Title','title','Title, Year','Title,Year','Titl','Title Year','Title, Year','Title,Year'];
-            for (const k of titleKeys){ if (k in matchRow && String(matchRow[k]||'').trim()){ colE = matchRow[k]; break; } }
-            if (!colE){
-              // fallback to the 5th value when explicit title keys are not present
-              const vals = Object.values(matchRow||{});
-              if (vals && vals.length > 4) colE = vals[4];
+            // Prefer the raw 5th column value (object value order may reflect sheet columns from the server)
+            const vals = Object.values(matchRow||{});
+            if (vals && vals.length > 4) colE = vals[4];
+
+            // If the 5th value is empty, try Title-like keys as a fallback
+            if (!colE || String(colE).trim() === ''){
+              const titleKeys = ['Title','title','Title, Year','Title,Year','Titl','Title Year','Title, Year','Title,Year'];
+              for (const k of titleKeys){ if (k in matchRow && String(matchRow[k]||'').trim()){ colE = matchRow[k]; break; } }
             }
 
-            // If we found something that looks like serialized JSON inside a cell, try to parse and prefer Title
+            // If the cell we found itself contains serialized JSON, try parsing it (but only if the extracted value is JSON-like)
             const maybe = String(colE||'').trim();
             if (maybe && (maybe.startsWith('{') || maybe.startsWith('['))){
               try{
                 const parsed = JSON.parse(maybe);
                 if (parsed && typeof parsed === 'object'){
-                  if (!Array.isArray(parsed) && parsed.Title) {
-                    colE = parsed.Title;
-                  } else if (Array.isArray(parsed) && parsed.length > 4) {
+                  if (Array.isArray(parsed) && parsed.length > 4) {
                     colE = parsed[4];
                   } else {
                     const pvals = Object.values(parsed||{});
