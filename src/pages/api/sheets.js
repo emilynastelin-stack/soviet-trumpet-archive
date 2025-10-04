@@ -86,7 +86,7 @@ export async function GET(request) {
           parsed = JSON.parse(decoded);
         } catch (errB64) {
           // return a helpful error so caller/browser can diagnose env formatting issues
-          return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_JSON_PARSE_ERROR', message: 'SERVICE_ACCOUNT_JSON is present but could not be parsed as JSON (raw or base64). Please ensure the env var contains valid JSON or base64-encoded JSON.' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+          return jsonResponse({ error: 'SERVICE_ACCOUNT_JSON_PARSE_ERROR', message: 'SERVICE_ACCOUNT_JSON is present but could not be parsed as JSON (raw or base64). Please ensure the env var contains valid JSON or base64-encoded JSON.' }, 500, '');
         }
       }
 
@@ -111,7 +111,7 @@ export async function GET(request) {
         return jsonResponse({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(lastErr && lastErr.message ? lastErr.message : lastErr) }, 502, '');
       } catch (errAuth) {
         // Surface auth errors to the caller to help debugging (message only, no secrets)
-  return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(errAuth && errAuth.message ? errAuth.message : errAuth) }), { status: 502, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
+        return jsonResponse({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(errAuth && errAuth.message ? errAuth.message : errAuth) }, 502, '');
       }
     } catch (e) {
       // Unexpected - fall through to other methods
@@ -155,7 +155,7 @@ export async function GET(request) {
       const data = await parseRowsToJson(json.values || []);
       return jsonResponse(data, 200, primaryRange);
     } catch (err) {
-      return new Response(JSON.stringify({ error: 'Failed to fetch via API key', message: String(err) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+      return jsonResponse({ error: 'Failed to fetch via API key', message: String(err) }, 502, primaryRange);
     }
   }
 
@@ -186,5 +186,5 @@ export async function GET(request) {
     console.error('GViz fallback fetch failed:', err && err.message ? err.message : err);
   }
 
-  return new Response(JSON.stringify({ error: 'Missing credentials', message: 'Place a service account JSON at ./secrets/service-account.json or set GOOGLE_API_KEY in environment for a public sheet.' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+  return jsonResponse({ error: 'Missing credentials', message: 'Place a service account JSON at ./secrets/service-account.json or set GOOGLE_API_KEY in environment for a public sheet.' }, 500, '');
 }
