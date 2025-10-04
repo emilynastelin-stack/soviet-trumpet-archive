@@ -837,6 +837,35 @@
               }
             }
           }
+
+          // If colE is still empty, try a quick fallback: lookup the composer in Sheet1 and return its 5th column
+          if (!colE || String(colE).trim() === ''){
+            try{
+              const s1 = await fetch('/api/sheets?sheet=Sheet1');
+              const s1rows = await s1.json();
+              if (Array.isArray(s1rows) && s1rows.length){
+                const targetNorm = normalize(foundVal || String(matchRow && (matchRow.Composer || matchRow.Composer || matchRow['Composer']) || ''));
+                for (const r1 of s1rows){
+                  if (!r1) continue;
+                  let cand = '';
+                  if (typeof r1 === 'object'){
+                    if (Array.isArray(r1)) cand = String(r1[0]||'').trim();
+                    else cand = String(r1.Composer || r1['Composer'] || Object.values(r1 || {})[0] || '').trim();
+                  } else cand = String(r1).trim();
+                  if (!cand) continue;
+                  if (normalize(cand) === targetNorm || normalize(cand).includes(targetNorm) || targetNorm.includes(normalize(cand))){
+                    if (Array.isArray(r1)){
+                      colE = r1.length > 4 ? r1[4] : '';
+                    } else if (typeof r1 === 'object'){
+                      const vals = Object.values(r1||{});
+                      if (vals && vals.length > 4) colE = vals[4];
+                    }
+                    if (colE && String(colE).trim() !== '') break;
+                  }
+                }
+              }
+            }catch(_){ /* ignore fallback errors */ }
+          }
         }catch(e){ colE = ''; }
         // sanitize newlines/tabs in displayed values
         function cleanDisplay(s){ return String(s||'').replace(/[\r\n\t]+/g,' ').replace(/\s+/g,' ').trim(); }
