@@ -55,19 +55,40 @@ export async function GET(request) {
 
   const serviceAccountEnv = process.env.SERVICE_ACCOUNT_JSON;
   if (serviceAccountEnv) {
+    // Accept either raw JSON in the env var or a base64-encoded JSON string (some deploy UIs require base64)
+    let parsed = null;
     try {
-      const creds = JSON.parse(serviceAccountEnv);
-      const auth = new google.auth.GoogleAuth({
-        credentials: creds,
-        scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
-      });
-      const sheets = google.sheets({ version: 'v4', auth });
-      const res = await sheets.spreadsheets.values.get({ spreadsheetId, range });
-      const data = await parseRowsToJson(res.data.values || []);
-      return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json' } });
-    } catch (err) {
-      console.error('Service-account (env) fetch failed:', err && err.message ? err.message : err);
-      // fall through to try file-based approach or API key
+      try {
+        parsed = JSON.parse(serviceAccountEnv);
+      } catch (errRaw) {
+        // try base64 decode then parse
+        try {
+          const decoded = Buffer.from(serviceAccountEnv, 'base64').toString('utf8');
+          parsed = JSON.parse(decoded);
+        } catch (errB64) {
+          // return a helpful error so caller/browser can diagnose env formatting issues
+          return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_JSON_PARSE_ERROR', message: 'SERVICE_ACCOUNT_JSON is present but could not be parsed as JSON (raw or base64). Please ensure the env var contains valid JSON or base64-encoded JSON.' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+        }
+      }
+
+      // If parsed successfully, attempt to use it
+      try {
+        const creds = parsed;
+        const auth = new google.auth.GoogleAuth({
+          credentials: creds,
+          scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+        });
+        const sheets = google.sheets({ version: 'v4', auth });
+        const res = await sheets.spreadsheets.values.get({ spreadsheetId, range });
+        const data = await parseRowsToJson(res.data.values || []);
+        return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      } catch (errAuth) {
+        // Surface auth errors to the caller to help debugging (message only, no secrets)
+        return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(errAuth && errAuth.message ? errAuth.message : errAuth) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+      }
+    } catch (e) {
+      // Unexpected - fall through to other methods
+      console.error('Service-account (env) unexpected error:', e && e.message ? e.message : e);
     }
   }
 
