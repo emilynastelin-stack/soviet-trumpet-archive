@@ -745,26 +745,74 @@
   async function populateComposerBox(name, row){
     const content = document.getElementById('composer-content');
     const clearBtn = document.getElementById('clear-composer');
-    if (!content) return;
-    if (!name){ content.innerHTML = 'Select a result to view composer details.'; return; }
+  if (!content) return;
+  if (!name){ content.innerHTML = 'Select a result to view composer details.'; return; }
+  // DEBUG: log clicks and behavior for troubleshooting
+  try{ console.debug('COMPOSER_DEBUG click', name); }catch(e){}
 
     // Simple behavior for Sheet2 test: fetch Sheet2 and display the first-column value for the matching composer
     try{
       const res = await fetch('/api/sheets?sheet=Sheet2');
       const rows = await res.json();
-      // Find row where the first column value equals the clicked composer name
-      const match = rows && rows.length ? rows.find(r => {
-        const vals = Object.values(r || {});
-        const first = vals && vals.length ? String(vals[0] || '').trim() : '';
-        return first === String(name || '').trim();
-      }) : null;
-      if (match){
-        const firstVal = Object.values(match)[0] || '';
-        content.innerHTML = `<div><strong style="color:var(--accent)">${escapeHtml(firstVal)}</strong></div>`;
+      try{ console.debug('COMPOSER_DEBUG fetched rows', Array.isArray(rows)?rows.length:typeof rows); }catch(e){}
+      let foundVal = null;
+      if (rows && rows.length){
+        const target = String(name || '').trim();
+        const normTarget = normalize(target);
+        for (const r of rows){
+          let first = '';
+          if (r === null || r === undefined){ first = ''; }
+          else if (typeof r === 'object'){
+            if (Array.isArray(r)){
+              first = r.length ? String(r[0]||'').trim() : '';
+            } else {
+              const vals = Object.values(r || {});
+              first = vals && vals.length ? String(vals[0]||'').trim() : '';
+            }
+          } else {
+            first = String(r).trim();
+          }
+          const normFirst = normalize(first);
+          // tolerant matching: exact, normalized-equal, or normalized-contains
+          if (first === target || normFirst === normTarget || normFirst.includes(normTarget) || normTarget.includes(normFirst)){
+            foundVal = first; break;
+          }
+        }
+      }
+      if (foundVal !== null){
+        try{ console.debug('COMPOSER_DEBUG match found', foundVal); }catch(e){}
+        // also try to read column E (5th column, index 4) from the matched row
+        let colE = '';
+        try{
+          const matchRow = rows.find(r => {
+            if (r === null || r === undefined) return false;
+            if (typeof r === 'object'){
+              if (Array.isArray(r)) return String((r[0]||'')).trim() === String(foundVal).trim();
+              const vals = Object.values(r||{}); return vals && vals.length ? String(vals[0]||'').trim() === String(foundVal).trim() : false;
+            }
+            return String(r).trim() === String(foundVal).trim();
+          });
+          if (matchRow !== undefined && matchRow !== null){
+            if (typeof matchRow === 'object'){
+              if (Array.isArray(matchRow)) colE = matchRow.length > 4 ? matchRow[4] : '';
+              else { const vals = Object.values(matchRow||{}); colE = vals.length > 4 ? vals[4] : ''; }
+            } else {
+              colE = '';
+            }
+          }
+        }catch(e){ colE = ''; }
+  // sanitize newlines/tabs in displayed values
+  function cleanDisplay(s){ return String(s||'').replace(/[\r\n\t]+/g,' ').replace(/\s+/g,' ').trim(); }
+  const dispFound = cleanDisplay(foundVal);
+  const dispColE = cleanDisplay(colE);
+  const colEHtml = dispColE ? `<div style="margin-top:4px;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(dispColE)}</div>` : '';
+  content.innerHTML = `<div><strong style="color:var(--accent)">${escapeHtml(dispFound)}</strong>${colEHtml}</div>`;
       } else {
+        try{ console.debug('COMPOSER_DEBUG no match for', name); }catch(e){}
         content.innerHTML = `<div>No composer info found in Sheet2 for <strong>${escapeHtml(name)}</strong></div>`;
       }
     }catch(e){
+      try{ console.debug('COMPOSER_DEBUG fetch error', String(e)); }catch(err){}
       content.innerHTML = `Failed to load composer info: ${escapeHtml(String(e))}`;
     }
     if (clearBtn) { clearBtn.style.display = 'inline-block'; clearBtn.onclick = ()=>{ selectedComposer = ''; if (clearBtn) clearBtn.style.display='none'; populateComposerBox('', null); currentPage = 1; loadResults(); }; }
