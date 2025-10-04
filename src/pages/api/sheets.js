@@ -98,14 +98,14 @@ export async function GET(request) {
           try{
             const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: rng });
             const data = await parseRowsToJson(res.data.values || []);
-            return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json', 'Content-Disposition': 'inline; filename="sheets.json"' } });
+            return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
           }catch(errRange){ lastErr = errRange; /* try next */ }
         }
         // if none succeeded, return last error message
-  return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(lastErr && lastErr.message ? lastErr.message : lastErr) }), { status: 502, headers: { 'Content-Type': 'application/json', 'Content-Disposition': 'inline; filename="sheets.json"' } });
+  return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(lastErr && lastErr.message ? lastErr.message : lastErr) }), { status: 502, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
       } catch (errAuth) {
         // Surface auth errors to the caller to help debugging (message only, no secrets)
-  return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(errAuth && errAuth.message ? errAuth.message : errAuth) }), { status: 502, headers: { 'Content-Type': 'application/json', 'Content-Disposition': 'inline; filename="sheets.json"' } });
+  return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(errAuth && errAuth.message ? errAuth.message : errAuth) }), { status: 502, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
       }
     } catch (e) {
       // Unexpected - fall through to other methods
@@ -126,10 +126,10 @@ export async function GET(request) {
         try{
           const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: rng });
           const data = await parseRowsToJson(res.data.values || []);
-          return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json', 'Content-Disposition': 'inline; filename="sheets.json"' } });
+          return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
         }catch(errRange){ lastErr = errRange; }
       }
-  return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(lastErr && lastErr.message ? lastErr.message : lastErr) }), { status: 502, headers: { 'Content-Type': 'application/json', 'Content-Disposition': 'inline; filename="sheets.json"' } });
+  return new Response(JSON.stringify({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(lastErr && lastErr.message ? lastErr.message : lastErr) }), { status: 502, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
     }
   } catch (err) {
     console.error('Service-account fetch failed:', err && err.message ? err.message : err);
@@ -143,11 +143,11 @@ export async function GET(request) {
       const res = await fetch(urlStr);
       if (!res.ok) {
         const txt = await res.text();
-        return new Response(JSON.stringify({ error: 'Google API fetch failed', status: res.status, body: txt }), { status: 502, headers: { 'Content-Type': 'application/json', 'Content-Disposition': 'inline; filename="sheets.json"' } });
+  return new Response(JSON.stringify({ error: 'Google API fetch failed', status: res.status, body: txt }), { status: 502, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
       }
       const json = await res.json();
       const data = await parseRowsToJson(json.values || []);
-      return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json', 'Content-Disposition': 'inline; filename="sheets.json"' } });
+  return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
     } catch (err) {
       return new Response(JSON.stringify({ error: 'Failed to fetch via API key', message: String(err) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
     }
@@ -173,7 +173,7 @@ export async function GET(request) {
         // build values array with header row first
         const values = [cols, ...rows];
   const data = await parseRowsToJson(values || []);
-  return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json', 'Content-Disposition': 'inline; filename="sheets.json"' } });
+  return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json; charset=utf-8' } });
       }
     }
   } catch (err) {
