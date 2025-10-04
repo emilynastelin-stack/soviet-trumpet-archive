@@ -750,11 +750,25 @@
   // DEBUG: log clicks and behavior for troubleshooting
   try{ console.debug('COMPOSER_DEBUG click', name); }catch(e){}
 
-    // Simple behavior for Sheet2 test: fetch Sheet2 and display the first-column value for the matching composer
+    // Try multiple possible aggregated-sheet/tab names so renaming the tab (e.g. to CompDet) won't break the lookup
+    let rows = [];
     try{
-      const res = await fetch('/api/sheets?sheet=Sheet2');
-      const rows = await res.json();
-      try{ console.debug('COMPOSER_DEBUG fetched rows', Array.isArray(rows)?rows.length:typeof rows); }catch(e){}
+      const candidates = ['CompDet','Sheet2','ComposersAggregated','Composers','Aggregated'];
+      for (const sname of candidates){
+        try{
+          const res = await fetch('/api/sheets?sheet=' + encodeURIComponent(sname));
+          const jr = await res.json();
+          try{ console.debug('COMPOSER_DEBUG fetched sheet', sname, Array.isArray(jr)?jr.length:typeof jr); }catch(e){}
+          if (Array.isArray(jr) && jr.length){ rows = jr; rows.__sheet = sname; break; }
+        }catch(_e){ /* ignore individual sheet fetch errors */ }
+      }
+      // final fallback: try default Sheet2 if nothing found (rare)
+      if ((!rows || rows.length === 0)){
+        const res = await fetch('/api/sheets?sheet=Sheet2');
+        const jr = await res.json();
+        if (Array.isArray(jr)) { rows = jr; rows.__sheet = 'Sheet2'; }
+      }
+  try{ console.debug('COMPOSER_DEBUG fetched rows', Array.isArray(rows)?rows.length:typeof rows, 'sheet', rows && rows.__sheet); }catch(e){}
       let foundVal = null;
       let matchRow = null;
       if (rows && rows.length){
