@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ProQuest Results Style</title>
+  <title>Soviet Trumpet Archive results</title>
   <style>
     :root { --accent:#8b0000; --muted:#6b7280; --bg:#f7f9fc; }
     * { box-sizing:border-box; }
@@ -766,8 +766,29 @@
   // Use the cell value from column M of this row as the label for column C's value
   // (previously we used the key/header name; now we use the row-specific value)
   const colMLabel = colMKey ? (row[colMKey] || '') : '';
-  const colNVal = colNKey ? (row[colNKey] || '') : '';
-  const colOVal = colOKey ? (row[colOKey] || '') : '';
+  const rawColN = colNKey ? (row[colNKey] || '') : '';
+  const rawColO = colOKey ? (row[colOKey] || '') : '';
+
+  // Heuristic: if one of the two columns contains a URL/link and the other does not,
+  // treat the URL-containing cell as the Learn-more link (column O) and the other as column N.
+  function looksLikeUrl(s){ if(!s) return false; try{ return /^(https?:\/\/|www\.)/i.test(String(s).trim()); }catch(e){ return false; } }
+  let colNVal = rawColN;
+  let colOVal = rawColO;
+  const rawNIsUrl = looksLikeUrl(rawColN);
+  const rawOIsUrl = looksLikeUrl(rawColO);
+  if (rawNIsUrl && !rawOIsUrl){
+    // URL ended up in N; swap so link is used as Learn more and N shows the other value
+    colOVal = rawColN;
+    colNVal = rawColO;
+  } else if (rawOIsUrl && !rawNIsUrl){
+    // expected case: O is URL and N is non-url; keep as-is
+    colNVal = rawColN;
+    colOVal = rawColO;
+  } else {
+    // ambiguous case (both URL or both non-url): prefer the explicit columns as-is
+    colNVal = rawColN;
+    colOVal = rawColO;
+  }
 
     let extraHtml = '';
     // Russian: value from column B
@@ -782,7 +803,6 @@
     }
 
   // If column N has a value, display it directly under the composer's name (small, muted)
-  // render column N with bottom margin so a visible gap appears before subsequent lines
   const colNHtml = colNVal ? `<div style="margin-top:4px;margin-bottom:8px;color:#6b7280;font-size:0.95rem">${escapeHtml(colNVal)}</div>` : '';
   // render column O as a 'Learn more' link beneath the column M/C data if present
   const safeHref = colOVal ? escapeHtml(String(colOVal).trim()) : '';
