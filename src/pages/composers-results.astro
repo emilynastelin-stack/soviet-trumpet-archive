@@ -965,7 +965,7 @@
           return Object.keys(rowObj||{}).find(k=> String(k||'').toLowerCase().replace(/[^^\p{L}\p{N}]+/gu,'') === normLabel) || null;
         };
 
-        // Provide aliases for expected CompDet headers and robust heuristics when a direct header match is missing
+  // Provide aliases for expected CompDet headers and robust heuristics when a direct header match is missing
         const headerAliases = {
           'Composer': ['Composer','Композитор','composer','Name','name'],
           'Композитор': ['Композитор','Composer','composer','Name'],
@@ -980,13 +980,19 @@
           'Nationality': ['Nationality','Nationality','Nationality (EN)']
         };
 
-        const allValues = Object.values(rowObj||{}).map(v=> v==null? '': String(v));
+  // Build a normalized-key map so we tolerate extra whitespace/hidden chars in sheet headers
+  const normalizeKey = k => String(k||'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
+  const normMap = {}; Object.keys(rowObj||{}).forEach(k=>{ try{ normMap[normalizeKey(k)] = rowObj[k]; }catch(e){ normMap[normalizeKey(String(k||''))] = rowObj[k]; } });
+  const allValues = Object.values(normMap||{}).map(v=> v==null? '': String(v));
         const lifeHintRegex = /\b\d{3,4}\s*[–—-]\s*\d{2,4}\b|\b\d{3,4}\b/; // year ranges or single years
 
         function getValForLabels(labels){
           for (const lab of labels){
-            const k = findKey(lab) || findKey(lab.replace(/\s+/g,'').replace(/[-_]/g,''));
-            if (k && rowObj[k] !== undefined && rowObj[k] !== null && String(rowObj[k]).trim() !== '') return String(rowObj[k]);
+            const nk = normalizeKey(lab);
+            if (nk && (nk in normMap) && normMap[nk] !== undefined && normMap[nk] !== null && String(normMap[nk]).trim() !== '') return String(normMap[nk]);
+            // also try a compacted variant
+            const nk2 = normalizeKey(lab.replace(/\s+/g,'').replace(/[-_]/g,''));
+            if (nk2 && (nk2 in normMap) && normMap[nk2] !== undefined && normMap[nk2] !== null && String(normMap[nk2]).trim() !== '') return String(normMap[nk2]);
           }
           // heuristic: search for lifespan-like pattern in any value
           for (const v of allValues){ if (v && lifeHintRegex.test(v)) return v; }
