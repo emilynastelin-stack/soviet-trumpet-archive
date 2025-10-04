@@ -851,15 +851,24 @@
       }
       if (matchRow !== null){
         try{ console.debug('COMPOSER_DEBUG match found', foundVal, matchRow); }catch(e){}
-        // Extract column E (5th column) in a robust way: prefer explicit Title-like keys, then fallback to index
+        // Extract column E (5th column) in a robust way: prefer explicit Lifespan keys for CompDet,
+        // then prefer the raw 5th value, then Title-like keys.
         let colE = '';
         try{
           if (Array.isArray(matchRow)){
             colE = matchRow.length > 4 ? matchRow[4] : '';
           } else if (typeof matchRow === 'object'){
+            // If the object has a Lifespan-like header, prefer it
+            const keys = Object.keys(matchRow || {});
+            const lifekey = keys && keys.find(k => /lifespan|life[ _-]?span|years|born|died/i.test(String(k)));
+            if (lifekey) {
+              colE = matchRow[lifekey];
+            }
             // Prefer the raw 5th column value (object value order may reflect sheet columns from the server)
-            const vals = Object.values(matchRow||{});
-            if (vals && vals.length > 4) colE = vals[4];
+            if ((!colE || String(colE).trim() === '') ){
+              const vals = Object.values(matchRow||{});
+              if (vals && vals.length > 4) colE = vals[4];
+            }
 
             // If the 5th value is empty, try Title-like keys as a fallback
             if (!colE || String(colE).trim() === ''){
@@ -905,14 +914,17 @@
         const dispFound = cleanDisplay(foundVal);
         const dispColE = cleanDisplay(colE);
         const colEHtml = dispColE ? `<div style="margin-top:4px;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(dispColE)}</div>` : '';
-        // DEBUG: show source sheet and raw matched row for inspection (temporary)
+        // DEBUG: show source sheet, headers, and raw matched row for inspection (temporary)
         let rawJsonHtml = '';
         try{
           rawJsonHtml = matchRow ? `<pre style="max-height:220px;overflow:auto;background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;margin-top:8px;font-size:0.85rem">${escapeHtml(JSON.stringify(matchRow, null, 2))}</pre>` : '';
         }catch(e){ rawJsonHtml = ''; }
         const sourceName = (rows && rows.__sheet) ? String(rows.__sheet) : '';
         const sourceHtml = sourceName ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Source: ${escapeHtml(sourceName)}</div>` : '';
-        content.innerHTML = `<div><strong style="color:var(--accent)">${escapeHtml(dispFound)}</strong>${colEHtml}${sourceHtml}${rawJsonHtml}</div>`;
+        // show header keys available on the matched sheet (if any)
+        const headerKeys = (matchRow && typeof matchRow === 'object') ? Object.keys(matchRow) : (rows && rows.length ? Object.keys(rows[0]||{}) : []);
+        const hdrHtml = headerKeys && headerKeys.length ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Headers: ${escapeHtml(headerKeys.join(', '))}</div>` : '';
+        content.innerHTML = `<div><strong style="color:var(--accent)">${escapeHtml(dispFound)}</strong>${colEHtml}${sourceHtml}${hdrHtml}${rawJsonHtml}</div>`;
       } else {
         try{ console.debug('COMPOSER_DEBUG no match for', name); }catch(e){}
         content.innerHTML = `<div>No composer info found in Sheet2 for <strong>${escapeHtml(name)}</strong></div>`;
