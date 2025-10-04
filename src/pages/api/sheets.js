@@ -105,5 +105,32 @@ export async function GET(request) {
     }
   }
 
+  // Final fallback: try the public Google 'gviz' endpoint which works for publicly shared sheets.
+  // This does not require credentials but only works if the spreadsheet/tab is shared publicly.
+  try {
+    // derive a sheet name for the gviz call: prefer explicit sheetName if provided, otherwise extract from DEFAULT_SHEET_RANGE
+    const sheetParam = sheetName || (DEFAULT_SHEET_RANGE && DEFAULT_SHEET_RANGE.split('!')[0]) || 'Sheet1';
+    // use a reasonable range part (A1:Z1000) for gviz
+    const rangePart = 'A1:Z1000';
+    const gvizUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetParam)}&range=${encodeURIComponent(rangePart)}`;
+    const gresp = await fetch(gvizUrl);
+    if (gresp && gresp.ok){
+      const text = await gresp.text();
+      // response wraps JSON in google.visualization.Query.setResponse(...)
+      const m = text.match(/google\.visualization\.Query\.setResponse\((.*)\);?/s);
+      const json = m && m[1] ? JSON.parse(m[1]) : null;
+      if (json && json.table){
+        const cols = (json.table.cols || []).map(c => (c && (c.label || c.id)) ? String(c.label || c.id) : '');
+        const rows = (json.table.rows || []).map(r => (r.c || []).map(cell => (cell && cell.v !== undefined && cell.v !== null) ? cell.v : ''));
+        // build values array with header row first
+        const values = [cols, ...rows];
+        const data = await parseRowsToJson(values || []);
+        return new Response(JSON.stringify(data, null, 2), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+    }
+  } catch (err) {
+    console.error('GViz fallback fetch failed:', err && err.message ? err.message : err);
+  }
+
   return new Response(JSON.stringify({ error: 'Missing credentials', message: 'Place a service account JSON at ./secrets/service-account.json or set GOOGLE_API_KEY in environment for a public sheet.' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
 }
