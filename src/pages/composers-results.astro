@@ -794,7 +794,7 @@
             // ensure this sheet actually looks like CompDet by checking for known header names
             const sample = jr[0];
             const headerKeys = (sample && typeof sample === 'object') ? Object.keys(sample) : [];
-            const norm = k => String(k||'').toLowerCase().replace(/[^^\p{L}\p{N}]+/gu,'');
+            const norm = k => String(k||'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
             const hasCompLike = headerKeys.some(h=> ['lifespan','composer','композитор'].includes(norm(h)));
             if (hasCompLike){ rows = jr; rows.__sheet = sname; break; }
             // else skip this sheet because it doesn't look like the aggregated composer detail sheet
@@ -809,7 +809,7 @@
             if (g && g.rows && g.rows.length){
               const headers = g.cols.map((h,i) => h && String(h).trim() ? String(h).trim() : `col_${i}`);
               // quick check: ensure headers include Lifespan or Composer
-              const norm = k => String(k||'').toLowerCase().replace(/[^^\p{L}\p{N}]+/gu,'');
+              const norm = k => String(k||'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
               const hasCompLike = headers.some(h => ['lifespan','composer','композитор'].includes(norm(h)));
               if (!hasCompLike) { continue; }
               rows = g.rows.map(r => { const o={}; for(let i=0;i<headers.length;i++){ o[headers[i]] = r[i] !== undefined && r[i] !== null ? r[i] : ''; } return o; });
