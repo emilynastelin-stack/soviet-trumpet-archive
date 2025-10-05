@@ -317,6 +317,9 @@
   <aside class="filters">
     <h3 class="section-header"><strong>Filters</strong></h3>
     <div class="section-divider"></div>
+    <div style="margin-bottom:10px;display:flex;gap:8px;">
+      <button id="clear-all-filters-btn" style="padding:6px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear all filters</button>
+    </div>
   <h4 class="section-header" style="font-weight:600;margin-top:6px;margin-bottom:6px;"><strong>Country</strong></h4>
   <div class="section-divider"></div>
   <div id="filter-country" style="margin-bottom:12px;">&nbsp;</div>
@@ -392,6 +395,19 @@
 
   function normalize(s){ if(!s) return ''; try{ return s.toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase(); }catch(e){ return s.toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); } }
 
+  // Top-level clear function so the button in filters can reuse it
+  function clearAllFilters(){
+    try{
+      if (qinput) qinput.value = '';
+      selectedComposer = '';
+      const clearComposerBtn = document.getElementById('clear-composer'); if (clearComposerBtn) clearComposerBtn.style.display = 'none';
+      const composerContent = document.getElementById('composer-content'); if (composerContent) composerContent.innerHTML = 'Select a result to view composer details.';
+      document.querySelectorAll('#filter-country input[type=checkbox], #filter-decade input[type=checkbox], #filter-type input[type=checkbox]').forEach(cb=> cb.checked = false);
+      currentPage = 1;
+      loadResults();
+    }catch(e){ console.error('clearAllFilters failed', e); }
+  }
+
   function escapeHtml(str){ if (str == null) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
   // Client-side GViz fetch fallback for public spreadsheets.
@@ -451,7 +467,7 @@
       controls.innerHTML = `<button id="country-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="country-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`;
       container.appendChild(controls);
       // attach change handler to all checkboxes
-      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ currentPage = 1; loadResults(); }));
+  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ selectedComposer = ''; currentPage = 1; loadResults(); }));
       // wire select all / clear
       const selAll = document.getElementById('country-select-all');
       const clr = document.getElementById('country-clear');
@@ -464,7 +480,7 @@
   controlsWrap.style.marginTop = '8px';
   controlsWrap.innerHTML = `<button id="country-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="country-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`;
   container.appendChild(controlsWrap);
-      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ currentPage = 1; loadResults(); }));
+  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ selectedComposer = ''; currentPage = 1; loadResults(); }));
       const selAll = document.getElementById('country-select-all');
       const clr = document.getElementById('country-clear');
       if (selAll) selAll.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
@@ -496,7 +512,7 @@
         container.appendChild(wrapper);
       }
       const controls = document.createElement('div'); controls.style.marginTop = '8px'; controls.innerHTML = `<button id="decade-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="decade-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controls);
-      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ currentPage = 1; loadResults(); }));
+  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ selectedComposer = ''; currentPage = 1; loadResults(); }));
       const selAll = document.getElementById('decade-select-all');
       const clr = document.getElementById('decade-clear');
       if (selAll) selAll.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
@@ -630,22 +646,7 @@
     pag.id = 'pagination';
     pag.className = 'pagination';
     // if there is exactly one page, show a '1 of 1' placeholder aligned to the right
-    // helper to clear search and all filters
-    function clearAllFilters(){
-      try{
-        // clear search
-        if (qinput) qinput.value = '';
-        // clear selected composer and composer box
-        selectedComposer = '';
-        const clearComposerBtn = document.getElementById('clear-composer'); if (clearComposerBtn) clearComposerBtn.style.display = 'none';
-        const composerContent = document.getElementById('composer-content'); if (composerContent) composerContent.innerHTML = 'Select a result to view composer details.';
-        // uncheck all filter checkboxes
-        document.querySelectorAll('#filter-country input[type=checkbox], #filter-decade input[type=checkbox], #filter-type input[type=checkbox]').forEach(cb=> cb.checked = false);
-        // reset pagination and reload
-        currentPage = 1;
-        loadResults();
-      }catch(e){ console.error('clearAllFilters failed', e); }
-    }
+    // helper to clear search and all filters (defined at top-level so it can be reused)
 
     if (pageCount === 1) {
       pagRoot.innerHTML = '';
@@ -659,15 +660,7 @@
       placeholder.style.color = '#6b7280';
       placeholder.style.paddingRight = '6px';
       placeholder.textContent = '1 of 1';
-      const clearBtn = document.createElement('button');
-      clearBtn.textContent = 'Clear all filters';
-      clearBtn.style.padding = '6px 10px';
-      clearBtn.style.borderRadius = '6px';
-      clearBtn.style.border = '1px solid #d1d5db';
-      clearBtn.style.background = '#fff';
-      clearBtn.addEventListener('click', clearAllFilters);
-      phWrap.appendChild(placeholder);
-      phWrap.appendChild(clearBtn);
+  phWrap.appendChild(placeholder);
   // Return to search button (preserve q param)
   const returnBtn = document.createElement('button');
   returnBtn.textContent = 'Return to search';
@@ -728,15 +721,7 @@
     topWrap.style.alignItems = 'center';
     topWrap.style.gap = '8px';
     topWrap.style.justifyContent = 'flex-end';
-    // Clear button
-    const clearBtn2 = document.createElement('button');
-    clearBtn2.textContent = 'Clear all filters';
-    clearBtn2.style.padding = '6px 10px';
-    clearBtn2.style.borderRadius = '6px';
-    clearBtn2.style.border = '1px solid #d1d5db';
-    clearBtn2.style.background = '#fff';
-    clearBtn2.addEventListener('click', clearAllFilters);
-    topWrap.appendChild(clearBtn2);
+  // (Clear button moved to the Filters box at left)
   // Return to search button
   const returnBtnTop = document.createElement('button');
   returnBtnTop.textContent = 'Return to search';
@@ -1250,6 +1235,11 @@
     // wire search button and Enter key
     const sbtn = document.getElementById('qbtn'); if (sbtn) sbtn.addEventListener('click', ()=>{ currentPage = 1; loadResults(); });
     if (qinput) qinput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { currentPage = 1; loadResults(); } });
+
+    // wire clear-all-filters button in the left Filters box
+    try{
+      const caf = document.getElementById('clear-all-filters-btn'); if (caf) caf.addEventListener('click', ()=>{ clearAllFilters(); });
+    }catch(e){}
 
     // ensure composer box starts empty
     try{ populateComposerBox('', null); }catch(_){}
