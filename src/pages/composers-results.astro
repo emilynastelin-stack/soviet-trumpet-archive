@@ -406,6 +406,7 @@
       if (qinput) qinput.value = '';
       selectedComposer = '';
       selectedPieceIndex = null;
+      selectedPieceFilter = null; // when set, filter results to this piece title
       lastAppliedFilter = null;
       const clearComposerBtn = document.getElementById('clear-composer'); if (clearComposerBtn) clearComposerBtn.style.display = 'none';
       const composerContent = document.getElementById('composer-content'); if (composerContent) composerContent.innerHTML = 'Select a result to view composer details.';
@@ -652,28 +653,14 @@
           const comp = rowObj['Composer'] || rowObj.Composer || '';
           selectedComposer = String(comp || '');
           populateComposerBox(selectedComposer, rowObj);
-          selectedPieceIndex = idx;
-          renderPage(currentPage);
+          // set piece filter and reload results so page shows only that piece
+          selectedPieceFilter = String(rowObj.Title || rowObj.Compositions || rowObj['Title'] || rowObj['Compositions'] || '');
+          currentPage = 1;
+          loadResults();
         });
       }
       // If this row is the selected expanded piece, inject detailed columns J..R (indices 9..17)
-      const gi = lastFiltered.indexOf(r);
-      if (selectedPieceIndex !== null && gi === selectedPieceIndex){
-        try{
-          const keys = Object.keys(r || {});
-          let detailsHtml = '<div style="padding:6px 0">';
-          for (let i = 9; i <= 17; i++){
-            const k = keys[i];
-            if (!k) continue;
-            const v = r[k];
-            detailsHtml += `<p style="margin:6px 0"><strong>${escapeHtml(String(k))}:</strong> ${escapeHtml(String(v || ''))}</p>`;
-          }
-          detailsHtml += '</div><div style="margin-top:8px"><button class="collapse-piece" style="padding:6px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Collapse</button></div>';
-          const titleHtml = `<h2><a href="#" class="piece-link" data-idx="${gi}">${escapeHtml(title)}</a></h2><p><strong>Composer:</strong> <a href="#" class="composer-link" data-name="${composerData}">${composerEsc}</a></p><p><strong>Published:</strong> ${escapeHtml(published)}</p>`;
-          div.innerHTML = titleHtml + detailsHtml;
-          const colBtn = div.querySelector('.collapse-piece'); if (colBtn) colBtn.addEventListener('click', ()=>{ selectedPieceIndex = null; renderPage(currentPage); });
-        }catch(e){ console.error('expand render failed', e); }
-      }
+      
     });
     renderPagination(Math.ceil(lastFiltered.length / PAGE_SIZE), page);
   }
@@ -830,6 +817,11 @@
   const checkedTypes = Array.from(document.querySelectorAll('#filter-type input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
   lastFiltered = rows.filter(r => {
         if (qv && !normalize(Object.values(r||{}).join(' ')).includes(qv)) return false;
+        // if a piece filter is set (user clicked a title), only include exact matching titles
+        if (selectedPieceFilter && selectedPieceFilter.length){
+          const titleVal = String(r.Title || r.Compositions || r['Title'] || r['Compositions'] || '').trim();
+          if (!titleVal || normalize(titleVal) !== normalize(selectedPieceFilter)) return false;
+        }
         if (selectedComposer){
           const comp = (r['Composer'] || r.Composer || '').toString();
           if (!normalize(comp).includes(normalize(selectedComposer))) return false;
