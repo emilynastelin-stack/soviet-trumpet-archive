@@ -120,6 +120,20 @@
       box-shadow: 0 10px 30px rgba(16,24,40,0.12);
     }
 
+    /* Maroon spinner for composer box quick-loading state */
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(139,0,0,0.15);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 800ms linear infinite;
+      display:inline-block;
+      vertical-align:middle;
+      margin-left:8px;
+    }
+    @keyframes spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
+
     /* Right-hand composer box (matches filters box style) */
     .composer-box {
       background: #fffff7;
@@ -958,6 +972,43 @@
     rowObj = matchRow;
   }
 
+  // QUICK RENDER: if the caller provided the original result row, show a fast lightweight
+  // composer view immediately so the user sees details on first click. The rest of this
+  // function will continue and may replace the content with a richer CompDet lookup.
+  if (row && typeof row === 'object' && Object.keys(row).length){
+    const pick = (keys) => { for (const k of keys){ if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') return String(row[k]); } return ''; };
+    const pickPos = (idx) => { try{ if (Array.isArray(row) && row.length>idx) return String(row[idx]); }catch(_){ } return ''; };
+
+    const A_quick = pick(['A','colA','Composer','composer','Name','name']) || pickPos(0) || '';
+    const B_quick = pick(['B','colB','Lifespan','lifespan']) || pickPos(1) || '';
+    const C_quick = pick(['C','colC','Russian','russian']) || pickPos(2) || '';
+    const D_quick_key = (Object.keys(row).find(k=>String(k).trim().toUpperCase()==='D') || 'D');
+    const D_quick_label = D_quick_key || 'D';
+    const E_quick = pick(['E','colE','Value','value']) || pickPos(4) || '';
+    const F_quick = pick(['F','colF','Country','country','Nationality']) || pickPos(5) || '';
+    const G_quick = pick(['G','colG','Soviet republic','republic']) || pickPos(6) || '';
+    const H_quick = pick(['H','colH','Gender','gender']) || pickPos(7) || '';
+    const I_quick = pick(['I','colI','Notes','notes']) || pickPos(8) || '';
+
+    content.innerHTML = `
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><h1 style="margin:0 0 6px 0; font-size:1.25rem">${escapeHtml(A_quick)}</h1><span class="spinner" aria-hidden="true" title="Loading more details"></span></div>
+        ${B_quick ? `<p style="margin:0 0 8px 0"><i>${escapeHtml(B_quick)}</i></p>` : ''}
+        <br/>
+        <p style="margin:6px 0"><b>Russian:</b> ${escapeHtml(C_quick)}</p>
+        <p style="margin:6px 0"><b>${escapeHtml(D_quick_label)}:</b> ${escapeHtml(E_quick)}</p>
+        <br/>
+        <p style="margin:6px 0"><b>Country:</b> ${escapeHtml(F_quick)}</p>
+        <p style="margin:6px 0"><b>Soviet Republic:</b> ${escapeHtml(G_quick)}</p>
+        <br/>
+        <p style="margin:6px 0"><b>Gender:</b> ${escapeHtml(H_quick)}</p>
+        <p style="margin:6px 0"><b>Notes:</b> ${escapeHtml(I_quick)}</p>
+      </div>
+    `;
+    if (clearBtn) clearBtn.style.display = 'inline-block';
+    // continue on to richer lookup below
+  }
+
   
   
   
@@ -971,6 +1022,34 @@
     try { normMap[normalizeKey(k)] = rowObj[k]; }
     catch { normMap[String(k||'')] = rowObj[k]; }
   });
+
+  // Special handling when the source is the MusicList aggregation sheet.
+  // Some MusicList exports use single-letter column headers (A,B,C...) or moved
+  // columns; support the common mapping provided by the spreadsheet owner.
+  if (sourceSheet === 'MusicList'){
+    const getByLetters = (letters, fallbacks=[]) => {
+      for (const L of letters){ if (rowObj.hasOwnProperty(L) && rowObj[L] !== undefined && rowObj[L] !== null && String(rowObj[L]).trim() !== '') return String(rowObj[L]); }
+      for (const fb of fallbacks){ for (const k of Object.keys(rowObj)){ if (String(k||'').toLowerCase().trim() === fb.toLowerCase().trim() && rowObj[k]) return String(rowObj[k]); } }
+      return '';
+    };
+
+    const colA = getByLetters(['A','colA','Composer','composer','name']);
+    const colN = getByLetters(['B','colN','Lifespan','lifespan','Years']);
+    const colB = getByLetters(['C','colB','Russian','russian']);
+    const labelFromP = getByLetters(['D','P','Label','label']);
+    const valueFromC = getByLetters(['E','C','Value','native']);
+    const colK = getByLetters(['F','K','Country','country']);
+    const colO = getByLetters(['G','O','Soviet republic','republic']);
+    const colQ = getByLetters(['I','Q','Notes','notes']);
+
+    if (colA) normMap['composer'] = colA;
+    if (colN) normMap['lifespan'] = colN;
+    if (colB) normMap['russian'] = colB;
+    if (labelFromP && valueFromC) normMap[normalizeKey(labelFromP)] = valueFromC;
+    if (colK) normMap['country'] = colK;
+    if (colO) normMap['soviet republic'] = colO;
+    if (colQ) normMap['notes'] = colQ;
+  }
 
   // helper to find candidate data by a list of label fragments
   const getValForLabels = (labels) => {
@@ -1016,16 +1095,60 @@
   const dispLifespan = cleanDisplay(lifespanRaw);
   const sourceHtml = sourceSheet ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Source: ${escapeHtml(sourceSheet)}</div>` : '';
 
+  // prefer Lifespan for the small italic line shown under the composer name
   const colEHtml = dispLifespan ? `<div style="margin-top:4px;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(dispLifespan)}</div>` : '';
 
-  // Render all keys from the matched row as labeled header:value pairs
-  const keys = Object.keys(rowObj || {});
-  const dlItems = keys.map(k => {
-    const v = rowObj[k] == null ? '' : String(rowObj[k]);
-    return `<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;"><div style="flex:0 0 160px;color:#6b7280;font-weight:600;">${escapeHtml(k)}:</div><div style="flex:1;">${escapeHtml(v)}</div></div>`;
-  }).join('');
+  // Helper: find the actual key in rowObj that corresponds to a single-letter column (A..Z)
+  const findKeyForLetter = (L) => {
+    if (!L) return null;
+    const plain = String(L).trim().toLowerCase();
+    // exact match
+    const exact = Object.keys(rowObj).find(k => String(k||'').trim().toLowerCase() === plain);
+    if (exact) return exact;
+    // common "colX" style
+    const colForms = Object.keys(rowObj).find(k => String(k||'').toLowerCase().replace(/[^a-z0-9]/g,'') === ('col' + plain).replace(/[^a-z0-9]/g,''));
+    if (colForms) return colForms;
+    // try uppercase single-letter header
+    const upper = Object.keys(rowObj).find(k => String(k||'').trim() === String(L).toUpperCase());
+    if (upper) return upper;
+    // fallback by position using sampleKeys (A->0, B->1...)
+    try{
+      const idx = String(L).toUpperCase().charCodeAt(0) - 65;
+      if (typeof sampleKeys !== 'undefined' && Array.isArray(sampleKeys) && idx >= 0 && idx < sampleKeys.length) return sampleKeys[idx];
+    }catch(_){ }
+    return null;
+  };
 
-  content.innerHTML = `<div><strong style="color:var(--accent)">${escapeHtml(dispFound)}</strong>${colEHtml}${sourceHtml}<div style="margin-top:8px;padding:8px;border:1px solid #eee;border-radius:6px;background:#fafafa;font-size:0.95rem">${dlItems}</div></div>`;
+  const getValForKey = (k) => { if (!k) return ''; const v = rowObj[k]; return v == null ? '' : String(v); };
+
+  // Pull the requested columns A..I
+  const A = getValForKey(findKeyForLetter('A'));
+  const B = getValForKey(findKeyForLetter('B'));
+  const C = getValForKey(findKeyForLetter('C'));
+  const D_key = findKeyForLetter('D');
+  const D_label = D_key ? String(D_key) : 'D';
+  const E = getValForKey(findKeyForLetter('E'));
+  const F = getValForKey(findKeyForLetter('F'));
+  const G = getValForKey(findKeyForLetter('G'));
+  const H = getValForKey(findKeyForLetter('H'));
+  const I = getValForKey(findKeyForLetter('I'));
+
+  // Render only the composer heading and the requested formatted block
+  content.innerHTML = `
+    <div>
+      <h1 style="margin:0 0 6px 0; font-size:1.25rem">${escapeHtml(A)}</h1>
+      ${B ? `<p style="margin:0 0 8px 0"><i>${escapeHtml(B)}</i></p>` : ''}
+      <br/>
+      <p style="margin:6px 0"><b>Russian:</b> ${escapeHtml(C)}</p>
+      <p style="margin:6px 0"><b>${escapeHtml(D_label)}:</b> ${escapeHtml(E)}</p>
+      <br/>
+      <p style="margin:6px 0"><b>Country:</b> ${escapeHtml(F)}</p>
+      <p style="margin:6px 0"><b>Soviet Republic:</b> ${escapeHtml(G)}</p>
+      <br/>
+      <p style="margin:6px 0"><b>Gender:</b> ${escapeHtml(H)}</p>
+      <p style="margin:6px 0"><b>Notes:</b> ${escapeHtml(I)}</p>
+    </div>
+    `;
 
   if (clearBtn) {
     clearBtn.style.display = 'inline-block';
