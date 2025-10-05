@@ -400,6 +400,7 @@
     try{
       if (qinput) qinput.value = '';
       selectedComposer = '';
+      lastAppliedFilter = null;
       const clearComposerBtn = document.getElementById('clear-composer'); if (clearComposerBtn) clearComposerBtn.style.display = 'none';
       const composerContent = document.getElementById('composer-content'); if (composerContent) composerContent.innerHTML = 'Select a result to view composer details.';
       document.querySelectorAll('#filter-country input[type=checkbox], #filter-decade input[type=checkbox], #filter-type input[type=checkbox]').forEach(cb=> cb.checked = false);
@@ -431,6 +432,8 @@
   let currentPage = 1;
   let lastFiltered = [];
   let selectedComposer = '';
+  // remember the last filter the user changed so "Return to search" can drop it
+  let lastAppliedFilter = null; // { kind: 'country'|'decade'|'type', value: '<data-val string>' }
   // live update state
   let lastRowsJson = null;
   const POLL_INTERVAL = 30000; // 30s
@@ -466,13 +469,13 @@
       controls.style.marginTop = '8px';
       controls.innerHTML = `<button id="country-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="country-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`;
       container.appendChild(controls);
-      // attach change handler to all checkboxes
-  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ selectedComposer = ''; currentPage = 1; loadResults(); }));
+    // attach change handler to all checkboxes
+  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); lastAppliedFilter = { kind: 'country', value: val }; }catch(_){} selectedComposer = ''; currentPage = 1; loadResults(); }));
       // wire select all / clear
       const selAll = document.getElementById('country-select-all');
       const clr = document.getElementById('country-clear');
-      if (selAll) selAll.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
-      if (clr) clr.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
+  if (selAll) selAll.addEventListener('click', ()=>{ lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
+  if (clr) clr.addEventListener('click', ()=>{ lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
     }catch(e){
       // fallback: render simple list + controls
   container.innerHTML = fallbackCountries.map((c,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(c)}" id="country_cb_f${i}" /> ${c}</label>`).join('');
@@ -480,11 +483,11 @@
   controlsWrap.style.marginTop = '8px';
   controlsWrap.innerHTML = `<button id="country-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="country-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`;
   container.appendChild(controlsWrap);
-  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ selectedComposer = ''; currentPage = 1; loadResults(); }));
+    container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); lastAppliedFilter = { kind: 'decade', value: val }; }catch(_){} selectedComposer = ''; currentPage = 1; loadResults(); }));
       const selAll = document.getElementById('country-select-all');
       const clr = document.getElementById('country-clear');
-      if (selAll) selAll.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
-      if (clr) clr.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
+  if (selAll) selAll.addEventListener('click', ()=>{ lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
+  if (clr) clr.addEventListener('click', ()=>{ lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
     }
   }
 
@@ -550,11 +553,11 @@
           container.appendChild(wrapper);
         });
         const controls = document.createElement('div'); controls.style.marginTop = '8px'; controls.innerHTML = `<button id="type-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="type-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controls);
-        container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ currentPage = 1; loadResults(); }));
+  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); lastAppliedFilter = { kind: 'type', value: val }; }catch(_){} currentPage = 1; loadResults(); }));
         const selAll = document.getElementById('type-select-all');
         const clr = document.getElementById('type-clear');
-        if (selAll) selAll.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
-        if (clr) clr.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
+  if (selAll) selAll.addEventListener('click', ()=>{ lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
+  if (clr) clr.addEventListener('click', ()=>{ lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
         return;
       }
       // otherwise derive types from the sheets
@@ -670,6 +673,9 @@
   returnBtn.style.background = '#fff';
   returnBtn.addEventListener('click', ()=>{
     try{
+      // clear composer selection so the composers page shows the full list
+      selectedComposer = '';
+      // gather current selections
       const state = {
         q: qinput ? (qinput.value || '') : '',
         countries: Array.from(document.querySelectorAll('#filter-country input[type=checkbox]:checked')).map(cb=> cb.getAttribute('data-val')||cb.dataset.val||''),
@@ -677,6 +683,8 @@
         types: Array.from(document.querySelectorAll('#filter-type input[type=checkbox]:checked')).map(cb=> cb.getAttribute('data-val')||cb.dataset.val||''),
         page: currentPage
       };
+      // Remove the last applied filter so the composers landing page drops that last change
+      try{ if (lastAppliedFilter && lastAppliedFilter.value){ if (lastAppliedFilter.kind === 'country') state.countries = state.countries.filter(v => v !== (lastAppliedFilter.value || '')); if (lastAppliedFilter.kind === 'decade') state.decades = state.decades.filter(v => v !== (lastAppliedFilter.value || '')); if (lastAppliedFilter.kind === 'type') state.types = state.types.filter(v => v !== (lastAppliedFilter.value || '')); } }catch(_){ }
       sessionStorage.setItem('composers-previous-filters', JSON.stringify(state));
     }catch(e){}
     const qv = qinput ? encodeURIComponent(qinput.value || '') : '';
@@ -731,6 +739,7 @@
   returnBtnTop.style.background = '#fff';
   returnBtnTop.addEventListener('click', ()=>{
     try{
+      selectedComposer = '';
       const state = {
         q: qinput ? (qinput.value || '') : '',
         countries: Array.from(document.querySelectorAll('#filter-country input[type=checkbox]:checked')).map(cb=> cb.getAttribute('data-val')||cb.dataset.val||''),
@@ -738,6 +747,7 @@
         types: Array.from(document.querySelectorAll('#filter-type input[type=checkbox]:checked')).map(cb=> cb.getAttribute('data-val')||cb.dataset.val||''),
         page: currentPage
       };
+      try{ if (lastAppliedFilter && lastAppliedFilter.value){ if (lastAppliedFilter.kind === 'country') state.countries = state.countries.filter(v => v !== (lastAppliedFilter.value || '')); if (lastAppliedFilter.kind === 'decade') state.decades = state.decades.filter(v => v !== (lastAppliedFilter.value || '')); if (lastAppliedFilter.kind === 'type') state.types = state.types.filter(v => v !== (lastAppliedFilter.value || '')); } }catch(_){ }
       sessionStorage.setItem('composers-previous-filters', JSON.stringify(state));
     }catch(e){}
     const qv = qinput ? encodeURIComponent(qinput.value || '') : '';
@@ -836,6 +846,20 @@
       });
       if (options && options.resetPage) currentPage = 1;
       renderPage(currentPage);
+      // If caller requested a randomized open (via URL), open composer box for the first matching result
+      try{
+        const params = new URLSearchParams(window.location.search || '');
+        if (params.get('random') === '1' && lastFiltered && lastFiltered.length){
+          // pick the first visible result on the current page
+          const start = (currentPage - 1) * PAGE_SIZE;
+          const first = lastFiltered[start];
+          if (first){
+            const composerName = first['Composer'] || first.Composer || first['composer'] || Object.values(first)[0] || '';
+            selectedComposer = String(composerName || '');
+            populateComposerBox(selectedComposer, first);
+          }
+        }
+      }catch(e){ /* ignore */ }
     }catch(e){ document.getElementById('results').innerText = 'Load failed: ' + String(e); }
   }
 
