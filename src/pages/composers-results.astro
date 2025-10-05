@@ -418,6 +418,22 @@
     }catch(e){ console.error('clearAllFilters failed', e); }
   }
 
+  // Clear only the last applied filter (tracked in lastAppliedFilter)
+  function clearLastAppliedFilter(){
+    try{
+      if (!lastAppliedFilter || !lastAppliedFilter.kind) return;
+      const kind = lastAppliedFilter.kind;
+      const val = lastAppliedFilter.value || '';
+      const sel = kind === 'country' ? '#filter-country input[type=checkbox]' : (kind === 'decade' ? '#filter-decade input[type=checkbox]' : '#filter-type input[type=checkbox]');
+      document.querySelectorAll(sel).forEach(cb=>{
+        try{ const v = decodeURIComponent(cb.getAttribute('data-val')||cb.dataset.val||''); if (v === val) cb.checked = false; }catch(_){ }
+      });
+      lastAppliedFilter = null;
+      currentPage = 1;
+      loadResults();
+    }catch(e){ console.error('clearLastAppliedFilter failed', e); }
+  }
+
   function escapeHtml(str){ if (str == null) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
   // Client-side GViz fetch fallback for public spreadsheets.
@@ -630,7 +646,7 @@
   const composerEsc = escapeHtml(author);
   const composerData = encodeURIComponent(String(author || ''));
   const globalIndex = lastFiltered.indexOf(r);
-  div.innerHTML = `<h2><a href="#" class="piece-link" data-idx="${globalIndex}">${escapeHtml(title)}</a></h2><p><strong>Composer:</strong> <a href="#" class="composer-link" data-name="${composerData}">${composerEsc}</a></p><p><strong>Published:</strong> ${escapeHtml(published)}</p>`;
+  div.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;"><h2 style="margin:0"><a href="#" class="piece-link" data-idx="${globalIndex}">${escapeHtml(title)}</a></h2><div class="result-right" style="color:#6b7280;font-size:0.9rem;margin-left:12px;white-space:nowrap">Details</div></div><p><strong>Composer:</strong> <a href="#" class="composer-link" data-name="${composerData}">${composerEsc}</a></p><p><strong>Published:</strong> ${escapeHtml(published)}</p>`;
       container.appendChild(div);
       // attach click handler for composer link
       const link = div.querySelector('.composer-link');
@@ -716,6 +732,15 @@
   clearBtn.style.background = '#fff';
   clearBtn.addEventListener('click', ()=>{ try{ clearAllFilters(); }catch(e){} });
   phWrap.appendChild(clearBtn);
+  // Clear last-applied filter (if any)
+  const clearLastBtn = document.createElement('button');
+  clearLastBtn.textContent = 'Clear last filter';
+  clearLastBtn.style.padding = '6px 10px';
+  clearLastBtn.style.borderRadius = '6px';
+  clearLastBtn.style.border = '1px solid #d1d5db';
+  clearLastBtn.style.background = '#fff';
+  clearLastBtn.addEventListener('click', ()=>{ try{ if (typeof clearLastAppliedFilter === 'function') clearLastAppliedFilter(); }catch(e){} });
+  phWrap.appendChild(clearLastBtn);
       // Live toggle
       const liveToggle = document.createElement('button');
       liveToggle.textContent = 'Live: Off';
@@ -764,6 +789,15 @@
   clearBtnTop.style.background = '#fff';
   clearBtnTop.addEventListener('click', ()=>{ try{ clearAllFilters(); }catch(e){} });
   topWrap.appendChild(clearBtnTop);
+  // add Clear last-applied filter button next to Clear all
+  const clearLastTop = document.createElement('button');
+  clearLastTop.textContent = 'Clear last filter';
+  clearLastTop.style.padding = '6px 10px';
+  clearLastTop.style.borderRadius = '6px';
+  clearLastTop.style.border = '1px solid #d1d5db';
+  clearLastTop.style.background = '#fff';
+  clearLastTop.addEventListener('click', ()=>{ try{ if (typeof clearLastAppliedFilter === 'function') clearLastAppliedFilter(); }catch(e){} });
+  topWrap.appendChild(clearLastTop);
     // Live toggle button
     const liveToggle2 = document.createElement('button');
     liveToggle2.textContent = liveTimer ? 'Live: On' : 'Live: Off';
