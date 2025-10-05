@@ -546,7 +546,21 @@
   const raw = await res.json().catch(()=>null);
   const rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
       const set = new Set();
-      rows.forEach(r => { const t = r.Type || r.type || r['Type of piece'] || r['Type'] || ''; if (t) set.add(String(t).trim()); });
+      rows.forEach(r => {
+        // Prefer explicit type fields, but also check for single-letter column P or variants
+        let t = r.Type || r.type || r['Type of piece'] || r['Type'] || '';
+        if (!t) {
+          // common single-letter header for the sheet-export
+          if (r.P !== undefined && r.P !== null && String(r.P).trim() !== '') t = r.P;
+          else if (r['P'] !== undefined && r['P'] !== null && String(r['P']).trim() !== '') t = r['P'];
+          else if (r.colP !== undefined && r.colP !== null && String(r.colP).trim() !== '') t = r.colP;
+        }
+        // fallbacks for labelled columns that may contain the type
+        if (!t) {
+          t = r['Label'] || r['label'] || r['Piece Type'] || r['Type of Piece'] || '';
+        }
+        if (t) set.add(String(t).trim());
+      });
       const list = Array.from(set).sort();
       container.innerHTML = '';
       const titleDyn = document.createElement('div'); titleDyn.className = 'list-title'; titleDyn.textContent = 'Type of piece'; container.appendChild(titleDyn);
