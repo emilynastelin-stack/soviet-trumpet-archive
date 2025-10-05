@@ -291,11 +291,11 @@
 
   <header>
     <div class="container nav" style="display:flex;justify-content:space-between;align-items:center">
-      <div class="logo">
+      <a href="/composers" class="logo" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;">
         <span class="nav-english" id="navEnglish">Archive of Soviet Trumpet Music</span>
         <span class="nav-pipe">|</span>
         <span class="nav-russian" id="navRussian">Архив советской трубной музыки</span>
-      </div>
+      </a>
       <div class="lang-toggle" id="langToggle">
         <button class="lang-btn" id="langBtn">EN ▾</button>
         <div class="lang-dropdown" id="langDropdown">
@@ -654,6 +654,15 @@
       clearBtn.addEventListener('click', clearAllFilters);
       phWrap.appendChild(placeholder);
       phWrap.appendChild(clearBtn);
+  // Return to search button (preserve q param)
+  const returnBtn = document.createElement('button');
+  returnBtn.textContent = 'Return to search';
+  returnBtn.style.padding = '6px 10px';
+  returnBtn.style.borderRadius = '6px';
+  returnBtn.style.border = '1px solid #d1d5db';
+  returnBtn.style.background = '#fff';
+  returnBtn.addEventListener('click', ()=>{ const qv = qinput ? encodeURIComponent(qinput.value || '') : ''; window.location.href = '/composers' + (qv ? ('?q=' + qv) : ''); });
+  phWrap.appendChild(returnBtn);
       // Live toggle
       const liveToggle = document.createElement('button');
       liveToggle.textContent = 'Live: Off';
@@ -701,6 +710,15 @@
     clearBtn2.style.background = '#fff';
     clearBtn2.addEventListener('click', clearAllFilters);
     topWrap.appendChild(clearBtn2);
+  // Return to search button
+  const returnBtnTop = document.createElement('button');
+  returnBtnTop.textContent = 'Return to search';
+  returnBtnTop.style.padding = '6px 10px';
+  returnBtnTop.style.borderRadius = '6px';
+  returnBtnTop.style.border = '1px solid #d1d5db';
+  returnBtnTop.style.background = '#fff';
+  returnBtnTop.addEventListener('click', ()=>{ const qv = qinput ? encodeURIComponent(qinput.value || '') : ''; window.location.href = '/composers' + (qv ? ('?q=' + qv) : ''); });
+  topWrap.appendChild(returnBtnTop);
     // Live toggle button
     const liveToggle2 = document.createElement('button');
     liveToggle2.textContent = liveTimer ? 'Live: On' : 'Live: Off';
