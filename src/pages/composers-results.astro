@@ -142,11 +142,14 @@
       box-shadow: 0 10px 30px rgba(16,24,40,0.12);
       margin-right: 0; /* flush to the right column edge */
     }
-    /* composer link (clickable composer names) should be maroon to match site accent */
-    .composer-link { color: var(--accent); font-weight:700; text-decoration:none; }
-    .composer-link:hover { text-decoration:underline; }
-    /* ensure visited links keep the maroon accent color */
-    .composer-link:visited { color: var(--accent) !important; }
+  /* composer link (clickable composer names) should be maroon to match site accent */
+  .composer-link { color: var(--accent); font-weight:700; text-decoration:none; }
+  .composer-link:hover { text-decoration:underline; }
+  /* ensure visited links keep the maroon accent color */
+  .composer-link:visited { color: var(--accent) !important; }
+  /* stronger selectors in case global rules override the link color */
+  .results .result-item a.composer-link, .result-item a.composer-link { color: var(--accent) !important; }
+  .results .result-item a.composer-link:visited, .result-item a.composer-link:visited { color: var(--accent) !important; }
   .composer-box h3 { font-size:1rem; margin-bottom:0.5rem; }
 
   /* Shared section header that matches the Results header (color, size, line-height) */
@@ -167,6 +170,8 @@
       border-bottom: 1px solid #d1d5db; /* clearer gray divider between entries */
       padding: 1rem 0;
     }
+    /* ensure divider isn't overridden by other layout rules */
+    .results .result-item { border-bottom: 1px solid #d1d5db !important; }
     .result-item:last-child {
       border-bottom: none;
     }
