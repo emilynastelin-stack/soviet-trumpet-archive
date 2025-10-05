@@ -739,18 +739,9 @@
       placeholder.textContent = '1 of 1';
   phWrap.appendChild(placeholder);
   // Clear all filters and Clear last buttons: attempt to place into #filters-controls if present
-  const filtersControls = document.getElementById('filters-controls');
-  if (filtersControls) {
-    // avoid creating multiple copies on repeated pagination renders
-    if (!filtersControls.dataset.clearInit) {
-      filtersControls.appendChild(createClearAll());
-      filtersControls.appendChild(createClearLast());
-      filtersControls.dataset.clearInit = '1';
-    }
-  } else {
-    phWrap.appendChild(createClearAll());
-    phWrap.appendChild(createClearLast());
-  }
+  // Append clear controls to the pagination placeholder (results area)
+  phWrap.appendChild(createClearAll());
+  phWrap.appendChild(createClearLast());
       // Live toggle
       const liveToggle = document.createElement('button');
       liveToggle.textContent = 'Live: Off';
@@ -792,19 +783,9 @@
   // (Clear button moved to the Filters box at left)
   // Clear all filters button placed next to pagination controls
   // attempt to place Clear buttons into #filters-controls if present
-  const filtersControlsTop = document.getElementById('filters-controls');
-  if (filtersControlsTop) {
-    if (!filtersControlsTop.dataset.clearInit) {
-      filtersControlsTop.appendChild(createClearAll());
-      filtersControlsTop.appendChild(createClearLast());
-      filtersControlsTop.dataset.clearInit = '1';
-    }
-  } else {
-    const clearBtnTop = createClearAll();
-    topWrap.appendChild(clearBtnTop);
-    const clearLastTop = createClearLast();
-    topWrap.appendChild(clearLastTop);
-  }
+  // Always render Clear controls next to pagination in the results header
+  topWrap.appendChild(createClearAll());
+  topWrap.appendChild(createClearLast());
     // Live toggle button
     const liveToggle2 = document.createElement('button');
     liveToggle2.textContent = liveTimer ? 'Live: On' : 'Live: Off';
