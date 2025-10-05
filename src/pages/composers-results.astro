@@ -978,42 +978,45 @@
 
   // If we used MusicList, prefer a strict column-letter mapping the UI expects
   if (sourceSheet === 'MusicList'){
-    // helpers to read by letter or fallback to common names
     const getBy = (letters, fallbacks=[]) => {
-      for (const L of letters){ if (rowObj.hasOwnProperty(L) && rowObj[L] !== undefined && rowObj[L] !== null && String(rowObj[L]).trim() !== '') return String(rowObj[L]); }
-      for (const fb of fallbacks){ for (const k of Object.keys(rowObj)){ if (String(k||'').toLowerCase().trim() === fb.toLowerCase().trim() && rowObj[k]) return String(rowObj[k]); } }
+      for (const L of letters){
+        if (rowObj.hasOwnProperty(L) && rowObj[L] !== undefined && rowObj[L] !== null && String(rowObj[L]).trim() !== '') 
+          return String(rowObj[L]);
+      }
+      for (const fb of fallbacks){
+        for (const k of Object.keys(rowObj)){
+          if (String(k||'').toLowerCase().trim() === fb.toLowerCase().trim() && rowObj[k]) 
+            return String(rowObj[k]);
+        }
+      }
       return '';
     };
 
-    // mapping: A (Composer), N (Lifespan small italic), B (Russian), P/C (P field prefer P then C), K (Country), O (Soviet republic), Q (Notes)
     const colA = getBy(['A','Composer','composer','name'], ['composer','name']);
     const colN = getBy(['N','col_13','Lifespan','lifespan'], ['lifespan','years','n']);
     const colB = getBy(['B','Композитор','композитор'], ['композитор','b']);
-    const colP_val = getBy(['P','C','P:','P.'], ['p','c']);
-    // determine a label for the P/C field: prefer the actual header if present in the object keys
-    let colP_label = 'P';
-    for (const k of Object.keys(rowObj || {})){
-      if (k === 'P' || k === 'p' || String(k).trim().toUpperCase() === 'P'){ colP_label = k; break; }
-      if (k === 'C' || k === 'c' || String(k).trim().toUpperCase() === 'C'){ /* prefer P if exists, else C */ }
-    }
     const colK = getBy(['K','Country','country','Страна'], ['country','k']);
     const colO = getBy(['O','Soviet republic','Republic','republic'], ['republic','o']);
     const colQ = getBy(['Q','Notes','notes','Примечания'], ['notes','q']);
 
-    // Render exactly per your template
+    // Here's your custom P & C combination: label from P, value from C
+    const labelFromP = rowObj['P'] ? String(rowObj['P']).trim() : '';
+    const valueFromC = rowObj['C'] ? String(rowObj['C']).trim() : '';
+
     const html = `
       <div>
-        <h1 style="color:var(--accent);margin:0;font-size:1.1rem">${escapeHtml(colA)}</h1>
-        ${colN ? `<p style="margin:4px 0;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(colN)}</p>` : ''}
+        <h1 style="color: maroon; font-weight: bold;">${escapeHtml(colA)}</h1>
+        ${colN ? `<p style="font-style: italic; color: gray; font-size: smaller;">${escapeHtml(colN)}</p>` : ''}
         <br>
-        <p><strong style="color:var(--accent);">Russian:</strong> ${escapeHtml(colB)}</p>
-        <p><strong>${escapeHtml(colP_label)}:</strong> ${escapeHtml(colP_val)}</p>
+        <p><b>Russian:</b> ${escapeHtml(colB)}</p>
+        ${labelFromP && valueFromC ? `<p><b>${escapeHtml(labelFromP)}:</b> ${escapeHtml(valueFromC)}</p>` : ''}
         <br>
-        <p><strong>Country</strong> ${escapeHtml(colK)}</p>
-        <p><strong>Soviet Republic</strong> ${escapeHtml(colO)}</p>
+        <p><b>Country</b> ${escapeHtml(colK)}</p>
+        <p><b>Soviet Republic</b> ${escapeHtml(colO)}</p>
         <br>
-        <p><strong>Notes:</strong> ${escapeHtml(colQ)}</p>
-      </div>`;
+        <p><b>Notes:</b> ${escapeHtml(colQ)}</p>
+      </div>
+    `;
 
     content.innerHTML = html + (sourceSheet ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Source: ${escapeHtml(sourceSheet)}</div>` : '');
     if (clearBtn) { clearBtn.style.display = 'inline-block'; }
