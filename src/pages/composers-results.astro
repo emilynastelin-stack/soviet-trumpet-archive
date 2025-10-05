@@ -708,8 +708,63 @@
             loadResults();
           });
         }
-      // If this row is the selected expanded piece, inject detailed columns J..R (indices 9..17)
-      
+      // If this row matches the active piece filter, inject detailed columns J..R (indices 9..17)
+      try{
+        if (selectedPieceFilter && String(selectedPieceFilter).length){
+          const titleVal = String(r.Title || r.Compositions || r['Title'] || r['Compositions'] || '').trim();
+          if (titleVal && normalize(titleVal) === normalize(selectedPieceFilter)){
+            // helper: find a key in the row object that corresponds to a sheet letter (J..R)
+            const findKey = (rowObj, letter) => {
+              if (!rowObj) return null;
+              const keys = Object.keys(rowObj || {});
+              const up = String(letter || '').toUpperCase();
+              // exact header equal to letter
+              let exact = keys.find(k => String(k||'').trim() === up);
+              if (exact) return exact;
+              // colX style
+              const colForm = keys.find(k => String(k||'').toLowerCase().replace(/[^a-z0-9]/g,'') === ('col' + up.toLowerCase()).replace(/[^a-z0-9]/g,''));
+              if (colForm) return colForm;
+              // header whose trimmed uppercase equals letter (covers some cases)
+              const upperMatch = keys.find(k => String(k||'').trim().toUpperCase() === up);
+              if (upperMatch) return upperMatch;
+              // fallback by position: A->0, B->1 ... J->9
+              try{ const idx = up.charCodeAt(0) - 65; if (idx >= 0 && idx < keys.length) return keys[idx]; }catch(e){}
+              return null;
+            };
+
+            const letters = ['J','K','L','M','N','O','P','Q','R'];
+            const expanded = document.createElement('div');
+            expanded.className = 'piece-expanded';
+            expanded.style.marginTop = '10px';
+            expanded.style.padding = '10px';
+            expanded.style.background = '#fbfbfb';
+            expanded.style.borderRadius = '6px';
+            expanded.style.border = '1px solid #eee';
+            // build html rows for each letter
+            const rowsHtml = [];
+            for (const L of letters){
+              let key = null;
+              let val = '';
+              if (Array.isArray(r)){
+                // arrays: map by position (J -> index 9)
+                try{ const idx = L.charCodeAt(0) - 65; if (idx >=0 && idx < r.length) val = r[idx] == null ? '' : String(r[idx]); }catch(e){}
+              } else {
+                key = findKey(r, L);
+                if (key) val = r[key] == null ? '' : String(r[key]);
+              }
+              // if we still have no value, try to read from r["colX"]
+              if ((!val || String(val).trim() === '') && !key){
+                const fallback = Object.keys(r||{}).find(k => /col\s*?\.?\d+|col[a-z]/i.test(String(k)));
+                if (fallback) val = r[fallback] == null ? '' : String(r[fallback]);
+              }
+              const label = L;
+              if (val && String(val).trim() !== '') rowsHtml.push(`<div style="margin:4px 0"><strong style="color:var(--accent);display:inline-block;width:40px">${escapeHtml(label)}</strong> ${escapeHtml(String(val))}</div>`);
+            }
+            expanded.innerHTML = rowsHtml.length ? rowsHtml.join('\n') : '<div style="color:#6b7280">No additional columns J–R present for this row.</div>';
+            div.appendChild(expanded);
+          }
+        }
+      }catch(e){ /* ignore errors in expanded render */ }
     });
     renderPagination(Math.ceil(lastFiltered.length / PAGE_SIZE), page);
   }
