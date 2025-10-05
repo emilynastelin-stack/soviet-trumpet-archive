@@ -378,6 +378,8 @@
 
   function normalize(s){ if(!s) return ''; try{ return s.toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase(); }catch(e){ return s.toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); } }
 
+  function escapeHtml(str){ if (str == null) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
   // Client-side GViz fetch fallback for public spreadsheets.
   async function gvizFetch(sheetName, range = 'A1:Z1000'){
     try{
@@ -773,275 +775,300 @@
     }catch(e){ document.getElementById('results').innerText = 'Load failed: ' + String(e); }
   }
 
-  async function populateComposerBox(name, row){
-    const content = document.getElementById('composer-content');
-    const clearBtn = document.getElementById('clear-composer');
+ async function populateComposerBox(name, row){
+  const content = document.getElementById('composer-content');
+  const clearBtn = document.getElementById('clear-composer');
   if (!content) return;
-  if (!name){ content.innerHTML = 'Select a result to view composer details.'; return; }
-  // DEBUG: log clicks and behavior for troubleshooting
-  try{ console.debug('COMPOSER_DEBUG click', name); }catch(e){}
-
-    // Try multiple possible aggregated-sheet/tab names so renaming the tab (e.g. to CompDet) won't break the lookup
-    let rows = [];
-    try{
-      const candidates = ['CompDet','Sheet2','ComposersAggregated','Composers','Aggregated'];
-      for (const sname of candidates){
-        try{
-          const res = await fetch('/api/sheets?sheet=' + encodeURIComponent(sname));
-          const jr = await res.json();
-          try{ console.debug('COMPOSER_DEBUG fetched sheet', sname, Array.isArray(jr)?jr.length:typeof jr); }catch(e){}
-          if (Array.isArray(jr) && jr.length){
-            // ensure this sheet actually looks like CompDet by checking for known header names
-            const sample = jr[0];
-            const headerKeys = (sample && typeof sample === 'object') ? Object.keys(sample) : [];
-            const norm = k => String(k||'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
-            const hasCompLike = headerKeys.some(h=> ['lifespan','composer','композитор'].includes(norm(h)));
-            if (hasCompLike){ rows = jr; rows.__sheet = sname; break; }
-            // else skip this sheet because it doesn't look like the aggregated composer detail sheet
-          }
-        }catch(_e){ /* ignore individual sheet fetch errors */ }
-      }
-      // if nothing found via server API, try client-side GViz fetch for each candidate
-      if ((!rows || rows.length === 0)){
-        for (const sname of candidates){
-          try{
-            const g = await gvizFetch(sname);
-            if (g && g.rows && g.rows.length){
-              const headers = g.cols.map((h,i) => h && String(h).trim() ? String(h).trim() : `col_${i}`);
-              // quick check: ensure headers include Lifespan or Composer
-              const norm = k => String(k||'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
-              const hasCompLike = headers.some(h => ['lifespan','composer','композитор'].includes(norm(h)));
-              if (!hasCompLike) { continue; }
-              rows = g.rows.map(r => { const o={}; for(let i=0;i<headers.length;i++){ o[headers[i]] = r[i] !== undefined && r[i] !== null ? r[i] : ''; } return o; });
-              rows.__sheet = sname;
-              break;
-            }
-          }catch(_){ }
-        }
-      }
-      // final fallback: try default Sheet2 if nothing found (rare)
-      if ((!rows || rows.length === 0)){
-        const res = await fetch('/api/sheets?sheet=Sheet2');
-        const jr = await res.json();
-        if (Array.isArray(jr)) {
-          const sample = jr[0];
-          const headerKeys = (sample && typeof sample === 'object') ? Object.keys(sample) : [];
-          const norm = k => String(k||'').toLowerCase().replace(/[^^\p{L}\p{N}]+/gu,'');
-          const hasCompLike = headerKeys.some(h=> ['lifespan','composer','композитор'].includes(norm(h)));
-          if (hasCompLike){ rows = jr; rows.__sheet = 'Sheet2'; }
-        }
-      }
-  try{ console.debug('COMPOSER_DEBUG fetched rows', Array.isArray(rows)?rows.length:typeof rows, 'sheet', rows && rows.__sheet); }catch(e){}
-      let foundVal = null;
-      let matchRow = null;
-      if (rows && rows.length){
-        const target = String(name || '').trim();
-        const normTarget = normalize(target);
-        for (const r of rows){
-          if (r === null || r === undefined) continue;
-          // Build a small set of candidate name values from the row (prefer named keys over object order)
-          const candidates = [];
-          if (typeof r === 'object'){
-            if (Array.isArray(r)){
-              if (r.length) candidates.push(String(r[0]||'').trim());
-            } else {
-              // prefer common header names
-              const preferKeys = ['Composer','Композитор','Native','Name','name','composer'];
-              for (const k of preferKeys){ if (k in r) candidates.push(String(r[k]||'').trim()); }
-              // fallback to the first value (if no preferred keys matched)
-              if (!candidates.length){ const vals = Object.values(r||{}); if (vals && vals.length) candidates.push(String(vals[0]||'').trim()); }
-            }
-          } else {
-            candidates.push(String(r).trim());
-          }
-
-          for (const cand of candidates){
-            if (!cand) continue;
-            const nc = normalize(cand);
-            if (cand === target || nc === normTarget || nc.includes(normTarget) || normTarget.includes(nc)){
-              foundVal = cand;
-              matchRow = r;
-              break;
-            }
-          }
-          if (matchRow) break;
-        }
-      }
-      if (matchRow !== null){
-        try{ console.debug('COMPOSER_DEBUG match found', foundVal, matchRow); }catch(e){}
-        // Extract column E (5th column) in a robust way: prefer explicit Lifespan keys for CompDet,
-        // then prefer the raw 5th value, then Title-like keys.
-        let colE = '';
-        try{
-          if (Array.isArray(matchRow)){
-            colE = matchRow.length > 4 ? matchRow[4] : '';
-          } else if (typeof matchRow === 'object'){
-            // If the object has a Lifespan-like header, prefer it
-            const keys = Object.keys(matchRow || {});
-            const lifekey = keys && keys.find(k => /lifespan|life[ _-]?span|years|born|died/i.test(String(k)));
-            if (lifekey) {
-              colE = matchRow[lifekey];
-            }
-            // Prefer the raw 5th column value (object value order may reflect sheet columns from the server)
-            if ((!colE || String(colE).trim() === '') ){
-              const vals = Object.values(matchRow||{});
-              if (vals && vals.length > 4) colE = vals[4];
-            }
-
-            // If the 5th value is empty, try Title-like keys as a fallback
-            if (!colE || String(colE).trim() === ''){
-              const titleKeys = ['Title','title','Title, Year','Title,Year','Titl','Title Year','Title, Year','Title,Year'];
-              for (const k of titleKeys){ if (k in matchRow && String(matchRow[k]||'').trim()){ colE = matchRow[k]; break; } }
-            }
-
-            // If the cell we found itself contains serialized JSON, try parsing it (but only if the extracted value is JSON-like)
-            const maybe = String(colE||'').trim();
-            if (maybe && (maybe.startsWith('{') || maybe.startsWith('['))){
-              try{
-                const parsed = JSON.parse(maybe);
-                if (parsed && typeof parsed === 'object'){
-                  if (Array.isArray(parsed) && parsed.length > 4) {
-                    colE = parsed[4];
-                  } else {
-                    const pvals = Object.values(parsed||{});
-                    if (pvals && pvals.length > 4) colE = pvals[4];
-                  }
-                }
-              }catch(_){ /* ignore parse errors */ }
-            }
-
-            // Additional fallback: if no Title found, try to extract from 'Title, Year' style fields
-            if (!colE || String(colE).trim() === ''){
-              const titleYearKeys = ['Title, Year','Title,Year','Title Year','Titl','Title, Year'];
-              for (const tk of titleYearKeys){
-                if (tk in matchRow && String(matchRow[tk]||'').trim()){
-                  const candidate = String(matchRow[tk]||'').trim();
-                  // take text before the first comma (the bare title), and strip stray leading commas
-                  colE = candidate.split(',')[0].replace(/^,*/,'').trim();
-                  if (colE) break;
-                }
-              }
-            }
-          }
-
-          // NOTE: removed fallback to main music list (Sheet1/MusicList) here because composer details
-          // for the detail box must come from the aggregated/detail sheet (CompDet or equivalent).
-        }catch(e){ colE = ''; }
-        // sanitize newlines/tabs in displayed values
-        function cleanDisplay(s){ return String(s||'').replace(/[\r\n\t]+/g,' ').replace(/\s+/g,' ').trim(); }
-  const dispFound = cleanDisplay(foundVal);
-  // placeholder; we'll set this after we compute the mapped values so Lifespan takes precedence
-  let colEHtml = '';
-        // DEBUG: show source sheet, headers, and raw matched row for inspection (temporary)
-        let rawJsonHtml = '';
-        try{
-          rawJsonHtml = matchRow ? `<pre style="max-height:220px;overflow:auto;background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;margin-top:8px;font-size:0.85rem">${escapeHtml(JSON.stringify(matchRow, null, 2))}</pre>` : '';
-        }catch(e){ rawJsonHtml = ''; }
-        const sourceName = (rows && rows.__sheet) ? String(rows.__sheet) : '';
-        const sourceHtml = sourceName ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Source: ${escapeHtml(sourceName)}</div>` : '';
-        // Build a deterministic object for the matched row (convert arrays to keyed object using sample headers når available)
-        let rowObj = {};
-        if (Array.isArray(matchRow)){
-          const sampleObj = (rows && rows.length && typeof rows[0] === 'object') ? rows[0] : null;
-          if (sampleObj){
-            const sampleKeys = Object.keys(sampleObj);
-            for (let i=0;i<matchRow.length;i++){
-              rowObj[sampleKeys[i] || `col${i+1}`] = matchRow[i];
-            }
-          } else {
-            for (let i=0;i<matchRow.length;i++) rowObj[`col${i+1}`] = matchRow[i];
-          }
-        } else if (typeof matchRow === 'object' && matchRow){
-          rowObj = matchRow;
-        }
-
-        // Desired CompDet header order to display
-        const desired = ['Composer','Композитор','Native','FALSE','Lifespan','Country','Soviet republic','Language','Learn more','Notes','Nationality'];
-
-        // helper: find a key in rowObj matching a header (case-insensitive, strip non-alphanum)
-        const findKey = (label)=>{
-          // Normalize label by lowercasing and removing any non-letter/number using Unicode property escapes
-          const normLabel = String(label||'').toLowerCase().replace(/[^^\p{L}\p{N}]+/gu,'');
-          return Object.keys(rowObj||{}).find(k=> String(k||'').toLowerCase().replace(/[^^\p{L}\p{N}]+/gu,'') === normLabel) || null;
-        };
-
-  // Provide aliases for expected CompDet headers and robust heuristics when a direct header match is missing
-        const headerAliases = {
-          'Composer': ['Composer','Композитор','composer','Name','name'],
-          'Композитор': ['Композитор','Composer','composer','Name'],
-          'Native': ['Native','Native name','NativeName','Родной','Անուն'],
-          'FALSE': ['FALSE','Flag','Enabled'],
-          'Lifespan': ['Lifespan','Life span','LifeSpan','Years','Years active','Born-Died','LIFE','lifespan'],
-          'Country': ['Country','country','Страна','Country of birth','Nationality'],
-          'Soviet republic': ['Soviet republic','Soviet republic','Republic','Soviet republic'],
-          'Language': ['Language','language','Язык'],
-          'Learn more': ['Learn more','Learn more','Link','URL','Learn more (link)'],
-          'Notes': ['Notes','notes','Примечания'],
-          'Nationality': ['Nationality','Nationality','Nationality (EN)']
-        };
-
-  // Build a normalized-key map so we tolerate extra whitespace/hidden chars in sheet headers
-  const normalizeKey = k => String(k||'').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
-  const normMap = {}; Object.keys(rowObj||{}).forEach(k=>{ try{ normMap[normalizeKey(k)] = rowObj[k]; }catch(e){ normMap[normalizeKey(String(k||''))] = rowObj[k]; } });
-  const allValues = Object.values(normMap||{}).map(v=> v==null? '': String(v));
-        const lifeHintRegex = /\b\d{3,4}\s*[–—-]\s*\d{2,4}\b|\b\d{3,4}\b/; // year ranges or single years
-
-        function getValForLabels(labels){
-          for (const lab of labels){
-            const nk = normalizeKey(lab);
-            if (nk && (nk in normMap) && normMap[nk] !== undefined && normMap[nk] !== null && String(normMap[nk]).trim() !== '') return String(normMap[nk]);
-            // also try a compacted variant
-            const nk2 = normalizeKey(lab.replace(/\s+/g,'').replace(/[-_]/g,''));
-            if (nk2 && (nk2 in normMap) && normMap[nk2] !== undefined && normMap[nk2] !== null && String(normMap[nk2]).trim() !== '') return String(normMap[nk2]);
-          }
-          // heuristic: search for lifespan-like pattern in any value
-          for (const v of allValues){ if (v && lifeHintRegex.test(v)) return v; }
-          // heuristic: search for 'HERE' marker used during testing
-          for (const v of allValues){ if (v && String(v).includes('HERE')) return v; }
-          // last resort: return first non-empty value
-          for (const v of allValues){ if (v && String(v).trim() !== '') return v; }
-          return '';
-        }
-
-        const values = desired.map(h=>{
-          const aliases = headerAliases[h] || [h];
-          const v = getValForLabels(aliases);
-          return v == null ? '' : String(v);
-        });
-
-        // Prefer the Lifespan value (from mapped values). If missing, fall back to previously-extracted colE.
-        const lifespanIndex = desired.indexOf('Lifespan');
-        const lifespanRaw = (lifespanIndex >= 0 ? (values[lifespanIndex] || '') : '') || colE || '';
-        const dispColE = cleanDisplay(lifespanRaw);
-        colEHtml = dispColE ? `<div style="margin-top:4px;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(dispColE)}</div>` : '';
-
-        // Render as a small preformatted block with tab-separated headers and values
-        const preStyle = 'background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;margin-top:8px;font-size:0.95rem;white-space:pre-wrap';
-        content.innerHTML = `<div><strong style="color:var(--accent)">${escapeHtml(dispFound)}</strong>${colEHtml}${sourceHtml}<pre style="${preStyle}">${escapeHtml(desired.join('\t'))}\n${escapeHtml(values.join('\t'))}</pre></div>`;
-      } else {
-        try{ console.debug('COMPOSER_DEBUG no match for', name); }catch(e){}
-        content.innerHTML = `<div>No composer info found in Sheet2 for <strong>${escapeHtml(name)}</strong></div>`;
-      }
-    }catch(e){
-      try{ console.debug('COMPOSER_DEBUG fetch error', String(e)); }catch(err){}
-      content.innerHTML = `Failed to load composer info: ${escapeHtml(String(e))}`;
-    }
-    if (clearBtn) { clearBtn.style.display = 'inline-block'; clearBtn.onclick = ()=>{ selectedComposer = ''; if (clearBtn) clearBtn.style.display='none'; populateComposerBox('', null); currentPage = 1; loadResults(); }; }
+  if (!name){
+    content.innerHTML = 'Select a result to view composer details.';
+    if (clearBtn) clearBtn.style.display = 'none';
+    return;
   }
 
-  function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  // small helpers (prefer global normalize if present)
+  const normalizeKey = k => String(k || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').trim();
+  const normVal = v => (typeof normalize === 'function') ? normalize(String(v || '')) : String(v || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').trim();
 
-  document.getElementById('qbtn').addEventListener('click', ()=>{ loadResults(); });
-  // trigger search on Enter key in input
-  qinput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { e.preventDefault(); loadResults(); } });
+  // heuristics to decide whether a sheet looks like the CompDet sheet
+  const looksLikeCompDet = (sampleObj) => {
+    if (!sampleObj || typeof sampleObj !== 'object') return false;
+    const keys = Object.keys(sampleObj).map(k => normalizeKey(k));
+    const hasComposer = keys.some(k => k.includes('composer') || k.includes('композитор'));
+    const hasLife = keys.some(k => k.includes('lifespan') || k.includes('life') || k.includes('born') || k.includes('died') || k.includes('years'));
+    const hasCountry = keys.some(k => k.includes('country') || k.includes('republic') || k.includes('nationality') || k.includes('soviet'));
+    // indicators of MusicList/main music table (avoid these)
+    const looksLikeMusicList = keys.includes('title') || keys.includes('compositions') || keys.includes('snippet') || keys.includes('published');
+    // Require composer AND (life OR country) and explicitly exclude music-list-looking sheets
+    return hasComposer && (hasLife || hasCountry) && !looksLikeMusicList;
+  };
 
-  // initial load
-  window.addEventListener('load', async ()=>{ await populateCountryCheckboxes(); await populateDecadeCheckboxes(); await populateTypeCheckboxes(); loadResults(); });
-  document.getElementById('qinput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') loadResults(); });
+  const candidates = ['CompDet','Sheet2','ComposersAggregated','Composers','Aggregated'];
 
-  // initial load
-  loadResults();
-</script>
+  let rows = [];
+  let sourceSheet = null;
 
-</body>
-</html>
+  // QUICK PATH: prefer aggregating from the 'MusicList' sheet (client wants immediate behavior)
+  try {
+    const mres = await fetch('/api/sheets?sheet=MusicList');
+    const mj = await mres.json().catch(()=>null);
+    const mjRows = (mj && Array.isArray(mj)) ? mj : (mj && mj.rows && Array.isArray(mj.rows) ? mj.rows : null);
+    if (mjRows && mjRows.length) {
+      rows = mjRows;
+      sourceSheet = 'MusicList';
+      console.debug('COMPOSER_DEBUG using MusicList aggregation (client-side)');
+    }
+  } catch (e) { /* ignore */ }
+
+  // 1) Try server API for each candidate sheet, but validate contents strictly
+  for (const sname of candidates){
+    try{
+      const res = await fetch('/api/sheets?sheet=' + encodeURIComponent(sname));
+      const jr = await res.json();
+      if (Array.isArray(jr) && jr.length){
+        const sample = jr[0];
+        if (looksLikeCompDet(sample)){
+          rows = jr;
+          sourceSheet = sname;
+          console.debug('COMPOSER_DEBUG selected sheet (api):', sname, 'headers:', Object.keys(sample));
+          break;
+        } else {
+          console.debug('COMPOSER_DEBUG rejected sheet (api):', sname, 'headers:', Object.keys(sample));
+        }
+      } else {
+        console.debug('COMPOSER_DEBUG no-array or empty from API for', sname, jr);
+      }
+    }catch(e){
+      console.debug('COMPOSER_DEBUG api fetch failed for', sname, e);
+    }
+  }
+
+  // 2) If not found via API, try GViz client-side fetch (same strict checks)
+  if ((!rows || rows.length === 0)){
+    for (const sname of candidates){
+      try{
+        const g = await gvizFetch(sname);
+        if (g && g.rows && g.rows.length){
+          const headers = g.cols.map(h => String(h).trim() || '');
+          // build a sample object mapping header->value for the first row
+          const sampleObj = {};
+          for (let i=0;i<headers.length;i++){
+            const hk = headers[i] || `col${i+1}`;
+            sampleObj[hk] = g.rows[0][i];
+          }
+          if (looksLikeCompDet(sampleObj)){
+            // assemble rows as objects
+            rows = g.rows.map(r => {
+              const o = {};
+              for (let i=0;i<headers.length;i++){
+                o[headers[i] || `col${i+1}`] = r[i] !== undefined && r[i] !== null ? r[i] : '';
+              }
+              return o;
+            });
+            sourceSheet = sname;
+            console.debug('COMPOSER_DEBUG selected sheet (gviz):', sname, 'headers:', headers);
+            break;
+          } else {
+            console.debug('COMPOSER_DEBUG rejected sheet (gviz):', sname, headers);
+          }
+        }
+      }catch(e){
+        // ignore individual gviz errors
+        console.debug('COMPOSER_DEBUG gviz failed for', sname, e);
+      }
+    }
+  }
+
+  // 3) Last-ditch: try Sheet2 explicitly but only accept it if it looks like CompDet
+  if ((!rows || rows.length === 0)){
+    try{
+      const r2 = await fetch('/api/sheets?sheet=Sheet2').then(r=>r.json()).catch(()=>null);
+      if (Array.isArray(r2) && r2.length && looksLikeCompDet(r2[0])){
+        rows = r2;
+        sourceSheet = 'Sheet2';
+        console.debug('COMPOSER_DEBUG selected fallback Sheet2 (api).');
+      }
+    }catch(e){}
+  }
+
+  // If still nothing, explain and show a tiny debug hint
+  if (!rows || rows.length === 0){
+    content.innerHTML = `<div>No composer detail sheet (CompDet) could be located. I tried: ${candidates.join(', ')}.</div>`;
+    if (clearBtn) clearBtn.style.display = 'none';
+    return;
+  }
+
+  // Now find a matching row inside the selected rows
+  let matchRow = null;
+  let foundVal = null;
+  const target = String(name || '').trim();
+  const normTarget = normVal(target);
+
+  // Preferred: check 'composer'-like column if present
+  const sampleKeys = Object.keys(rows[0] || {});
+  const composerKey = sampleKeys.find(k => normalizeKey(k).includes('composer') || normalizeKey(k).includes('композитор'));
+
+  if (composerKey){
+    // search for composerKey matches first (more reliable)
+    for (const r of rows){
+      const val = String(r[composerKey] || '').trim();
+      if (!val) continue;
+      const nv = normVal(val);
+      if (nv === normTarget || nv.includes(normTarget) || normTarget.includes(nv)){
+        matchRow = r;
+        foundVal = val;
+        break;
+      }
+    }
+  }
+
+  // fallback: full-row scan
+  if (!matchRow){
+    for (const r of rows){
+      for (const v of Object.values(r)){
+        if (!v) continue;
+        const str = String(v || '').trim();
+        const nv = normVal(str);
+        if (nv === normTarget || nv.includes(normTarget) || normTarget.includes(nv)){
+          matchRow = r;
+          foundVal = str;
+          break;
+        }
+      }
+      if (matchRow) break;
+    }
+  }
+
+  // If still not found, surface a helpful message + a small sample for debugging
+  if (!matchRow){
+    const samplePreview = escapeHtml(JSON.stringify(rows[0] || {}, null, 2));
+    content.innerHTML = `<div>No composer match in ${escapeHtml(sourceSheet || 'CompDet')} for <strong>${escapeHtml(name)}</strong>.</div>
+      <div style="margin-top:8px;color:#6b7280;font-size:0.9rem">Sample headers from detected sheet (for debugging):</div>
+      <pre style="max-height:220px;overflow:auto;background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;font-size:0.85rem">${samplePreview}</pre>`;
+    if (clearBtn) clearBtn.style.display = 'inline-block';
+    return;
+  }
+
+  // Build rowObj (robust conversion)
+  let rowObj = {};
+  if (Array.isArray(matchRow)){
+    // if row is an array, map by sample keys if possible
+    const sampleObj = (rows && rows.length && typeof rows[0] === 'object') ? rows[0] : null;
+    if (sampleObj){
+      const sampleKeys = Object.keys(sampleObj);
+      for (let i=0;i<matchRow.length;i++){
+        rowObj[sampleKeys[i] || `col${i+1}`] = matchRow[i];
+      }
+    } else {
+      for (let i=0;i<matchRow.length;i++) rowObj[`col${i+1}`] = matchRow[i];
+    }
+  } else if (typeof matchRow === 'object' && matchRow){
+    rowObj = matchRow;
+  }
+
+  // If we used MusicList, prefer a strict column-letter mapping the UI expects
+  if (sourceSheet === 'MusicList'){
+    // helpers to read by letter or fallback to common names
+    const getBy = (letters, fallbacks=[]) => {
+      for (const L of letters){ if (rowObj.hasOwnProperty(L) && rowObj[L] !== undefined && rowObj[L] !== null && String(rowObj[L]).trim() !== '') return String(rowObj[L]); }
+      for (const fb of fallbacks){ for (const k of Object.keys(rowObj)){ if (String(k||'').toLowerCase().trim() === fb.toLowerCase().trim() && rowObj[k]) return String(rowObj[k]); } }
+      return '';
+    };
+
+    // mapping: A (Composer), N (Lifespan small italic), B (Russian), C (P), K (Country), O (Soviet republic), Q (Notes)
+    const colA = getBy(['A','Composer','composer','name'], ['composer','name']);
+    const colN = getBy(['N','col_13','Lifespan','lifespan'], ['lifespan','years','n']);
+    const colB = getBy(['B','Композитор','композитор'], ['композитор','b']);
+    const colC = getBy(['C','P','P:','P.','P'], ['p','c']);
+    const colK = getBy(['K','Country','country','Страна'], ['country','k']);
+    const colO = getBy(['O','Soviet republic','Republic','republic'], ['republic','o']);
+    const colQ = getBy(['Q','Notes','notes','Примечания'], ['notes','q']);
+
+    // Render in the exact layout requested by user
+    const html = `
+      <div>
+        <h1 style="color:var(--accent);margin:0;font-size:1.1rem">${escapeHtml(colA)}</h1>
+        ${colN ? `<p style="margin:4px 0;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(colN)}</p>` : ''}
+        <p><strong style="color:var(--accent);">Russian:</strong> ${escapeHtml(colB)}</p>
+        <p><strong style="color:var(--accent);">P:</strong> ${escapeHtml(colC)}</p>
+        <br>
+        <p><strong>Country</strong> ${escapeHtml(colK)}</p>
+        <p><strong>Soviet Republic</strong> ${escapeHtml(colO)}</p>
+        <br>
+        <p><strong>Notes:</strong> ${escapeHtml(colQ)}</p>
+      </div>`;
+
+    content.innerHTML = html + (sourceSheet ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Source: ${escapeHtml(sourceSheet)}</div>` : '');
+    if (clearBtn) { clearBtn.style.display = 'inline-block'; }
+    return;
+  }
+
+  // labels we want to show (adjust as you like)
+  const desired = ['Composer','Lifespan','Country','Soviet republic','Nationality','Language','Notes','Learn more'];
+
+  // normalize keys map
+  const normMap = {};
+  Object.keys(rowObj || {}).forEach(k => {
+    try { normMap[normalizeKey(k)] = rowObj[k]; }
+    catch { normMap[String(k||'')] = rowObj[k]; }
+  });
+
+  // helper to find candidate data by a list of label fragments
+  const getValForLabels = (labels) => {
+    for (const lab of labels){
+      const nk = normalizeKey(lab);
+      if (nk && (nk in normMap) && normMap[nk] !== undefined && normMap[nk] !== null && String(normMap[nk]).trim() !== '') {
+        return String(normMap[nk]);
+      }
+    }
+    // heuristics: return first lifespan-like value if present
+    const allValues = Object.values(normMap||{}).map(v => v==null? '': String(v));
+    const lifeHintRegex = /\b\d{3,4}\s*[–—-]\s*\d{2,4}\b|\b\d{3,4}\b/;
+    for (const v of allValues){
+      if (v && lifeHintRegex.test(String(v))) return v;
+    }
+    // last resort: first non-empty
+    for (const v of allValues){ if (v && String(v).trim() !== '') return v; }
+    return '';
+  };
+
+  const headerAliases = {
+    'Composer': ['Composer','Композитор','composer','Name','name'],
+    'Lifespan': ['Lifespan','Life span','Born','Died','Years'],
+    'Country': ['Country','country','Страна','Country of birth','Nationality'],
+    'Soviet republic': ['Soviet republic','Republic','Soviet'],
+    'Nationality': ['Nationality','Nationality (EN)'],
+    'Language': ['Language','language','Язык'],
+    'Notes': ['Notes','notes','Примечания'],
+    'Learn more': ['Learn more','Link','URL']
+  };
+
+  const values = desired.map(h => {
+    const aliases = headerAliases[h] || [h];
+    const v = getValForLabels(aliases);
+    return v == null ? '' : String(v);
+  });
+
+  // prefer Lifespan for the small italic line shown under the composer name
+  const lifespanIndex = desired.indexOf('Lifespan');
+  const lifespanRaw = (lifespanIndex >= 0 ? (values[lifespanIndex] || '') : '') || '';
+  const cleanDisplay = s => String(s || '').replace(/[\r\n\t]+/g,' ').replace(/\s+/g,' ').trim();
+  const dispFound = cleanDisplay(foundVal);
+  const dispLifespan = cleanDisplay(lifespanRaw);
+  const sourceHtml = sourceSheet ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Source: ${escapeHtml(sourceSheet)}</div>` : '';
+
+  const preStyle = 'background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;margin-top:8px;font-size:0.95rem;white-space:pre-wrap';
+  const colEHtml = dispLifespan ? `<div style="margin-top:4px;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(dispLifespan)}</div>` : '';
+
+  content.innerHTML = `<div><strong style="color:var(--accent)">${escapeHtml(dispFound)}</strong>${colEHtml}${sourceHtml}<pre style="${preStyle}">${escapeHtml(desired.join('\t'))}\n${escapeHtml(values.join('\t'))}</pre></div>`;
+
+  if (clearBtn) {
+    clearBtn.style.display = 'inline-block';
+    clearBtn.onclick = () => {
+      selectedComposer = '';
+      if (clearBtn) clearBtn.style.display = 'none';
+      populateComposerBox('', null);
+      currentPage = 1;
+      loadResults();
+    };
+  }
+}
