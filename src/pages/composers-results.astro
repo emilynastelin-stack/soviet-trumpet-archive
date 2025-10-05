@@ -145,6 +145,8 @@
     /* composer link (clickable composer names) should be maroon to match site accent */
     .composer-link { color: var(--accent); font-weight:700; text-decoration:none; }
     .composer-link:hover { text-decoration:underline; }
+    /* ensure visited links keep the maroon accent color */
+    .composer-link:visited { color: var(--accent) !important; }
   .composer-box h3 { font-size:1rem; margin-bottom:0.5rem; }
 
   /* Shared section header that matches the Results header (color, size, line-height) */
@@ -162,7 +164,7 @@
     .pagination button { padding:6px 10px; border-radius:6px; border:1px solid #d1d5db; background:white; cursor:pointer; }
     .pagination button.active { background:var(--accent); color:white; border-color:var(--accent); }
     .result-item {
-      border-bottom: 1px solid #e6e9ef; /* subtle gray divider between entries */
+      border-bottom: 1px solid #d1d5db; /* clearer gray divider between entries */
       padding: 1rem 0;
     }
     .result-item:last-child {
