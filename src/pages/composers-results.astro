@@ -971,6 +971,33 @@
       });
       if (options && options.resetPage) currentPage = 1;
       renderPage(currentPage);
+      // If the user searched (qv) and it looks like a composer name, try to open the composer box for the first composer match.
+      try{
+        if (qv && qv.length){
+          let composerMatch = null;
+          // Prefer scanning the full rows (if available) to find a composer column match
+          const scanSource = Array.isArray(rows) && rows.length ? rows : (Array.isArray(lastFiltered) ? lastFiltered : []);
+          for (const rr of scanSource){
+            const cand = String(rr['Composer'] || rr.Composer || rr['composer'] || '').trim();
+            if (!cand) continue;
+            const nc = normalize(cand || '');
+            if (nc === qv || nc.includes(qv) || qv.includes(nc)){
+              composerMatch = { name: cand, row: rr };
+              break;
+            }
+          }
+          // Fallback: if no explicit composer match found but the first filtered row contains a composer that loosely matches, use it
+          if (!composerMatch && Array.isArray(lastFiltered) && lastFiltered.length){
+            const first = lastFiltered[0];
+            const cand = String(first['Composer'] || first.Composer || first['composer'] || '').trim();
+            if (cand){ const nc = normalize(cand||''); if (nc.includes(qv) || qv.includes(nc)) composerMatch = { name: cand, row: first }; }
+          }
+          if (composerMatch){
+            selectedComposer = String(composerMatch.name || '');
+            populateComposerBox(selectedComposer, composerMatch.row);
+          }
+        }
+      }catch(e){ /* ignore composer auto-open failures */ }
       // If caller requested a randomized open (via URL), open composer box for the first matching result
       try{
         const params = new URLSearchParams(window.location.search || '');
