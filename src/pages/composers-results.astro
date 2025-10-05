@@ -1123,6 +1123,35 @@
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><h1 style="margin:0 0 6px 0; font-size:1.25rem">${escapeHtml(A_quick)}</h1><span class="spinner" aria-hidden="true" title="Loading more details"></span></div>
         ${B_quick ? `<p style="margin:0 0 8px 0"><i>${escapeHtml(B_quick)}</i></p>` : ''}
         <br/>
+      // Quick diagnostic and mitigation: detect any element that covers the viewport
+      // and may be blocking pointer events (leftover overlay). If found, disable
+      // its pointer-events so underlying UI becomes interactive again.
+      document.addEventListener('DOMContentLoaded', function () {
+        try {
+          const vw = Math.max(window.innerWidth || document.documentElement.clientWidth, 0);
+          const vh = Math.max(window.innerHeight || document.documentElement.clientHeight, 0);
+          const els = Array.from(document.querySelectorAll('body *'));
+          const blockers = els.filter(el => {
+            try {
+              const rect = el.getBoundingClientRect();
+              if (rect.width < vw - 2 || rect.height < vh - 2) return false;
+              const style = window.getComputedStyle(el);
+              // Ignore clearly visible content like header/footer by size heuristics
+              if (style.position !== 'fixed' && style.position !== 'absolute') return false;
+              // If element is visually transparent but sits on top, consider it a blocker
+              const bg = style.backgroundColor || ''; const pointer = style.pointerEvents || '';
+              return (pointer !== 'none');
+            } catch (e) { return false; }
+          });
+          if (blockers && blockers.length) {
+            console.warn('Disabling pointer-events on potential blockers:', blockers);
+            blockers.forEach(b => { b.style.pointerEvents = 'none'; });
+          }
+        } catch (err) { console.error('Blocker mitigation failed', err); }
+
+        // Optional: log all clicks to help debugging if further issues occur
+        document.addEventListener('click', function (ev) { console.debug('click:', ev.target); }, true);
+      });
         <p style="margin:6px 0"><b>${escapeHtml(C_quick_label)}:</b> ${escapeHtml(C_quick)}</p>
         <p style="margin:6px 0"><b>${escapeHtml(D_quick_label)}:</b> ${escapeHtml(E_quick)}</p>
         <br/>
