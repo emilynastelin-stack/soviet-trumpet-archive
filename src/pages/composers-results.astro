@@ -142,14 +142,16 @@
       box-shadow: 0 10px 30px rgba(16,24,40,0.12);
       margin-right: 0; /* flush to the right column edge */
     }
-  /* result hyperlinks (composer names and piece titles) should be black with no underline */
-  .composer-link, .piece-link { color: #000 !important; font-weight:700; text-decoration:none !important; }
-  .composer-link:hover, .piece-link:hover { text-decoration:none !important; }
-  /* ensure visited links keep the same black color */
-  .composer-link:visited, .piece-link:visited { color: #000 !important; }
-  /* stronger selectors in case global rules override link color/decoration */
-  .results .result-item a.composer-link, .results .result-item a.piece-link, .result-item a.composer-link, .result-item a.piece-link { color: #000 !important; text-decoration:none !important; }
-  .results .result-item a.composer-link:visited, .results .result-item a.piece-link:visited, .result-item a.composer-link:visited, .result-item a.piece-link:visited { color: #000 !important; }
+  /* composer links maroon by default; piece links black. Hover changes color for both */
+  .composer-link { color: var(--accent) !important; font-weight:700; text-decoration:none !important; }
+  .piece-link { color: #000 !important; font-weight:700; text-decoration:none !important; }
+  .composer-link:hover { color: #5a0000 !important; text-decoration:underline !important; }
+  .piece-link:hover { color: #333 !important; text-decoration:underline !important; }
+  /* ensure visited links keep color */
+  .composer-link:visited { color: var(--accent) !important; }
+  .piece-link:visited { color: #000 !important; }
+  /* stronger selectors */
+  .results .result-item a.composer-link, .results .result-item a.piece-link, .result-item a.composer-link, .result-item a.piece-link { text-decoration:none !important; }
   .composer-box h3 { font-size:1rem; margin-bottom:0.5rem; }
 
   /* Shared section header that matches the Results header (color, size, line-height) */
@@ -649,9 +651,9 @@
       // enforce link styles and divider inline so client sees updates immediately
       try{
         // composer link style
-        if (link) { link.style.color = '#000'; link.style.textDecoration = 'none'; link.style.fontWeight = '700'; }
-        const tlink = div.querySelector('.piece-link');
-        if (tlink) { tlink.style.color = '#000'; tlink.style.textDecoration = 'none'; tlink.style.fontWeight = '700'; }
+  if (link) { link.style.color = 'var(--accent)'; link.style.textDecoration = 'none'; link.style.fontWeight = '700'; }
+  const tlink = div.querySelector('.piece-link');
+  if (tlink) { tlink.style.color = '#000'; tlink.style.textDecoration = 'none'; tlink.style.fontWeight = '700'; }
         // ensure the divider is visible
         div.style.borderBottom = '1px solid #d1d5db';
       }catch(e){ /* ignore */ }
