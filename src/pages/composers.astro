@@ -386,11 +386,7 @@
         <div class="muted" id="statusMsg"></div>
       </div>
 
-      <div id="debugPanel" style="max-width:900px;margin:12px auto 0;padding:8px;background:#fff;border-radius:8px;border:1px solid #eee">
-        <div style="font-weight:700;margin-bottom:4px">Debug</div>
-        <div id="debugFetch" style="font-family:monospace;color:#333">not started</div>
-        <div style="margin-top:8px"><button id="debugRetry" class="small-btn">Retry fetch</button></div>
-      </div>
+      <!-- debug panel removed for production -->
 
       <div id="results" class="grid" style="margin-top:14px"></div>
     </div>
@@ -559,19 +555,18 @@
     async function fetchData(){
       // show inline spinner while loading
       statusMsg.innerHTML = '<span class="spinner"><svg viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg"><circle cx="25" cy="25" r="20" fill="none" stroke="#8b0000" stroke-width="5" stroke-linecap="round" stroke-dasharray="31.4 31.4"/></svg></span>Loading…';
-      // update debug panel
-      const dbg = document.getElementById('debugFetch'); if (dbg) dbg.textContent = 'Starting fetch...';
+  // debug panel removed
       try{
         // use absolute URL and cache-busting to avoid service-worker or caching quirks
         const url = (window.location && window.location.origin ? window.location.origin : '') + '/api/sheets?_=' + Date.now();
-        if (dbg) dbg.textContent = 'fetching ' + url;
+  // fetching data
         const res = await fetch(url, { method: 'GET', mode: 'same-origin', cache: 'no-store' });
         if(!res.ok) {
           const txt = await res.text();
           throw new Error('Fetch failed: ' + res.status + ' ' + txt);
         }
         const json = await res.json();
-        if (dbg) dbg.textContent = `fetch ok, rows=${Array.isArray(json)?json.length:'?'} `;
+  // fetch ok
         if (!Array.isArray(json) || json.length === 0){
           DATA = [];
           resultsEl.innerHTML = '<div class="muted">No data available</div>';
@@ -582,14 +577,14 @@
         DATA = json;
         HEADERS = Object.keys(DATA[0] || {});
   statusMsg.textContent = '';
-        if (dbg) dbg.textContent += ' loaded headers=' + HEADERS.length;
+  // headers loaded
         resultsCount.textContent = '';
         resultsEl.innerHTML = '<div class="muted">Enter a search or click "Show All" to display results.</div>';
       }catch(err){
         console.error(err);
         statusMsg.textContent = 'Failed to load data';
         resultsEl.innerHTML = `<div class="muted">Error loading data: ${String(err)}</div>`;
-        if (dbg) dbg.textContent = 'fetch error: ' + String(err);
+  // fetch error
   }
     }
 
@@ -648,22 +643,7 @@
     }catch(e){ /* ignore */ }
   }
 
-  // Debug helper: logs computed styles for each card-content to the console
-  function logAccordionDebug(){
-    try{
-      const cards = (resultsEl && resultsEl.querySelectorAll) ? resultsEl.querySelectorAll('.card') : document.querySelectorAll('.card');
-      cards.forEach((c,i)=>{
-        const cnt = c.querySelector('.card-content');
-        if(!cnt) return;
-        const comp = window.getComputedStyle(cnt);
-        console.group(`card[${i}] ${c.querySelector('h4')?c.querySelector('h4').textContent.trim():'<unknown>'}`);
-        console.log('classList', c.classList.toString());
-        console.log('display', comp.display, 'maxHeight', comp.maxHeight, 'height', comp.height, 'overflow', comp.overflow, 'opacity', comp.opacity);
-        console.log('scrollHeight', cnt.scrollHeight, 'offsetHeight', cnt.offsetHeight);
-        console.groupEnd();
-      });
-    }catch(e){ console.error('logAccordionDebug failed', e); }
-  }
+  // Debug helpers removed for production
   function renderResults(rows) {
   // Normalize TRANSLATIONS map
   const map = (TRANSLATIONS && TRANSLATIONS[LOCALE]) 
@@ -720,13 +700,8 @@
       }
     })();
 
-    // Watchdog: if DATA not loaded after 1s, attempt a direct fetch (helps if translations or locale code blocked earlier)
-    setTimeout(()=>{
-      const dbg = document.getElementById('debugFetch'); if (dbg) dbg.textContent = (dbg.textContent || '') + ' [watchdog check]';
-      if (!DATA || DATA.length === 0){
-        try{ fetchData(); }catch(e){ console.error('watchdog fetch failed', e); }
-      }
-    }, 1000);
+    // Watchdog: if DATA not loaded after 1s, attempt a direct fetch
+    setTimeout(()=>{ if (!DATA || DATA.length === 0){ try{ fetchData(); }catch(e){ console.error('watchdog fetch failed', e); } } }, 1000);
 
     // Ensure fetchData runs once DOM content is loaded (defensive against ordering issues)
     if (document.readyState === 'loading'){
@@ -735,8 +710,7 @@
       try{ fetchData(); }catch(e){}
     }
 
-    // debug retry wiring
-    const dbgRetry = document.getElementById('debugRetry'); if (dbgRetry) dbgRetry.addEventListener('click', ()=>{ fetchData(); });
+  // debug controls removed
 
     // Randomize button: pick a random composer and open the results page filtered to that composer
     const randomizeBtn = Array.from(document.querySelectorAll('.cta-add')).find(a => /randomize/i.test(a.textContent || ''));
@@ -771,20 +745,7 @@
 
     // global error hooks: report to debug panel so browser runtime errors are visible in-page
     (function(){
-      const dbgEl = () => document.getElementById('debugFetch');
-      window.onerror = function(message, source, lineno, colno, error){
-        try{ const d = dbgEl(); if (d) d.textContent = `onerror: ${message} at ${source}:${lineno}:${colno}`; }catch(e){}
-        return false;
-      };
-      window.onunhandledrejection = function(evt){ try{ const d = dbgEl(); if (d) d.textContent = `unhandledrejection: ${String(evt.reason)}`; }catch(e){} };
-
-      // safe retry: if debug shows no progress after 1.2s, try fetch again once
-      setTimeout(()=>{
-        try{
-          const d = dbgEl(); if (d && /Starting fetch|fetching/.test(d.textContent || '')) return; // already started
-          fetchData().catch(err=>{ const d2 = dbgEl(); if(d2) d2.textContent = 'retry fetch failed: '+String(err); });
-        }catch(e){}
-      }, 1200);
+      // global error hooks suppressed for in-page debug reporting; let errors go to console
     })();
   </script>
 
@@ -836,7 +797,7 @@
           panel.style.transform = '';
 
           panel.style.marginTop = desiredMarginTop + 'px';
-          console.debug && console.debug('hero-position: imageBottomDoc', imageBottomDoc, 'parentTopDoc', parentTopDoc, 'desiredMarginTop', desiredMarginTop);
+          // debug: hero-position details hidden in production
         }catch(err){
           console.error('hero-position update failed', err);
         }finally{

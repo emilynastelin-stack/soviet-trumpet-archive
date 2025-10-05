@@ -1052,10 +1052,10 @@
     const mres = await fetch('/api/sheets?sheet=MusicList', { headers: { 'Accept': 'application/json' } });
     const mj = await mres.json().catch(()=>null);
     const mjRows = (mj && Array.isArray(mj)) ? mj : (mj && mj.rows && Array.isArray(mj.rows) ? mj.rows : null);
-    if (mjRows && mjRows.length) {
+      if (mjRows && mjRows.length) {
       rows = mjRows;
       sourceSheet = 'MusicList';
-      console.debug('COMPOSER_DEBUG using MusicList aggregation (client-side)');
+      // debug: console.debug('COMPOSER_DEBUG using MusicList aggregation (client-side)');
     }
   } catch (e) { /* ignore */ }
 
@@ -1068,19 +1068,19 @@
       const jr = Array.isArray(jrRaw) ? jrRaw : (jrRaw && Array.isArray(jrRaw.rows) ? jrRaw.rows : jrRaw);
       if (Array.isArray(jr) && jr.length){
         const sample = jr[0];
-        if (looksLikeCompDet(sample)){
+          if (looksLikeCompDet(sample)){
           rows = jr;
           sourceSheet = sname;
-          console.debug('COMPOSER_DEBUG selected sheet (api):', sname, 'headers:', Object.keys(sample));
+          // debug: console.debug('COMPOSER_DEBUG selected sheet (api):', sname, 'headers:', Object.keys(sample));
           break;
         } else {
-          console.debug('COMPOSER_DEBUG rejected sheet (api):', sname, 'headers:', Object.keys(sample));
+          // debug: console.debug('COMPOSER_DEBUG rejected sheet (api):', sname, 'headers:', Object.keys(sample));
         }
       } else {
-        console.debug('COMPOSER_DEBUG no-array or empty from API for', sname, jr);
+        // debug: console.debug('COMPOSER_DEBUG no-array or empty from API for', sname, jr);
       }
     }catch(e){
-      console.debug('COMPOSER_DEBUG api fetch failed for', sname, e);
+      // debug: console.debug('COMPOSER_DEBUG api fetch failed for', sname, e);
     }
   }
 
@@ -1111,7 +1111,7 @@
         // we've found a suitable CompDet-like sheet via GViz; stop searching
         break;
       } catch (e) {
-        console.debug('COMPOSER_DEBUG gviz fetch failed for', sname, e);
+        // debug: console.debug('COMPOSER_DEBUG gviz fetch failed for', sname, e);
       }
     }
   }
@@ -1166,10 +1166,7 @@
 
   // If still not found, surface a helpful message + a small sample for debugging
   if (!matchRow){
-    const samplePreview = escapeHtml(JSON.stringify(rows[0] || {}, null, 2));
-    content.innerHTML = `<div>No composer match in ${escapeHtml(sourceSheet || 'CompDet')} for <strong>${escapeHtml(name)}</strong>.</div>
-      <div style="margin-top:8px;color:#6b7280;font-size:0.9rem">Sample headers from detected sheet (for debugging):</div>
-      <pre style="max-height:220px;overflow:auto;background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;font-size:0.85rem">${samplePreview}</pre>`;
+    content.innerHTML = `<div>No composer match was found in the detected detail sheet for <strong>${escapeHtml(name)}</strong>. Try adjusting the search or check the spelling.</div>`;
     if (clearBtn) clearBtn.style.display = 'inline-block';
     return;
   }
