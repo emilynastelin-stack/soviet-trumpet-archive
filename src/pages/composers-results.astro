@@ -867,27 +867,26 @@
           if (looksLikeCompDet(sampleObj)){
             // assemble rows as objects
             rows = g.rows.map(r => {
-              const o = {};
-              for (let i=0;i<headers.length;i++){
-                o[headers[i] || `col${i+1}`] = r[i] !== undefined && r[i] !== null ? r[i] : '';
-              }
-              return o;
-            });
-            sourceSheet = sname;
-            console.debug('COMPOSER_DEBUG selected sheet (gviz):', sname, 'headers:', headers);
-            break;
-          } else {
-            console.debug('COMPOSER_DEBUG rejected sheet (gviz):', sname, headers);
-          }
-        }
-      }catch(e){
-        // ignore individual gviz errors
-        console.debug('COMPOSER_DEBUG gviz failed for', sname, e);
-      }
-    }
-  }
+              const html = `
+                <div>
+                  <div style="color:var(--accent);margin:0;font-size:1.05rem;font-weight:700">${escapeHtml(colA)}</div>
+                  ${colN ? `<div style="margin-top:4px;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(colN)}</div>` : ''}
+                  <br>
+                  <p><strong style="color:var(--accent);">Russian:</strong> ${escapeHtml(colB)}</p>
+                  ${labelFromP && valueFromC ? `<p><strong>${escapeHtml(labelFromP)}:</strong> ${escapeHtml(valueFromC)}</p>` : ''}
+                  <br>
+                  <p><strong>Country</strong> ${escapeHtml(colK)}</p>
+                  <p><strong>Soviet Republic</strong> ${escapeHtml(colO)}</p>
+                  <br>
+                  <p><strong>Notes:</strong> ${escapeHtml(colQ)}</p>
+                </div>
+              `;
 
-  // 3) Last-ditch: try Sheet2 explicitly but only accept it if it looks like CompDet
+              content.innerHTML = html + (sourceSheet ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Source: ${escapeHtml(sourceSheet)}</div>` : '');
+              if (clearBtn) { clearBtn.style.display = 'inline-block'; }
+              return;
+
+              // labels we want to show (adjust as you like)
   if ((!rows || rows.length === 0)){
     try{
       const rres = await fetch('/api/sheets?sheet=Sheet2', { headers: { 'Accept': 'application/json' } });
@@ -976,47 +975,75 @@
     rowObj = matchRow;
   }
 
-  // If we used MusicList, prefer a strict column-letter mapping the UI expects
-  if (sourceSheet === 'MusicList'){
-    const getBy = (letters, fallbacks=[]) => {
-      for (const L of letters){
-        if (rowObj.hasOwnProperty(L) && rowObj[L] !== undefined && rowObj[L] !== null && String(rowObj[L]).trim() !== '') 
-          return String(rowObj[L]);
+function escapeHtml(text) {
+  return text.replace(/[&<>"']/g, function(m) {
+    return ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[m];
+  });
+}
+
+// Example rowObj for testing
+const rowObj = {
+  A: "Abramyan, Eduard Aslanovich",
+  N: "1923-1986",
+  B: "Абрамян, Эдуард Асланович",
+  P: "Armenian",
+  C: "Աբրամյան, Էդուարդ Ասլանովիչ",
+  K: "Armenia",
+  O: "Armenian SSR",
+  Q: "Armenian"
+};
+
+const sourceSheet = 'MusicList';
+
+if (sourceSheet === 'MusicList') {
+  const getBy = (letters, fallbacks=[]) => {
+    for (const L of letters){
+      if (rowObj.hasOwnProperty(L) && rowObj[L] !== undefined && rowObj[L] !== null && String(rowObj[L]).trim() !== '') 
+        return String(rowObj[L]);
+    }
+    for (const fb of fallbacks){
+      for (const k of Object.keys(rowObj)){
+        if (String(k||'').toLowerCase().trim() === fb.toLowerCase().trim() && rowObj[k]) 
+          return String(rowObj[k]);
       }
-      for (const fb of fallbacks){
-        for (const k of Object.keys(rowObj)){
-          if (String(k||'').toLowerCase().trim() === fb.toLowerCase().trim() && rowObj[k]) 
-            return String(rowObj[k]);
-        }
-      }
-      return '';
-    };
+    }
+    return '';
+  };
 
-    const colA = getBy(['A','Composer','composer','name'], ['composer','name']);
-    const colN = getBy(['N','col_13','Lifespan','lifespan'], ['lifespan','years','n']);
-    const colB = getBy(['B','Композитор','композитор'], ['композитор','b']);
-    const colK = getBy(['K','Country','country','Страна'], ['country','k']);
-    const colO = getBy(['O','Soviet republic','Republic','republic'], ['republic','o']);
-    const colQ = getBy(['Q','Notes','notes','Примечания'], ['notes','q']);
+  const colA = getBy(['A','Composer','composer','name'], ['composer','name']);
+  const colN = getBy(['N','col_13','Lifespan','lifespan'], ['lifespan','years','n']);
+  const colB = getBy(['B','Композитор','композитор'], ['композитор','b']);
+  const colK = getBy(['K','Country','country','Страна'], ['country','k']);
+  const colO = getBy(['O','Soviet republic','Republic','republic'], ['republic','o']);
+  const colQ = getBy(['Q','Notes','notes','Примечания'], ['notes','q']);
 
-    // Here's your custom P & C combination: label from P, value from C
-    const labelFromP = rowObj['P'] ? String(rowObj['P']).trim() : '';
-    const valueFromC = rowObj['C'] ? String(rowObj['C']).trim() : '';
+  const labelFromP = rowObj['P'] ? String(rowObj['P']).trim() : '';
+  const valueFromC = rowObj['C'] ? String(rowObj['C']).trim() : '';
 
-    const html = `
-      <div>
-        <h1 style="color: maroon; font-weight: bold;">${escapeHtml(colA)}</h1>
-        ${colN ? `<p style="font-style: italic; color: gray; font-size: smaller;">${escapeHtml(colN)}</p>` : ''}
-        <br>
-        <p><b>Russian:</b> ${escapeHtml(colB)}</p>
-        ${labelFromP && valueFromC ? `<p><b>${escapeHtml(labelFromP)}:</b> ${escapeHtml(valueFromC)}</p>` : ''}
-        <br>
-        <p><b>Country</b> ${escapeHtml(colK)}</p>
-        <p><b>Soviet Republic</b> ${escapeHtml(colO)}</p>
-        <br>
-        <p><b>Notes:</b> ${escapeHtml(colQ)}</p>
-      </div>
-    `;
+  const html = `
+    <div>
+      <h1 style="color: maroon; font-weight: bold;">${escapeHtml(colA)}</h1>
+      ${colN ? `<p style="font-style: italic; color: gray; font-size: smaller;">${escapeHtml(colN)}</p>` : ''}
+      <br>
+      <p><b>Russian:</b> ${escapeHtml(colB)}</p>
+      ${labelFromP && valueFromC ? `<p><b>${escapeHtml(labelFromP)}:</b> ${escapeHtml(valueFromC)}</p>` : ''}
+      <br>
+      <p><b>Country</b> ${escapeHtml(colK)}</p>
+      <p><b>Soviet Republic</b> ${escapeHtml(colO)}</p>
+      <br>
+      <p><b>Notes:</b> ${escapeHtml(colQ)}</p>
+    </div>
+  `;
+
+  console.log(html);
+}
+
 
     content.innerHTML = html + (sourceSheet ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Source: ${escapeHtml(sourceSheet)}</div>` : '');
     if (clearBtn) { clearBtn.style.display = 'inline-block'; }
