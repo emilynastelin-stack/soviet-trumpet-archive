@@ -254,6 +254,8 @@
     <h4 class="section-header" style="font-weight:600;margin-top:6px;margin-bottom:6px;"><strong>Type of piece</strong></h4>
     <div class="section-divider"></div>
     <div id="filter-type" style="margin-bottom:12px;">&nbsp;</div>
+    <!-- Global filter controls (Clear all / Clear last) moved here from pagination -->
+    <div id="filters-controls" style="margin-top:12px; display:flex; gap:8px; justify-content:flex-start;"></div>
   </aside>
 
   <main class="results" id="results">
@@ -348,6 +350,29 @@
       currentPage = 1;
       loadResults();
     }catch(e){ console.error('clearLastAppliedFilter failed', e); }
+  }
+
+  // Create global Clear buttons so other init code can reference them safely
+  function createClearAll(){
+    const clearBtn = document.createElement('button');
+    clearBtn.textContent = 'Clear all filters';
+    clearBtn.style.padding = '6px 10px';
+    clearBtn.style.borderRadius = '6px';
+    clearBtn.style.border = '1px solid #d1d5db';
+    clearBtn.style.background = '#fff';
+    clearBtn.addEventListener('click', ()=>{ try{ clearAllFilters(); }catch(e){} });
+    return clearBtn;
+  }
+
+  function createClearLast(){
+    const clearLastBtn = document.createElement('button');
+    clearLastBtn.textContent = 'Clear last filter';
+    clearLastBtn.style.padding = '6px 10px';
+    clearLastBtn.style.borderRadius = '6px';
+    clearLastBtn.style.border = '1px solid #d1d5db';
+    clearLastBtn.style.background = '#fff';
+    clearLastBtn.addEventListener('click', ()=>{ try{ if (typeof clearLastAppliedFilter === 'function') clearLastAppliedFilter(); }catch(e){} });
+    return clearLastBtn;
   }
 
   function escapeHtml(str){ if (str == null) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
@@ -446,9 +471,9 @@
       const canonical = en && en.decades ? en.decades : fallbackDecades;
       const locale = (function(){ try{ return localStorage.getItem('locale') || 'en'; }catch(e){ return 'en'; } })();
       const localized = (json && json[locale] && json[locale].decades) ? json[locale].decades : canonical;
-      // title + checkbox list; put controls at the bottom
-      container.innerHTML = '';
-      const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Decade'; container.appendChild(title);
+  // checkbox list; the section header is rendered server-side (maroon .section-header),
+  // so we avoid injecting a duplicate title here.
+  container.innerHTML = '';
       for (let i=0;i<canonical.length;i++){
         const val = canonical[i];
         const lab = (localized && localized[i]) ? localized[i] : val;
@@ -464,8 +489,8 @@
       if (selAll) selAll.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
       if (clr) clr.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
     }catch(e){
-      container.innerHTML = '';
-      const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Decade'; container.appendChild(title);
+  // fallback checkbox list (no duplicated title)
+  container.innerHTML = '';
       container.innerHTML += fallbackDecades.map((d,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(d)}" id="decade_cb_f${i}" /> ${d}</label>`).join('');
       const controlsWrap = document.createElement('div'); controlsWrap.style.marginTop = '8px'; controlsWrap.innerHTML = `<button id="decade-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="decade-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controlsWrap);
       container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ currentPage = 1; loadResults(); }));
@@ -485,9 +510,9 @@
       const canonicalTypes = en && en.types ? en.types : null;
       if (canonicalTypes && canonicalTypes.length){
         const localized = (jsonT && jsonT[(localStorage.getItem('locale')||'en')] && jsonT[(localStorage.getItem('locale')||'en')].types) ? jsonT[(localStorage.getItem('locale')||'en')].types : canonicalTypes;
-        // title + checkboxes, controls at bottom
-        container.innerHTML = '';
-        const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Type of piece'; container.appendChild(title);
+  // title + checkboxes, controls at bottom
+  // note: the visible section header is provided in the HTML as an h4.section-header
+  container.innerHTML = '';
         canonicalTypes.forEach((val,i)=>{
           const lab = localized && localized[i] ? localized[i] : val;
           const id = 'type_cb_' + i;
@@ -524,8 +549,8 @@
         if (t) set.add(String(t).trim());
       });
       const list = Array.from(set).sort();
-      container.innerHTML = '';
-      const titleDyn = document.createElement('div'); titleDyn.className = 'list-title'; titleDyn.textContent = 'Type of piece'; container.appendChild(titleDyn);
+  // dynamically-generated type list (no duplicated title) 
+  container.innerHTML = '';
       const controls = document.createElement('div'); controls.style.marginTop = '8px'; controls.innerHTML = `<button id="type-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="type-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controls);
       list.forEach((val,i)=>{
         const id = 'type_cb_dyn_' + i;
@@ -713,24 +738,19 @@
       placeholder.style.paddingRight = '6px';
       placeholder.textContent = '1 of 1';
   phWrap.appendChild(placeholder);
-  // Clear all filters button for the single-page placeholder
-  const clearBtn = document.createElement('button');
-  clearBtn.textContent = 'Clear all filters';
-  clearBtn.style.padding = '6px 10px';
-  clearBtn.style.borderRadius = '6px';
-  clearBtn.style.border = '1px solid #d1d5db';
-  clearBtn.style.background = '#fff';
-  clearBtn.addEventListener('click', ()=>{ try{ clearAllFilters(); }catch(e){} });
-  phWrap.appendChild(clearBtn);
-  // Clear last-applied filter (if any)
-  const clearLastBtn = document.createElement('button');
-  clearLastBtn.textContent = 'Clear last filter';
-  clearLastBtn.style.padding = '6px 10px';
-  clearLastBtn.style.borderRadius = '6px';
-  clearLastBtn.style.border = '1px solid #d1d5db';
-  clearLastBtn.style.background = '#fff';
-  clearLastBtn.addEventListener('click', ()=>{ try{ if (typeof clearLastAppliedFilter === 'function') clearLastAppliedFilter(); }catch(e){} });
-  phWrap.appendChild(clearLastBtn);
+  // Clear all filters and Clear last buttons: attempt to place into #filters-controls if present
+  const filtersControls = document.getElementById('filters-controls');
+  if (filtersControls) {
+    // avoid creating multiple copies on repeated pagination renders
+    if (!filtersControls.dataset.clearInit) {
+      filtersControls.appendChild(createClearAll());
+      filtersControls.appendChild(createClearLast());
+      filtersControls.dataset.clearInit = '1';
+    }
+  } else {
+    phWrap.appendChild(createClearAll());
+    phWrap.appendChild(createClearLast());
+  }
       // Live toggle
       const liveToggle = document.createElement('button');
       liveToggle.textContent = 'Live: Off';
@@ -771,23 +791,20 @@
     topWrap.style.justifyContent = 'flex-end';
   // (Clear button moved to the Filters box at left)
   // Clear all filters button placed next to pagination controls
-  const clearBtnTop = document.createElement('button');
-  clearBtnTop.textContent = 'Clear all filters';
-  clearBtnTop.style.padding = '6px 10px';
-  clearBtnTop.style.borderRadius = '6px';
-  clearBtnTop.style.border = '1px solid #d1d5db';
-  clearBtnTop.style.background = '#fff';
-  clearBtnTop.addEventListener('click', ()=>{ try{ clearAllFilters(); }catch(e){} });
-  topWrap.appendChild(clearBtnTop);
-  // add Clear last-applied filter button next to Clear all
-  const clearLastTop = document.createElement('button');
-  clearLastTop.textContent = 'Clear last filter';
-  clearLastTop.style.padding = '6px 10px';
-  clearLastTop.style.borderRadius = '6px';
-  clearLastTop.style.border = '1px solid #d1d5db';
-  clearLastTop.style.background = '#fff';
-  clearLastTop.addEventListener('click', ()=>{ try{ if (typeof clearLastAppliedFilter === 'function') clearLastAppliedFilter(); }catch(e){} });
-  topWrap.appendChild(clearLastTop);
+  // attempt to place Clear buttons into #filters-controls if present
+  const filtersControlsTop = document.getElementById('filters-controls');
+  if (filtersControlsTop) {
+    if (!filtersControlsTop.dataset.clearInit) {
+      filtersControlsTop.appendChild(createClearAll());
+      filtersControlsTop.appendChild(createClearLast());
+      filtersControlsTop.dataset.clearInit = '1';
+    }
+  } else {
+    const clearBtnTop = createClearAll();
+    topWrap.appendChild(clearBtnTop);
+    const clearLastTop = createClearLast();
+    topWrap.appendChild(clearLastTop);
+  }
     // Live toggle button
     const liveToggle2 = document.createElement('button');
     liveToggle2.textContent = liveTimer ? 'Live: On' : 'Live: Off';
@@ -1328,6 +1345,24 @@
     // wire clear-all-filters button in the left Filters box
     try{
       const caf = document.getElementById('clear-all-filters-btn'); if (caf) caf.addEventListener('click', ()=>{ clearAllFilters(); });
+    }catch(e){}
+
+    // Ensure Show All / Clear controls live in the filters-controls area
+    try{
+      const fc = document.getElementById('filters-controls');
+      if (fc && !fc.dataset.init) {
+        // Show All (navigate to full results without query)
+        const showAllBtn = document.createElement('button');
+        showAllBtn.textContent = 'Show all';
+        showAllBtn.style.padding = '6px 10px';
+        showAllBtn.style.borderRadius = '6px';
+        showAllBtn.style.border = '1px solid #d1d5db';
+        showAllBtn.style.background = '#fff';
+        showAllBtn.addEventListener('click', ()=>{ try{ qinput.value=''; selectedComposer=''; lastAppliedFilter=null; document.querySelectorAll('#filter-country input, #filter-decade input, #filter-type input').forEach(cb=> cb.checked=false); currentPage=1; loadResults(); }catch(e){} });
+        fc.appendChild(showAllBtn);
+        // leave Clear buttons addition to renderPagination which will append them if needed
+        fc.dataset.init = '1';
+      }
     }catch(e){}
 
     // ensure composer box starts empty
