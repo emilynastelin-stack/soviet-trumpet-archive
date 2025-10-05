@@ -985,23 +985,29 @@
       return '';
     };
 
-    // mapping: A (Composer), N (Lifespan small italic), B (Russian), C (P), K (Country), O (Soviet republic), Q (Notes)
+    // mapping: A (Composer), N (Lifespan small italic), B (Russian), P/C (P field prefer P then C), K (Country), O (Soviet republic), Q (Notes)
     const colA = getBy(['A','Composer','composer','name'], ['composer','name']);
     const colN = getBy(['N','col_13','Lifespan','lifespan'], ['lifespan','years','n']);
     const colB = getBy(['B','Композитор','композитор'], ['композитор','b']);
-  // Prefer explicit P column, then fallback to C (some sheets use P for the 'P' field)
-  const colC = getBy(['P','C','P:','P.'], ['p','c']);
+    const colP_val = getBy(['P','C','P:','P.'], ['p','c']);
+    // determine a label for the P/C field: prefer the actual header if present in the object keys
+    let colP_label = 'P';
+    for (const k of Object.keys(rowObj || {})){
+      if (k === 'P' || k === 'p' || String(k).trim().toUpperCase() === 'P'){ colP_label = k; break; }
+      if (k === 'C' || k === 'c' || String(k).trim().toUpperCase() === 'C'){ /* prefer P if exists, else C */ }
+    }
     const colK = getBy(['K','Country','country','Страна'], ['country','k']);
     const colO = getBy(['O','Soviet republic','Republic','republic'], ['republic','o']);
     const colQ = getBy(['Q','Notes','notes','Примечания'], ['notes','q']);
 
-    // Render in the exact layout requested by user
+    // Render exactly per your template
     const html = `
       <div>
         <h1 style="color:var(--accent);margin:0;font-size:1.1rem">${escapeHtml(colA)}</h1>
         ${colN ? `<p style="margin:4px 0;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(colN)}</p>` : ''}
+        <br>
         <p><strong style="color:var(--accent);">Russian:</strong> ${escapeHtml(colB)}</p>
-        <p><strong style="color:var(--accent);">P:</strong> ${escapeHtml(colC)}</p>
+        <p><strong>${escapeHtml(colP_label)}:</strong> ${escapeHtml(colP_val)}</p>
         <br>
         <p><strong>Country</strong> ${escapeHtml(colK)}</p>
         <p><strong>Soviet Republic</strong> ${escapeHtml(colO)}</p>
