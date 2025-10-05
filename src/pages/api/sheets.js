@@ -46,32 +46,9 @@ async function parseRowsToJson(values) {
 }
 
 function jsonResponse(obj, status = 200, sheetRange = ''){
-  const headers = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store, max-age=0' };
+  const headers = { 'Content-Type': 'application/json; charset=utf-8' };
   if (sheetRange) headers['X-Sheet-Range'] = String(sheetRange);
   return new Response(JSON.stringify(obj, null, 2), { status, headers });
-}
-
-function respond(request, obj, status = 200, sheetRange = ''){
-  // If the caller prefers HTML (browser navigation), render a tiny viewer page to avoid downloads
-  try{
-    const accept = request && request.headers && request.headers.get ? request.headers.get('accept') : '';
-    if (accept && accept.indexOf('text/html') !== -1){
-      const body = `<html><head><meta charset="utf-8"><title>Sheet ${sheetRange || ''}</title></head><body><pre style="white-space:pre-wrap;word-break:break-word">${escapeHtml(JSON.stringify(obj, null, 2))}</pre></body></html>`;
-  const headers = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store, max-age=0' };
-      if (sheetRange) headers['X-Sheet-Range'] = String(sheetRange);
-      return new Response(body, { status, headers });
-    }
-  }catch(e){ /* ignore and fall back to JSON */ }
-  return jsonResponse(obj, status, sheetRange);
-}
-
-function escapeHtml(str){
-  if (!str || typeof str !== 'string') return '';
-  return str.replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;');
 }
 
 export async function GET(request) {
@@ -110,7 +87,7 @@ export async function GET(request) {
           parsed = JSON.parse(decoded);
         } catch (errB64) {
           // return a helpful error so caller/browser can diagnose env formatting issues
-          return respond(request, { error: 'SERVICE_ACCOUNT_JSON_PARSE_ERROR', message: 'SERVICE_ACCOUNT_JSON is present but could not be parsed as JSON (raw or base64). Please ensure the env var contains valid JSON or base64-encoded JSON.' }, 500, '');
+          return jsonResponse({ error: 'SERVICE_ACCOUNT_JSON_PARSE_ERROR', message: 'SERVICE_ACCOUNT_JSON is present but could not be parsed as JSON (raw or base64). Please ensure the env var contains valid JSON or base64-encoded JSON.' }, 500, '');
         }
       }
 
@@ -138,14 +115,14 @@ export async function GET(request) {
                 break; // don't try other fallbacks when strict
               }
             }
-            return respond(request, { __sheet: rng, rows: data }, 200, rng);
+            return jsonResponse(data, 200, rng);
           }catch(errRange){ lastErr = errRange; /* try next */ }
         }
         // if none succeeded, return last error message
-  return respond(request, { error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(lastErr && lastErr.message ? lastErr.message : lastErr) }, 502, '');
+        return jsonResponse({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(lastErr && lastErr.message ? lastErr.message : lastErr) }, 502, '');
       } catch (errAuth) {
         // Surface auth errors to the caller to help debugging (message only, no secrets)
-  return respond(request, { error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(errAuth && errAuth.message ? errAuth.message : errAuth) }, 502, '');
+        return jsonResponse({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(errAuth && errAuth.message ? errAuth.message : errAuth) }, 502, '');
       }
     } catch (e) {
       // Unexpected - fall through to other methods
@@ -172,10 +149,10 @@ export async function GET(request) {
               const hasCompLike = keys.some(k=> ['lifespan','composer','композитор','learn more','learnmore','native'].includes(k));
               if (!hasCompLike){ lastErr = new Error('Requested sheet did not contain CompDet-like headers'); break; }
             }
-          return respond(request, { __sheet: rng, rows: data }, 200, rng);
+          return jsonResponse(data, 200, rng);
         }catch(errRange){ lastErr = errRange; }
       }
-  return respond(request, { error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(lastErr && lastErr.message ? lastErr.message : lastErr) }, 502, '');
+      return jsonResponse({ error: 'SERVICE_ACCOUNT_AUTH_ERROR', message: String(lastErr && lastErr.message ? lastErr.message : lastErr) }, 502, '');
     }
   } catch (err) {
     console.error('Service-account fetch failed:', err && err.message ? err.message : err);
@@ -189,7 +166,7 @@ export async function GET(request) {
       const res = await fetch(urlStr);
       if (!res.ok) {
         const txt = await res.text();
-  return respond(request, { error: 'Google API fetch failed', status: res.status, body: txt }, 502, primaryRange);
+        return jsonResponse({ error: 'Google API fetch failed', status: res.status, body: txt }, 502, primaryRange);
       }
       const json = await res.json();
       const data = await parseRowsToJson(json.values || []);
@@ -197,11 +174,11 @@ export async function GET(request) {
         const sample = Array.isArray(data) && data.length ? data[0] : null;
         const keys = sample ? Object.keys(sample).map(k=>String(k||'').toLowerCase()) : [];
         const hasCompLike = keys.some(k=> ['lifespan','composer','композитор','learn more','learnmore','native'].includes(k));
-  if (!hasCompLike) return respond(request, { error: 'SHEET_CONTENT_MISMATCH', message: 'Requested sheet did not appear to contain CompDet headers' }, 422, primaryRange);
+        if (!hasCompLike) return jsonResponse({ error: 'SHEET_CONTENT_MISMATCH', message: 'Requested sheet did not appear to contain CompDet headers' }, 422, primaryRange);
       }
-  return respond(request, { __sheet: primaryRange, rows: data }, 200, primaryRange);
+      return jsonResponse(data, 200, primaryRange);
     } catch (err) {
-  return respond(request, { error: 'Failed to fetch via API key', message: String(err) }, 502, primaryRange);
+      return jsonResponse({ error: 'Failed to fetch via API key', message: String(err) }, 502, primaryRange);
     }
   }
 
@@ -229,14 +206,14 @@ export async function GET(request) {
     const sample = Array.isArray(data) && data.length ? data[0] : null;
     const keys = sample ? Object.keys(sample).map(k=>String(k||'').toLowerCase()) : [];
     const hasCompLike = keys.some(k=> ['lifespan','composer','композитор','learn more','learnmore','native'].includes(k));
-  if (!hasCompLike) return respond(request, { error: 'SHEET_CONTENT_MISMATCH', message: 'Requested sheet did not appear to contain CompDet headers' }, 422, sheetParam + '!A1:Z1000');
+    if (!hasCompLike) return jsonResponse({ error: 'SHEET_CONTENT_MISMATCH', message: 'Requested sheet did not appear to contain CompDet headers' }, 422, sheetParam + '!A1:Z1000');
   }
-  return respond(request, { __sheet: sheetParam + '!A1:Z1000', rows: data }, 200, sheetParam + '!A1:Z1000');
+  return jsonResponse(data, 200, sheetParam + '!A1:Z1000');
       }
     }
   } catch (err) {
     console.error('GViz fallback fetch failed:', err && err.message ? err.message : err);
   }
 
-  return respond(request, { error: 'Missing credentials', message: 'Place a service account JSON at ./secrets/service-account.json or set GOOGLE_API_KEY in environment for a public sheet.' }, 500, '');
+  return jsonResponse({ error: 'Missing credentials', message: 'Place a service account JSON at ./secrets/service-account.json or set GOOGLE_API_KEY in environment for a public sheet.' }, 500, '');
 }

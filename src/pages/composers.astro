@@ -148,7 +148,116 @@
   </style>
 </head>
 <body>
-  <!-- background overlay removed -->
+  <!-- background overlay: positions the provided image so a specified image point is centered -->
+  <div id="bg-overlay" aria-hidden="true">
+    <img id="bg-img" src="/assets/bg-K13qQAs.png" alt="" />
+  </div>
+
+  <!-- Inject server-side fetched initial data to avoid client fetch failures -->
+  <!-- Astro frontmatter fetch: attempt to load /api/sheets server-side during render -->
+  <!-- If this file is served from another host/port in production, update BASE accordingly. -->
+  <script>
+    (function(){
+      try{
+        // Attempt to read preloaded data injected by the server render (Astro frontmatter)
+        // Note: If server couldn't load data, this global may be undefined.
+        // window.__INIT_DATA__ will be set below by server-side rendering when available.
+      }catch(e){}
+    })();
+  </script>
+
+  <script>
+    (function(){
+      // Image natural dimensions and the focal point in image coordinates
+      const IMG_W = 1920, IMG_H = 1080;
+      const FOCUS_X = 955, FOCUS_Y = 325;
+      const img = document.getElementById('bg-img');
+      const overlay = document.getElementById('bg-overlay');
+      if (!img || !overlay) return;
+
+      // tweak this value (px) to nudge the background vertically: positive moves it down
+      // read saved value from localStorage so adjustments persist
+      const BG_Y_ADJUST_KEY = 'bg_y_adjust';
+      let BG_Y_ADJUST = (function(){
+        try{ const v = parseInt(localStorage.getItem(BG_Y_ADJUST_KEY)); return Number.isFinite(v) ? v : 18; }catch(e){ return 18; }
+      })();
+  let _pending = false;
+      function applyFocus(){
+        if (_pending) return;
+        _pending = true;
+        requestAnimationFrame(()=>{
+          try{
+            const vw = Math.max(window.innerWidth || document.documentElement.clientWidth, 0);
+            const vh = Math.max(window.innerHeight || document.documentElement.clientHeight, 0);
+            // cover scale
+            const scale = Math.max(vw / IMG_W, vh / IMG_H);
+            const scaledW = IMG_W * scale;
+            const scaledH = IMG_H * scale;
+
+            // size the image element to the scaled size
+            img.style.width = Math.round(scaledW) + 'px';
+            img.style.height = Math.round(scaledH) + 'px';
+
+            // scaled coordinates of the focus point
+            const fx = FOCUS_X * scale;
+            const fy = FOCUS_Y * scale;
+
+            // compute center of the mast image in viewport coordinates
+            const mastEl = document.querySelector('.mast img') || document.querySelector('.mast');
+            let mastCenterX = vw / 2;
+            let mastCenterY = vh / 2;
+            if (mastEl) {
+              const mRect = mastEl.getBoundingClientRect();
+              // If mast hasn't been laid out yet, fallback to viewport center
+              if (mRect.width > 0 && mRect.height > 0) {
+                mastCenterX = mRect.left + (mRect.width / 2);
+                mastCenterY = mRect.top + (mRect.height / 2);
+              }
+            }
+
+            // place the background image so the scaled focus point aligns with mast center
+            const left = mastCenterX - fx;
+            // apply a small vertical nudge (BG_Y_ADJUST) to lower/raise the background
+            const top = mastCenterY - fy + (typeof BG_Y_ADJUST === 'number' ? BG_Y_ADJUST : 0);
+            img.style.left = Math.round(left) + 'px';
+            img.style.top = Math.round(top) + 'px';
+          }catch(e){
+            console.error('applyFocus error', e);
+          }finally{
+            _pending = false;
+          }
+        });
+      }
+
+      // re-run on resize and when image loads; also run on window load and when fonts/images settle
+      img.addEventListener('load', applyFocus);
+      window.addEventListener('resize', applyFocus);
+      // Run once on window load to ensure layout is stable
+      window.addEventListener('load', ()=>{ setTimeout(applyFocus, 80); });
+      // If the page uses the Font Loading API, re-run when fonts are ready
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(()=> setTimeout(applyFocus, 60)).catch(()=>{});
+      }
+      // run shortly after load in case other layout shifts occur
+      setTimeout(applyFocus, 250);
+      // initial apply
+      if (img.complete) applyFocus();
+      else setTimeout(()=>{ if(img.complete) applyFocus(); }, 200);
+    })();
+  </script>
+  <!-- Background adjustment control (visible for quick tweaks) -->
+  <div id="bg-adjust-control" aria-hidden="false">
+    <button id="bg-up" title="Move background up">▲</button>
+    <div id="bg-value">18</div>
+    <button id="bg-down" title="Move background down">▼</button>
+    <button id="bg-reset" title="Reset background">Reset</button>
+  </div>
+  <style>
+    #bg-adjust-control{position:fixed;left:12px;bottom:80px;z-index:80;background:rgba(255,255,255,0.95);border:1px solid #e6e9ef;padding:6px 8px;border-radius:8px;display:flex;gap:6px;align-items:center;box-shadow:0 6px 18px rgba(16,24,40,0.08)}
+    #bg-adjust-control button{background:#fff;border:1px solid #d1d5db;padding:6px;border-radius:6px;cursor:pointer}
+    #bg-adjust-control #bg-value{min-width:36px;text-align:center;font-weight:600}
+    @media (max-width:600px){ #bg-adjust-control{left:8px;bottom:92px} }
+  </style>
   <script>
     // Wire up the BG adjust controls to persist and re-run applyFocus
     (function(){
