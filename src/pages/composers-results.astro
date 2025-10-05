@@ -96,7 +96,9 @@
 
     .filters {
       background: #fffff7;
+      /* add 15px extra left padding as requested */
       padding: 1rem;
+      padding-left: calc(1rem + 15px);
       border-radius: 8px;
       box-shadow: 0 10px 30px rgba(16,24,40,0.12);
       /* previously offset from the viewport edge; removed margin so headings/dividers align with other boxes */
@@ -646,7 +648,7 @@
   const composerEsc = escapeHtml(author);
   const composerData = encodeURIComponent(String(author || ''));
   const globalIndex = lastFiltered.indexOf(r);
-  div.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;"><h2 style="margin:0"><a href="#" class="piece-link" data-idx="${globalIndex}">${escapeHtml(title)}</a></h2><div class="result-right" style="color:#6b7280;font-size:0.9rem;margin-left:12px;white-space:nowrap">Details</div></div><p><strong>Composer:</strong> <a href="#" class="composer-link" data-name="${composerData}">${composerEsc}</a></p><p><strong>Published:</strong> ${escapeHtml(published)}</p>`;
+  div.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;"><h2 style="margin:0"><a href="#" class="piece-link" data-idx="${globalIndex}">${escapeHtml(title)}</a></h2><div class="result-right" data-idx="${globalIndex}" style="color:#6b7280;font-size:0.9rem;margin-left:12px;white-space:nowrap;cursor:pointer">Details</div></div><p><strong>Composer:</strong> <a href="#" class="composer-link" data-name="${composerData}">${composerEsc}</a></p><p><strong>Published:</strong> ${escapeHtml(published)}</p>`;
       container.appendChild(div);
       // attach click handler for composer link
       const link = div.querySelector('.composer-link');
@@ -690,6 +692,22 @@
           loadResults();
         });
       }
+        // attach same behavior to the Details label (filter by piece + open composer box)
+        const detailsEl = div.querySelector('.result-right');
+        if (detailsEl){
+          detailsEl.addEventListener('click', (e)=>{
+            try{ e.preventDefault(); }catch(_){ }
+            const idx = Number(detailsEl.dataset.idx);
+            if (!Number.isFinite(idx) || idx < 0 || idx >= lastFiltered.length) return;
+            const rowObj = lastFiltered[idx];
+            const comp = rowObj['Composer'] || rowObj.Composer || '';
+            selectedComposer = String(comp || '');
+            populateComposerBox(selectedComposer, rowObj);
+            selectedPieceFilter = String(rowObj.Title || rowObj.Compositions || rowObj['Title'] || rowObj['Compositions'] || '');
+            currentPage = 1;
+            loadResults();
+          });
+        }
       // If this row is the selected expanded piece, inject detailed columns J..R (indices 9..17)
       
     });
