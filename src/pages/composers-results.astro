@@ -989,7 +989,8 @@
     const colA = getBy(['A','Composer','composer','name'], ['composer','name']);
     const colN = getBy(['N','col_13','Lifespan','lifespan'], ['lifespan','years','n']);
     const colB = getBy(['B','Композитор','композитор'], ['композитор','b']);
-    const colC = getBy(['C','P','P:','P.','P'], ['p','c']);
+  // Prefer explicit P column, then fallback to C (some sheets use P for the 'P' field)
+  const colC = getBy(['P','C','P:','P.'], ['p','c']);
     const colK = getBy(['K','Country','country','Страна'], ['country','k']);
     const colO = getBy(['O','Soviet republic','Republic','republic'], ['republic','o']);
     const colQ = getBy(['Q','Notes','notes','Примечания'], ['notes','q']);
