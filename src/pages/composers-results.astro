@@ -757,8 +757,11 @@
                 const fallback = Object.keys(r||{}).find(k => /col\s*?\.?\d+|col[a-z]/i.test(String(k)));
                 if (fallback) val = r[fallback] == null ? '' : String(r[fallback]);
               }
-              const label = L;
-              if (val && String(val).trim() !== '') rowsHtml.push(`<div style="margin:4px 0"><strong style="color:var(--accent);display:inline-block;width:40px">${escapeHtml(label)}</strong> ${escapeHtml(String(val))}</div>`);
+              // prefer actual header key/name when available, otherwise fall back to the column letter
+              let displayLabel = '';
+              if (key && String(key).trim() !== '') displayLabel = String(key).trim();
+              else displayLabel = L;
+              if (val && String(val).trim() !== '') rowsHtml.push(`<div style="margin:4px 0"><strong style="color:var(--accent);display:inline-block;width:200px">${escapeHtml(displayLabel)}</strong> ${escapeHtml(String(val))}</div>`);
             }
             expanded.innerHTML = rowsHtml.length ? rowsHtml.join('\n') : '<div style="color:#6b7280">No additional columns J–R present for this row.</div>';
             div.appendChild(expanded);
