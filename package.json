@@ -9,10 +9,13 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/react": "^4.0.0",
     "astro": "^5.14.1",
     "googleapis": "^121.0.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "@astrojs/react": "^4.0.0"
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@astrojs/vercel": "^8.2.8"
   }
 }
