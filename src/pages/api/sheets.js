@@ -58,8 +58,10 @@ export async function GET(request) {
   // to fetch this API during build, return an empty array rather than attempting
   // to call external Google APIs and fail the deploy.
   try {
-    const skip = (process.env.SKIP_BUILD_PREFETCH === '1') || Boolean(process.env.VERCEL && process.env.SKIP_BUILD_PREFETCH !== '0' && process.env.CI);
-    if (skip) {
+    // Only short-circuit when SKIP_BUILD_PREFETCH is explicitly set to '1'.
+    // Don't auto-detect Vercel/CI here — that made the API return empty in
+    // normal runtime environments. Control is explicit via env var.
+    if (process.env.SKIP_BUILD_PREFETCH === '1') {
       return jsonResponse([], 200, '');
     }
   } catch (e) { /* ignore and continue to normal behavior */ }
