@@ -177,15 +177,14 @@
         if (state.q !== undefined && state.q !== null) {
           const qEl = document.getElementById('q'); if (qEl) qEl.value = state.q;
         }
-        // Apply simple selects if present
-        if (state.page !== undefined && state.page !== null) {
-          // no-op for now (could be used to scroll to results)
-        }
-        // Apply filter selects (country, decade, gender) if present
+        // Apply simple selects and trigger search if present
         try{
+          const searchBtn = document.getElementById('searchBtn');
           if (state.countries && Array.isArray(state.countries) && state.countries.length){
-            const cf = document.getElementById('countryFilter'); if (cf) { /* nothing to do: main results page uses selects */ }
+            const cf = document.getElementById('countryFilter'); if (cf) { try{ cf.value = decodeURIComponent(state.countries[0]) || cf.value; }catch(e){} }
           }
+          if (state.decades && Array.isArray(state.decades) && state.decades.length){ const df = document.getElementById('decadeFilter'); if (df) df.value = decodeURIComponent(state.decades[0]) || df.value; }
+          if (state.q && searchBtn){ setTimeout(()=>{ try{ searchBtn.click(); }catch(e){} }, 60); }
         }catch(e){}
         // remove stored state once applied
         sessionStorage.removeItem('composers-previous-filters');

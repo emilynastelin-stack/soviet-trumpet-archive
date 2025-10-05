@@ -1028,8 +1028,12 @@
   const C_quick = pick(['C','colC','Russian','russian']) || pickPos(2) || '';
   const C_quick_label = (Object.keys(row).find(k=>String(k).trim().toUpperCase()==='C') || 'Russian');
   const D_quick_key = (Object.keys(row).find(k=>String(k).trim().toUpperCase()==='D') || 'D');
-  // Use the cell value in column D as the label when present (user requested)
-  const D_quick_label = (pickPos(3) || pick([D_quick_key, 'D', 'colD', 'Label', 'label'])) || D_quick_key || 'D';
+    // Use the cell value in column D as the label when present (user requested)
+    let D_quick_label = '';
+    try{
+      if (sampleKeys && sampleKeys[3] && rowObj && rowObj.hasOwnProperty(sampleKeys[3])) D_quick_label = String(rowObj[sampleKeys[3]] || '');
+      if (!D_quick_label) D_quick_label = (pick([D_quick_key, 'D', 'colD', 'Label', 'label']) || D_quick_key || 'D');
+    }catch(e){ D_quick_label = (pick([D_quick_key, 'D', 'colD', 'Label', 'label']) || D_quick_key || 'D'); }
     const E_quick = pick(['E','colE','Value','value']) || pickPos(4) || '';
     const F_quick = pick(['F','colF','Country','country','Nationality']) || pickPos(5) || '';
     const G_quick = pick(['G','colG','Soviet republic','republic']) || pickPos(6) || '';
@@ -1181,6 +1185,9 @@
 
   // Determine human-friendly labels using the actual header keys if available
   const C_label = findKeyForLetter('C') || 'Russian';
+  // Prefer the cell value in column D as the label if available
+  let D_label_final = D_label;
+  try{ if (rowObj && Object.keys(rowObj)[3] && rowObj[Object.keys(rowObj)[3]]) D_label_final = String(rowObj[Object.keys(rowObj)[3]]); }catch(e){}
   const F_label = findKeyForLetter('F') || 'Country';
   const G_label = findKeyForLetter('G') || 'Soviet Republic';
   const H_label = findKeyForLetter('H') || 'Gender';
@@ -1193,7 +1200,7 @@
       ${B ? `<p style="margin:0 0 8px 0"><i>${escapeHtml(B)}</i></p>` : ''}
   <br/>
   <p style="margin:6px 0"><b>${escapeHtml(C_label)}:</b> ${escapeHtml(C)}</p>
-  <p style="margin:6px 0"><b>${escapeHtml(D_label)}:</b> ${escapeHtml(E)}</p>
+  <p style="margin:6px 0"><b>${escapeHtml(D_label_final)}:</b> ${escapeHtml(E)}</p>
   <br/>
   <p style="margin:6px 0"><b>${escapeHtml(F_label)}:</b> ${escapeHtml(F)}</p>
   <p style="margin:6px 0"><b>${escapeHtml(G_label)}:</b> ${escapeHtml(G)}</p>
