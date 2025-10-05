@@ -637,12 +637,24 @@
           e.preventDefault();
           const name = decodeURIComponent(link.dataset.name || '');
           // populate composer box and set filter
+          // when a composer is clicked, show all results for that composer (clear any piece filter)
+          selectedPieceFilter = null;
+          selectedPieceIndex = null;
           selectedComposer = name || '';
           populateComposerBox(name, r);
           currentPage = 1;
           loadResults();
         });
       }
+      // enforce link styles and divider inline so client sees updates immediately
+      try{
+        // composer link style
+        if (link) { link.style.color = '#000'; link.style.textDecoration = 'none'; link.style.fontWeight = '700'; }
+        const tlink = div.querySelector('.piece-link');
+        if (tlink) { tlink.style.color = '#000'; tlink.style.textDecoration = 'none'; tlink.style.fontWeight = '700'; }
+        // ensure the divider is visible
+        div.style.borderBottom = '1px solid #d1d5db';
+      }catch(e){ /* ignore */ }
       // attach click handler for piece title
       const tlink = div.querySelector('.piece-link');
       if (tlink){
