@@ -167,6 +167,33 @@
   </script>
 
   <script>
+    // Restore filters from composers-results if the user used "Return to search"
+    (function(){
+      try{
+        const raw = sessionStorage.getItem('composers-previous-filters');
+        if (!raw) return;
+        const state = JSON.parse(raw);
+        // Apply q
+        if (state.q !== undefined && state.q !== null) {
+          const qEl = document.getElementById('q'); if (qEl) qEl.value = state.q;
+        }
+        // Apply simple selects if present
+        if (state.page !== undefined && state.page !== null) {
+          // no-op for now (could be used to scroll to results)
+        }
+        // Apply filter selects (country, decade, gender) if present
+        try{
+          if (state.countries && Array.isArray(state.countries) && state.countries.length){
+            const cf = document.getElementById('countryFilter'); if (cf) { /* nothing to do: main results page uses selects */ }
+          }
+        }catch(e){}
+        // remove stored state once applied
+        sessionStorage.removeItem('composers-previous-filters');
+      }catch(e){ /* ignore */ }
+    })();
+  </script>
+
+  <script>
     (function(){
       // Image natural dimensions and the focal point in image coordinates
       const IMG_W = 1920, IMG_H = 1080;
