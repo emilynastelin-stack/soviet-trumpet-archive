@@ -319,9 +319,7 @@
   <aside class="filters">
     <h3 class="section-header"><strong>Filters</strong></h3>
     <div class="section-divider"></div>
-    <div style="margin-bottom:10px;display:flex;gap:8px;">
-      <button id="clear-all-filters-btn" style="padding:6px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear all filters</button>
-    </div>
+    <!-- Clear-all moved to the pagination area to match original layout -->
   <h4 class="section-header" style="font-weight:600;margin-top:6px;margin-bottom:6px;"><strong>Country</strong></h4>
   <div class="section-divider"></div>
   <div id="filter-country" style="margin-bottom:12px;">&nbsp;</div>
@@ -666,33 +664,15 @@
       placeholder.style.paddingRight = '6px';
       placeholder.textContent = '1 of 1';
   phWrap.appendChild(placeholder);
-  // Return to search button (preserve q param)
-  const returnBtn = document.createElement('button');
-  returnBtn.textContent = 'Return to search';
-  returnBtn.style.padding = '6px 10px';
-  returnBtn.style.borderRadius = '6px';
-  returnBtn.style.border = '1px solid #d1d5db';
-  returnBtn.style.background = '#fff';
-  returnBtn.addEventListener('click', ()=>{
-    try{
-      // clear composer selection so the composers page shows the full list
-      selectedComposer = '';
-      // gather current selections
-      const state = {
-        q: qinput ? (qinput.value || '') : '',
-        countries: Array.from(document.querySelectorAll('#filter-country input[type=checkbox]:checked')).map(cb=> cb.getAttribute('data-val')||cb.dataset.val||''),
-        decades: Array.from(document.querySelectorAll('#filter-decade input[type=checkbox]:checked')).map(cb=> cb.getAttribute('data-val')||cb.dataset.val||''),
-        types: Array.from(document.querySelectorAll('#filter-type input[type=checkbox]:checked')).map(cb=> cb.getAttribute('data-val')||cb.dataset.val||''),
-        page: currentPage
-      };
-      // Remove the last applied filter so the composers landing page drops that last change
-      try{ if (lastAppliedFilter && lastAppliedFilter.value){ if (lastAppliedFilter.kind === 'country') state.countries = state.countries.filter(v => v !== (lastAppliedFilter.value || '')); if (lastAppliedFilter.kind === 'decade') state.decades = state.decades.filter(v => v !== (lastAppliedFilter.value || '')); if (lastAppliedFilter.kind === 'type') state.types = state.types.filter(v => v !== (lastAppliedFilter.value || '')); } }catch(_){ }
-      sessionStorage.setItem('composers-previous-filters', JSON.stringify(state));
-    }catch(e){}
-    const qv = qinput ? encodeURIComponent(qinput.value || '') : '';
-    window.location.href = '/composers' + (qv ? ('?q=' + qv) : '');
-  });
-  phWrap.appendChild(returnBtn);
+  // Clear all filters button for the single-page placeholder
+  const clearBtn = document.createElement('button');
+  clearBtn.textContent = 'Clear all filters';
+  clearBtn.style.padding = '6px 10px';
+  clearBtn.style.borderRadius = '6px';
+  clearBtn.style.border = '1px solid #d1d5db';
+  clearBtn.style.background = '#fff';
+  clearBtn.addEventListener('click', ()=>{ try{ clearAllFilters(); }catch(e){} });
+  phWrap.appendChild(clearBtn);
       // Live toggle
       const liveToggle = document.createElement('button');
       liveToggle.textContent = 'Live: Off';
@@ -732,30 +712,15 @@
     topWrap.style.gap = '8px';
     topWrap.style.justifyContent = 'flex-end';
   // (Clear button moved to the Filters box at left)
-  // Return to search button
-  const returnBtnTop = document.createElement('button');
-  returnBtnTop.textContent = 'Return to search';
-  returnBtnTop.style.padding = '6px 10px';
-  returnBtnTop.style.borderRadius = '6px';
-  returnBtnTop.style.border = '1px solid #d1d5db';
-  returnBtnTop.style.background = '#fff';
-  returnBtnTop.addEventListener('click', ()=>{
-    try{
-      selectedComposer = '';
-      const state = {
-        q: qinput ? (qinput.value || '') : '',
-        countries: Array.from(document.querySelectorAll('#filter-country input[type=checkbox]:checked')).map(cb=> cb.getAttribute('data-val')||cb.dataset.val||''),
-        decades: Array.from(document.querySelectorAll('#filter-decade input[type=checkbox]:checked')).map(cb=> cb.getAttribute('data-val')||cb.dataset.val||''),
-        types: Array.from(document.querySelectorAll('#filter-type input[type=checkbox]:checked')).map(cb=> cb.getAttribute('data-val')||cb.dataset.val||''),
-        page: currentPage
-      };
-      try{ if (lastAppliedFilter && lastAppliedFilter.value){ if (lastAppliedFilter.kind === 'country') state.countries = state.countries.filter(v => v !== (lastAppliedFilter.value || '')); if (lastAppliedFilter.kind === 'decade') state.decades = state.decades.filter(v => v !== (lastAppliedFilter.value || '')); if (lastAppliedFilter.kind === 'type') state.types = state.types.filter(v => v !== (lastAppliedFilter.value || '')); } }catch(_){ }
-      sessionStorage.setItem('composers-previous-filters', JSON.stringify(state));
-    }catch(e){}
-    const qv = qinput ? encodeURIComponent(qinput.value || '') : '';
-    window.location.href = '/composers' + (qv ? ('?q=' + qv) : '');
-  });
-  topWrap.appendChild(returnBtnTop);
+  // Clear all filters button placed next to pagination controls
+  const clearBtnTop = document.createElement('button');
+  clearBtnTop.textContent = 'Clear all filters';
+  clearBtnTop.style.padding = '6px 10px';
+  clearBtnTop.style.borderRadius = '6px';
+  clearBtnTop.style.border = '1px solid #d1d5db';
+  clearBtnTop.style.background = '#fff';
+  clearBtnTop.addEventListener('click', ()=>{ try{ clearAllFilters(); }catch(e){} });
+  topWrap.appendChild(clearBtnTop);
     // Live toggle button
     const liveToggle2 = document.createElement('button');
     liveToggle2.textContent = liveTimer ? 'Live: On' : 'Live: Off';
