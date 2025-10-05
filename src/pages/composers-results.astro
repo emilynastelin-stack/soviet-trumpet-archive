@@ -528,8 +528,9 @@
         return;
       }
       // otherwise derive types from the sheets
-      const res = await fetch('/api/sheets');
-      const rows = await res.json();
+  const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
+  const raw = await res.json().catch(()=>null);
+  const rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
       const set = new Set();
       rows.forEach(r => { const t = r.Type || r.type || r['Type of piece'] || r['Type'] || ''; if (t) set.add(String(t).trim()); });
       const list = Array.from(set).sort();
@@ -700,8 +701,9 @@
 
   async function pollOnce(){
     try{
-      const res = await fetch('/api/sheets');
-      const rows = await res.json();
+  const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
+  const raw = await res.json().catch(()=>null);
+  const rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
       const rowsJson = JSON.stringify(rows);
       if (lastRowsJson !== rowsJson){
         lastRowsJson = rowsJson;
@@ -723,7 +725,12 @@
   // loadResults optionally accepts rows (pre-fetched) and an options object { resetPage: true }
   async function loadResults(rowsParam, options = { resetPage: true }){
     try{
-  let rows = rowsParam || await (await fetch('/api/sheets')).json();
+  let rows = rowsParam;
+  if (!rows){
+    const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
+    const raw = await res.json().catch(()=>null);
+    rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
+  }
       // Defensive: ensure we have an array of rows. If the API returned an error object, try GViz fallback
       if (!Array.isArray(rows)){
         try{
@@ -809,7 +816,7 @@
 
   // QUICK PATH: prefer aggregating from the 'MusicList' sheet (client wants immediate behavior)
   try {
-    const mres = await fetch('/api/sheets?sheet=MusicList');
+    const mres = await fetch('/api/sheets?sheet=MusicList', { headers: { 'Accept': 'application/json' } });
     const mj = await mres.json().catch(()=>null);
     const mjRows = (mj && Array.isArray(mj)) ? mj : (mj && mj.rows && Array.isArray(mj.rows) ? mj.rows : null);
     if (mjRows && mjRows.length) {
@@ -822,8 +829,10 @@
   // 1) Try server API for each candidate sheet, but validate contents strictly
   for (const sname of candidates){
     try{
-      const res = await fetch('/api/sheets?sheet=' + encodeURIComponent(sname));
-      const jr = await res.json();
+      const res = await fetch('/api/sheets?sheet=' + encodeURIComponent(sname), { headers: { 'Accept': 'application/json' } });
+      const jrRaw = await res.json().catch(()=>null);
+      // handle server-side wrapper { __sheet, rows }
+      const jr = Array.isArray(jrRaw) ? jrRaw : (jrRaw && Array.isArray(jrRaw.rows) ? jrRaw.rows : jrRaw);
       if (Array.isArray(jr) && jr.length){
         const sample = jr[0];
         if (looksLikeCompDet(sample)){
@@ -881,7 +890,9 @@
   // 3) Last-ditch: try Sheet2 explicitly but only accept it if it looks like CompDet
   if ((!rows || rows.length === 0)){
     try{
-      const r2 = await fetch('/api/sheets?sheet=Sheet2').then(r=>r.json()).catch(()=>null);
+      const rres = await fetch('/api/sheets?sheet=Sheet2', { headers: { 'Accept': 'application/json' } });
+      const r2raw = await rres.json().catch(()=>null);
+      const r2 = Array.isArray(r2raw) ? r2raw : (r2raw && Array.isArray(r2raw.rows) ? r2raw.rows : r2raw);
       if (Array.isArray(r2) && r2.length && looksLikeCompDet(r2[0])){
         rows = r2;
         sourceSheet = 'Sheet2';
@@ -1072,3 +1083,29 @@
     };
   }
 }
+
+// Initialization: populate filters and load initial results
+(async function init(){
+  try{
+    const resultsList = document.getElementById('results-list'); if (resultsList) resultsList.innerHTML = '<div class="result-item"><em>Loading results…</em></div>';
+    const fc = document.getElementById('filter-country'); if (fc) fc.innerHTML = '<div style="color:#6b7280">Loading…</div>';
+    const fd = document.getElementById('filter-decade'); if (fd) fd.innerHTML = '<div style="color:#6b7280">Loading…</div>';
+    const ft = document.getElementById('filter-type'); if (ft) ft.innerHTML = '<div style="color:#6b7280">Loading…</div>';
+
+    // run population in parallel but don't fail the whole init if one fails
+    await Promise.allSettled([populateCountryCheckboxes(), populateDecadeCheckboxes(), populateTypeCheckboxes()]);
+
+    // wire search button and Enter key
+    const sbtn = document.getElementById('qbtn'); if (sbtn) sbtn.addEventListener('click', ()=>{ currentPage = 1; loadResults(); });
+    if (qinput) qinput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { currentPage = 1; loadResults(); } });
+
+    // ensure composer box starts empty
+    try{ populateComposerBox('', null); }catch(_){}
+
+    // finally load results
+    await loadResults();
+  }catch(e){
+    const resultsEl = document.getElementById('results'); if (resultsEl) resultsEl.innerText = 'Initialization failed: ' + String(e);
+    console.error('Initialization failed', e);
+  }
+})();
