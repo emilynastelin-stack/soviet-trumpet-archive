@@ -142,14 +142,14 @@
       box-shadow: 0 10px 30px rgba(16,24,40,0.12);
       margin-right: 0; /* flush to the right column edge */
     }
-  /* composer link (clickable composer names) should be maroon to match site accent */
-  .composer-link { color: var(--accent); font-weight:700; text-decoration:none; }
-  .composer-link:hover { text-decoration:underline; }
-  /* ensure visited links keep the maroon accent color */
-  .composer-link:visited { color: var(--accent) !important; }
-  /* stronger selectors in case global rules override the link color */
-  .results .result-item a.composer-link, .result-item a.composer-link { color: var(--accent) !important; }
-  .results .result-item a.composer-link:visited, .result-item a.composer-link:visited { color: var(--accent) !important; }
+  /* result hyperlinks (composer names and piece titles) should be black with no underline */
+  .composer-link, .piece-link { color: #000 !important; font-weight:700; text-decoration:none !important; }
+  .composer-link:hover, .piece-link:hover { text-decoration:none !important; }
+  /* ensure visited links keep the same black color */
+  .composer-link:visited, .piece-link:visited { color: #000 !important; }
+  /* stronger selectors in case global rules override link color/decoration */
+  .results .result-item a.composer-link, .results .result-item a.piece-link, .result-item a.composer-link, .result-item a.piece-link { color: #000 !important; text-decoration:none !important; }
+  .results .result-item a.composer-link:visited, .results .result-item a.piece-link:visited, .result-item a.composer-link:visited, .result-item a.piece-link:visited { color: #000 !important; }
   .composer-box h3 { font-size:1rem; margin-bottom:0.5rem; }
 
   /* Shared section header that matches the Results header (color, size, line-height) */
