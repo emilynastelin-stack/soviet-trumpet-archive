@@ -52,6 +52,17 @@ function jsonResponse(obj, status = 200, sheetRange = ''){
 }
 
 export async function GET(request) {
+  // Short-circuit during platform builds or when explicitly requested.
+  // Some CI/build environments (e.g. Vercel during `vercel build`) may attempt to
+  // run site build before serverless functions are available. If callers attempt
+  // to fetch this API during build, return an empty array rather than attempting
+  // to call external Google APIs and fail the deploy.
+  try {
+    const skip = (process.env.SKIP_BUILD_PREFETCH === '1') || Boolean(process.env.VERCEL && process.env.SKIP_BUILD_PREFETCH !== '0' && process.env.CI);
+    if (skip) {
+      return jsonResponse([], 200, '');
+    }
+  } catch (e) { /* ignore and continue to normal behavior */ }
   // Allow callers to specify a sheet name (e.g. ?sheet=Sheet2) or a full range (e.g. ?range=Sheet2!A1:Z100)
   const url = request && request.url ? new URL(request.url) : null;
   const q = url ? url.searchParams : null;

@@ -194,8 +194,8 @@
 
   <style>
   /* make the background overlay cover the viewport and sit behind content but above page background */
-  #bg-overlay { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
-  #bg-overlay img { position:absolute; left:0; top:0; width:100vw; height:100vh; object-fit:cover; will-change:left,top,width,height; }
+  #bg-overlay { position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
+  #bg-overlay img { position:absolute; left:0; top:0; transform-origin:0 0; will-change:left,top,width,height; }
     #bg-adjust-control{position:fixed;left:12px;bottom:80px;z-index:80;background:rgba(255,255,255,0.95);border:1px solid #e6e9ef;padding:6px 8px;border-radius:8px;display:flex;gap:6px;align-items:center;box-shadow:0 6px 18px rgba(16,24,40,0.08)}
     #bg-adjust-control button{background:#fff;border:1px solid #d1d5db;padding:6px;border-radius:6px;cursor:pointer}
     #bg-adjust-control #bg-value{min-width:36px;text-align:center;font-weight:600}
@@ -852,52 +852,35 @@
   }
 
   // 2) If not found via API, try GViz client-side fetch (same strict checks)
-  if ((!rows || rows.length === 0)){
+  if (!rows || rows.length === 0){
     for (const sname of candidates){
-      try{
+      try {
         const g = await gvizFetch(sname);
-        if (g && g.rows && g.rows.length){
-          const headers = g.cols.map(h => String(h).trim() || '');
-          // build a sample object mapping header->value for the first row
-          const sampleObj = {};
-          for (let i=0;i<headers.length;i++){
+        if (!g || !g.rows || !g.rows.length) continue;
+        const headers = g.cols.map(h => String(h).trim() || '');
+        // build a sample object mapping header->value for the first row
+        const sampleObj = {};
+        for (let i = 0; i < headers.length; i++){
+          const hk = headers[i] || `col${i+1}`;
+          sampleObj[hk] = g.rows[0][i];
+        }
+        if (!looksLikeCompDet(sampleObj)) continue;
+        // assemble rows as objects (header -> value)
+        rows = g.rows.map(r => {
+          const obj = {};
+          for (let i = 0; i < headers.length; i++){
             const hk = headers[i] || `col${i+1}`;
-            sampleObj[hk] = g.rows[0][i];
+            obj[hk] = (r[i] !== undefined && r[i] !== null) ? r[i] : '';
           }
-          if (looksLikeCompDet(sampleObj)){
-            // assemble rows as objects
-            rows = g.rows.map(r => {
-              const html = `
-                <div>
-                  <div style="color:var(--accent);margin:0;font-size:1.05rem;font-weight:700">${escapeHtml(colA)}</div>
-                  ${colN ? `<div style="margin-top:4px;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(colN)}</div>` : ''}
-                  <br>
-                  <p><strong style="color:var(--accent);">Russian:</strong> ${escapeHtml(colB)}</p>
-                  ${labelFromP && valueFromC ? `<p><strong>${escapeHtml(labelFromP)}:</strong> ${escapeHtml(valueFromC)}</p>` : ''}
-                  <br>
-                  <p><strong>Country</strong> ${escapeHtml(colK)}</p>
-                  <p><strong>Soviet Republic</strong> ${escapeHtml(colO)}</p>
-                  <br>
-                  <p><strong>Notes:</strong> ${escapeHtml(colQ)}</p>
-                </div>
-              `;
-
-              content.innerHTML = html + (sourceSheet ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Source: ${escapeHtml(sourceSheet)}</div>` : '');
-              if (clearBtn) { clearBtn.style.display = 'inline-block'; }
-              return;
-
-              // labels we want to show (adjust as you like)
-  if ((!rows || rows.length === 0)){
-    try{
-      const rres = await fetch('/api/sheets?sheet=Sheet2', { headers: { 'Accept': 'application/json' } });
-      const r2raw = await rres.json().catch(()=>null);
-      const r2 = Array.isArray(r2raw) ? r2raw : (r2raw && Array.isArray(r2raw.rows) ? r2raw.rows : r2raw);
-      if (Array.isArray(r2) && r2.length && looksLikeCompDet(r2[0])){
-        rows = r2;
-        sourceSheet = 'Sheet2';
-        console.debug('COMPOSER_DEBUG selected fallback Sheet2 (api).');
+          return obj;
+        });
+        sourceSheet = sname;
+        // we've found a suitable CompDet-like sheet via GViz; stop searching
+        break;
+      } catch (e) {
+        console.debug('COMPOSER_DEBUG gviz fetch failed for', sname, e);
       }
-    }catch(e){}
+    }
   }
 
   // If still nothing, explain and show a tiny debug hint
@@ -975,80 +958,9 @@
     rowObj = matchRow;
   }
 
-function escapeHtml(text) {
-  return text.replace(/[&<>"']/g, function(m) {
-    return ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;'
-    })[m];
-  });
-}
-
-// Example rowObj for testing
-const rowObj = {
-  A: "Abramyan, Eduard Aslanovich",
-  N: "1923-1986",
-  B: "Абрамян, Эдуард Асланович",
-  P: "Armenian",
-  C: "Աբրամյան, Էդուարդ Ասլանովիչ",
-  K: "Armenia",
-  O: "Armenian SSR",
-  Q: "Armenian"
-};
-
-const sourceSheet = 'MusicList';
-
-if (sourceSheet === 'MusicList') {
-  const getBy = (letters, fallbacks=[]) => {
-    for (const L of letters){
-      if (rowObj.hasOwnProperty(L) && rowObj[L] !== undefined && rowObj[L] !== null && String(rowObj[L]).trim() !== '') 
-        return String(rowObj[L]);
-    }
-    for (const fb of fallbacks){
-      for (const k of Object.keys(rowObj)){
-        if (String(k||'').toLowerCase().trim() === fb.toLowerCase().trim() && rowObj[k]) 
-          return String(rowObj[k]);
-      }
-    }
-    return '';
-  };
-
-  const colA = getBy(['A','Composer','composer','name'], ['composer','name']);
-  const colN = getBy(['N','col_13','Lifespan','lifespan'], ['lifespan','years','n']);
-  const colB = getBy(['B','Композитор','композитор'], ['композитор','b']);
-  const colK = getBy(['K','Country','country','Страна'], ['country','k']);
-  const colO = getBy(['O','Soviet republic','Republic','republic'], ['republic','o']);
-  const colQ = getBy(['Q','Notes','notes','Примечания'], ['notes','q']);
-
-  const labelFromP = rowObj['P'] ? String(rowObj['P']).trim() : '';
-  const valueFromC = rowObj['C'] ? String(rowObj['C']).trim() : '';
-
-  const html = `
-    <div>
-      <h1 style="color: maroon; font-weight: bold;">${escapeHtml(colA)}</h1>
-      ${colN ? `<p style="font-style: italic; color: gray; font-size: smaller;">${escapeHtml(colN)}</p>` : ''}
-      <br>
-      <p><b>Russian:</b> ${escapeHtml(colB)}</p>
-      ${labelFromP && valueFromC ? `<p><b>${escapeHtml(labelFromP)}:</b> ${escapeHtml(valueFromC)}</p>` : ''}
-      <br>
-      <p><b>Country</b> ${escapeHtml(colK)}</p>
-      <p><b>Soviet Republic</b> ${escapeHtml(colO)}</p>
-      <br>
-      <p><b>Notes:</b> ${escapeHtml(colQ)}</p>
-    </div>
-  `;
-
-  console.log(html);
-}
-
-
-    content.innerHTML = html + (sourceSheet ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Source: ${escapeHtml(sourceSheet)}</div>` : '');
-    if (clearBtn) { clearBtn.style.display = 'inline-block'; }
-    return;
-  }
+  
+  
+  
 
   // labels we want to show (adjust as you like)
   const desired = ['Composer','Lifespan','Country','Soviet republic','Nationality','Language','Notes','Learn more'];
@@ -1104,10 +1016,16 @@ if (sourceSheet === 'MusicList') {
   const dispLifespan = cleanDisplay(lifespanRaw);
   const sourceHtml = sourceSheet ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Source: ${escapeHtml(sourceSheet)}</div>` : '';
 
-  const preStyle = 'background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;margin-top:8px;font-size:0.95rem;white-space:pre-wrap';
   const colEHtml = dispLifespan ? `<div style="margin-top:4px;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(dispLifespan)}</div>` : '';
 
-  content.innerHTML = `<div><strong style="color:var(--accent)">${escapeHtml(dispFound)}</strong>${colEHtml}${sourceHtml}<pre style="${preStyle}">${escapeHtml(desired.join('\t'))}\n${escapeHtml(values.join('\t'))}</pre></div>`;
+  // Render all keys from the matched row as labeled header:value pairs
+  const keys = Object.keys(rowObj || {});
+  const dlItems = keys.map(k => {
+    const v = rowObj[k] == null ? '' : String(rowObj[k]);
+    return `<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;"><div style="flex:0 0 160px;color:#6b7280;font-weight:600;">${escapeHtml(k)}:</div><div style="flex:1;">${escapeHtml(v)}</div></div>`;
+  }).join('');
+
+  content.innerHTML = `<div><strong style="color:var(--accent)">${escapeHtml(dispFound)}</strong>${colEHtml}${sourceHtml}<div style="margin-top:8px;padding:8px;border:1px solid #eee;border-radius:6px;background:#fafafa;font-size:0.95rem">${dlItems}</div></div>`;
 
   if (clearBtn) {
     clearBtn.style.display = 'inline-block';
