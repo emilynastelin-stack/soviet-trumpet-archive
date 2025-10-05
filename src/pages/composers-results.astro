@@ -405,7 +405,7 @@
     try{
       if (qinput) qinput.value = '';
       selectedComposer = '';
-      let selectedPieceIndex = null;
+      selectedPieceIndex = null;
       lastAppliedFilter = null;
       const clearComposerBtn = document.getElementById('clear-composer'); if (clearComposerBtn) clearComposerBtn.style.display = 'none';
       const composerContent = document.getElementById('composer-content'); if (composerContent) composerContent.innerHTML = 'Select a result to view composer details.';
@@ -438,6 +438,7 @@
   let currentPage = 1;
   let lastFiltered = [];
   let selectedComposer = '';
+  let selectedPieceIndex = null;
   // remember the last filter the user changed so "Return to search" can drop it
   let lastAppliedFilter = null; // { kind: 'country'|'decade'|'type', value: '<data-val string>' }
   // live update state
