@@ -23,7 +23,7 @@
     .lang-dropdown.open { display:block; }
     .lang-option { padding:6px 8px; cursor:pointer; }
     .lang-option:hover { background:#f3f4f6; }
-    #fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#8b0000; color:white; z-index:60; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
+  #fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#8b0000; color:white; z-index:1200; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
     .fixed-footer-inner { width:100%; max-width:none; margin:0; padding:0 20px; display:flex; gap:12px; justify-content:space-between; align-items:center; }
     .footer-left { display:flex; flex-direction:column; transform: translateY(-5px); }
     .footer-left .title { font-weight:700; color:white; font-size:16px; line-height:1.1; padding:12px 0 0 0; margin-left:0; }
@@ -40,13 +40,18 @@
       color: #333;
     }
 
+  /* Background overlay (non-interactive) - force behind nav/footer/content */
+  /* Use z-index:0 so overlay doesn't create a stacking context that might capture clicks in some browsers */
+  #bg-overlay { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+  #bg-overlay img { position:absolute; left:0; top:0; width:100vw; height:100vh; object-fit:cover; will-change:left,top,width,height; pointer-events:none; }
+
     /* Navbar: match composers page height and style */
     header {
       background: white;
       border-bottom: 1px solid #e6e9ef;
       position: sticky;
       top: 0;
-        z-index: 40;
+        z-index: 3000; /* ensure header is above the background overlay */
     }
     header .container { width:100%; max-width:none; margin:0; padding:12px 20px; display:flex; align-items:center; justify-content:space-between; }
     .logo { font-weight:800; color:var(--accent); font-size:20px; line-height:1; }
@@ -62,8 +67,8 @@
       align-items:center;
       gap:8px;
       justify-content:center;
-        position: relative;
-        z-index: 42; /* make sure search bar sits above background overlay */
+    position: relative;
+    z-index: 1001; /* ensure search bar sits above overlay and header */
     }
     .search-bar input {
       width: 60%;
@@ -204,7 +209,10 @@
 </head>
 <body>
 
-  <!-- background overlay and adjustment controls removed -->
+  <!-- background overlay (non-interactive, no adjustment controls) -->
+  <div id="bg-overlay" aria-hidden="true">
+    <img id="bg-img" src="/assets/bg-K13qQAs.png" alt="" />
+  </div>
 
   <header>
     <div class="container nav" style="display:flex;justify-content:space-between;align-items:center">
@@ -1123,35 +1131,8 @@
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><h1 style="margin:0 0 6px 0; font-size:1.25rem">${escapeHtml(A_quick)}</h1><span class="spinner" aria-hidden="true" title="Loading more details"></span></div>
         ${B_quick ? `<p style="margin:0 0 8px 0"><i>${escapeHtml(B_quick)}</i></p>` : ''}
         <br/>
-      // Quick diagnostic and mitigation: detect any element that covers the viewport
-      // and may be blocking pointer events (leftover overlay). If found, disable
-      // its pointer-events so underlying UI becomes interactive again.
-      document.addEventListener('DOMContentLoaded', function () {
-        try {
-          const vw = Math.max(window.innerWidth || document.documentElement.clientWidth, 0);
-          const vh = Math.max(window.innerHeight || document.documentElement.clientHeight, 0);
-          const els = Array.from(document.querySelectorAll('body *'));
-          const blockers = els.filter(el => {
-            try {
-              const rect = el.getBoundingClientRect();
-              if (rect.width < vw - 2 || rect.height < vh - 2) return false;
-              const style = window.getComputedStyle(el);
-              // Ignore clearly visible content like header/footer by size heuristics
-              if (style.position !== 'fixed' && style.position !== 'absolute') return false;
-              // If element is visually transparent but sits on top, consider it a blocker
-              const bg = style.backgroundColor || ''; const pointer = style.pointerEvents || '';
-              return (pointer !== 'none');
-            } catch (e) { return false; }
-          });
-          if (blockers && blockers.length) {
-            console.warn('Disabling pointer-events on potential blockers:', blockers);
-            blockers.forEach(b => { b.style.pointerEvents = 'none'; });
-          }
-        } catch (err) { console.error('Blocker mitigation failed', err); }
-
-        // Optional: log all clicks to help debugging if further issues occur
-        document.addEventListener('click', function (ev) { console.debug('click:', ev.target); }, true);
-      });
+      // Removed temporary blocker mitigation script to avoid runtime hacks; overlay
+      // is now non-interactive via CSS (#bg-overlay { pointer-events: none }).
         <p style="margin:6px 0"><b>${escapeHtml(C_quick_label)}:</b> ${escapeHtml(C_quick)}</p>
         <p style="margin:6px 0"><b>${escapeHtml(D_quick_label)}:</b> ${escapeHtml(E_quick)}</p>
         <br/>
