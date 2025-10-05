@@ -137,22 +137,11 @@
     @media (max-width:900px) { .grid { grid-template-columns:repeat(2,1fr); } }
     @media (max-width:600px) { .grid{grid-template-columns:1fr;} .search-row{flex-direction:column;} .container{padding:14px;} }
 
-    #bg-overlay { position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
-    #bg-overlay img { position:absolute; left:0; top:0; transform-origin:0 0; will-change:left,top,width,height; }
-
-    /* BG adjust controls */
-    #bg-adjust-control { position:fixed; left:12px; bottom:80px; z-index:80; background:rgba(255,255,255,0.95); border:1px solid #e6e9ef; padding:6px 8px; border-radius:8px; display:flex; gap:6px; align-items:center; box-shadow:0 6px 18px rgba(16,24,40,0.08); }
-    #bg-adjust-control button { background:#fff; border:1px solid #d1d5db; padding:6px; border-radius:6px; cursor:pointer; }
-    #bg-adjust-control #bg-value { min-width:36px; text-align:center; font-weight:600; }
-    @media (max-width:600px){ #bg-adjust-control{left:8px; bottom:92px;} }
+  /* background overlay removed */
   </style>
 </head>
 <body>
-  <!-- background overlay: positions the provided image so a specified image point is centered -->
-  <div id="bg-overlay" aria-hidden="true">
-    <img id="bg-img" src="/assets/bg-K13qQAs.png" alt="" />
-  </div>
-
+  <!-- background overlay removed -->
   <!-- Inject server-side fetched initial data to avoid client fetch failures -->
   <!-- Astro frontmatter fetch: attempt to load /api/sheets server-side during render -->
   <!-- If this file is served from another host/port in production, update BASE accordingly. -->
@@ -193,115 +182,9 @@
   </script>
 
   <script>
-    (function(){
-      // Image natural dimensions and the focal point in image coordinates
-      const IMG_W = 1920, IMG_H = 1080;
-      const FOCUS_X = 955, FOCUS_Y = 325;
-      const img = document.getElementById('bg-img');
-      const overlay = document.getElementById('bg-overlay');
-      if (!img || !overlay) return;
-
-      // tweak this value (px) to nudge the background vertically: positive moves it down
-      // read saved value from localStorage so adjustments persist
-      const BG_Y_ADJUST_KEY = 'bg_y_adjust';
-      let BG_Y_ADJUST = (function(){
-        try{ const v = parseInt(localStorage.getItem(BG_Y_ADJUST_KEY)); return Number.isFinite(v) ? v : 18; }catch(e){ return 18; }
-      })();
-  let _pending = false;
-      function applyFocus(){
-        if (_pending) return;
-        _pending = true;
-        requestAnimationFrame(()=>{
-          try{
-            const vw = Math.max(window.innerWidth || document.documentElement.clientWidth, 0);
-            const vh = Math.max(window.innerHeight || document.documentElement.clientHeight, 0);
-            // cover scale
-            const scale = Math.max(vw / IMG_W, vh / IMG_H);
-            const scaledW = IMG_W * scale;
-            const scaledH = IMG_H * scale;
-
-            // size the image element to the scaled size
-            img.style.width = Math.round(scaledW) + 'px';
-            img.style.height = Math.round(scaledH) + 'px';
-
-            // scaled coordinates of the focus point
-            const fx = FOCUS_X * scale;
-            const fy = FOCUS_Y * scale;
-
-            // compute center of the mast image in viewport coordinates
-            const mastEl = document.querySelector('.mast img') || document.querySelector('.mast');
-            let mastCenterX = vw / 2;
-            let mastCenterY = vh / 2;
-            if (mastEl) {
-              const mRect = mastEl.getBoundingClientRect();
-              // If mast hasn't been laid out yet, fallback to viewport center
-              if (mRect.width > 0 && mRect.height > 0) {
-                mastCenterX = mRect.left + (mRect.width / 2);
-                mastCenterY = mRect.top + (mRect.height / 2);
-              }
-            }
-
-            // place the background image so the scaled focus point aligns with mast center
-            const left = mastCenterX - fx;
-            // apply a small vertical nudge (BG_Y_ADJUST) to lower/raise the background
-            const top = mastCenterY - fy + (typeof BG_Y_ADJUST === 'number' ? BG_Y_ADJUST : 0);
-            img.style.left = Math.round(left) + 'px';
-            img.style.top = Math.round(top) + 'px';
-          }catch(e){
-            console.error('applyFocus error', e);
-          }finally{
-            _pending = false;
-          }
-        });
-      }
-
-      // re-run on resize and when image loads; also run on window load and when fonts/images settle
-      img.addEventListener('load', applyFocus);
-      window.addEventListener('resize', applyFocus);
-      // Run once on window load to ensure layout is stable
-      window.addEventListener('load', ()=>{ setTimeout(applyFocus, 80); });
-      // If the page uses the Font Loading API, re-run when fonts are ready
-      if (document.fonts && document.fonts.ready) {
-        document.fonts.ready.then(()=> setTimeout(applyFocus, 60)).catch(()=>{});
-      }
-      // run shortly after load in case other layout shifts occur
-      setTimeout(applyFocus, 250);
-      // initial apply
-      if (img.complete) applyFocus();
-      else setTimeout(()=>{ if(img.complete) applyFocus(); }, 200);
-    })();
+    // background positioning script removed
   </script>
-  <!-- Background adjustment control (visible for quick tweaks) -->
-  <div id="bg-adjust-control" aria-hidden="false">
-    <button id="bg-up" title="Move background up">▲</button>
-    <div id="bg-value">18</div>
-    <button id="bg-down" title="Move background down">▼</button>
-    <button id="bg-reset" title="Reset background">Reset</button>
-  </div>
-  <style>
-    #bg-adjust-control{position:fixed;left:12px;bottom:80px;z-index:80;background:rgba(255,255,255,0.95);border:1px solid #e6e9ef;padding:6px 8px;border-radius:8px;display:flex;gap:6px;align-items:center;box-shadow:0 6px 18px rgba(16,24,40,0.08)}
-    #bg-adjust-control button{background:#fff;border:1px solid #d1d5db;padding:6px;border-radius:6px;cursor:pointer}
-    #bg-adjust-control #bg-value{min-width:36px;text-align:center;font-weight:600}
-    @media (max-width:600px){ #bg-adjust-control{left:8px;bottom:92px} }
-  </style>
-  <script>
-    // Wire up the BG adjust controls to persist and re-run applyFocus
-    (function(){
-      const up = document.getElementById('bg-up');
-      const down = document.getElementById('bg-down');
-      const val = document.getElementById('bg-value');
-      const reset = document.getElementById('bg-reset');
-      if (!up || !down || !val || !reset) return;
-      function read(){ return (function(){ try{ const v = parseInt(localStorage.getItem('bg_y_adjust')); return Number.isFinite(v) ? v : 18; }catch(e){ return 18; } })(); }
-      function write(v){ try{ localStorage.setItem('bg_y_adjust', String(v)); }catch(e){} }
-      function updateDisplay(){ const n = read(); val.textContent = n; window.dispatchEvent(new Event('resize')); setTimeout(()=>{ try{ document.querySelector('#bg-img') && document.querySelector('#bg-img').dispatchEvent(new Event('load')); }catch(e){} }, 60); }
-      up.addEventListener('click', ()=>{ const n = read() - 1; write(n); updateDisplay(); });
-      down.addEventListener('click', ()=>{ const n = read() + 1; write(n); updateDisplay(); });
-      reset.addEventListener('click', ()=>{ write(18); updateDisplay(); });
-      // init
-      val.textContent = read();
-    })();
-  </script>
+  <!-- background controls removed -->
   <!-- full-width navbar (moved outside tint box so it spans the viewport) -->
   <header>
     <div class="container nav" style="display:flex;justify-content:space-between;align-items:center">
@@ -404,102 +287,9 @@
     </div>
   </footer>
 
-  <!-- Fixed footer bar locked to viewport -->
-  <div id="fixed-footer" aria-hidden="false" role="contentinfo">
-    <div class="fixed-footer-inner">
-      <div class="footer-left">
-        <div class="title">Archive of Soviet Trumpet Music</div>
-        <div class="subtitle">Архив советской трубной музыки</div>
-      </div>
-      <div class="fixed-footer-center">
-        <div class="links">
-          <a href="/about">About</a>
-          <a href="#">Contact</a>
-          <a href="#">Help</a>
-        </div>
-      </div>
-      <div class="fixed-footer-right">
-        <div class="copyright">© 2025 Archive of Soviet Trumpet Music</div>
-      </div>
-    </div>
-  </div>
-  </div><!-- .tint-box -->
-
+  <!-- background overlay and adjustment controls removed -->
   <script>
-    let TRANSLATIONS = null;
-    let LOCALE = localStorage.getItem('locale') || 'en';
-    const langBtn = document.getElementById('langBtn');
-    const langDropdown = document.getElementById('langDropdown');
-    const langToggle = document.getElementById('langToggle');
-    async function loadTranslations(){
-      try{
-        const res = await fetch('/i18n/translations.json');
-        TRANSLATIONS = await res.json();
-      }catch(e){
-        console.error('Failed to load translations', e);
-        TRANSLATIONS = null;
-      }
-    }
-
-    function applyLocale(locale){
-      LOCALE = locale;
-      localStorage.setItem('locale', locale);
-      const map = (TRANSLATIONS && TRANSLATIONS[locale]) ? TRANSLATIONS[locale] : ((TRANSLATIONS && TRANSLATIONS['en']) ? TRANSLATIONS['en'] : null);
-      // fallback defaults if translations are unavailable
-      const fallback = {
-        placeholder: 'Search composers, countries, or pieces...',
-        search: 'Search',
-        showAll: 'Show All',
-        reset: 'Reset Filters',
-        loading: 'Loading…',
-        enterSearch: 'Enter a search or click "Show All" to display results.',
-        labels: { native:'Native', compositions:'Composition(s)', year:'Year', type:'Type', nationality:'Nationality', country:'Country', gender:'Gender', leader:'Leader', source:'Source' },
-        navEnglish: 'Archive of Soviet Trumpet Music',
-        heroTitle: 'Discover Soviet-era trumpet music',
-        heroSubtitle: 'Search composers and pieces from across the Soviet republics.',
-        decades: ['1920s','1930s','1940s','1950s','1960s','1970s','1980s'],
-        countries: ['Russia','Ukraine','Belarus','Armenia','Georgia','Latvia','Estonia','Lithuania','Kazakhstan','Uzbekistan','Other'],
-        genderOptions: ['Male','Female','Other']
-      };
-  const labels = map || fallback;
-  qEl.placeholder = labels.placeholder;
-  searchBtn.textContent = labels.search;
-  showAllBtn.textContent = labels.showAll;
-  document.getElementById('resetFilters').textContent = labels.reset;
-      document.getElementById('resultsCount').textContent = '';
-      // update status / helper text
-      statusMsg.textContent = '';
-  resultsEl.innerHTML = `<div class="muted">${labels.enterSearch}</div>`;
-  langBtn.textContent = (locale === 'en' ? 'EN ▾' : 'DE ▾');
-  // update nav and hero strings
-  document.getElementById('navEnglish').textContent = labels.navEnglish || document.getElementById('navEnglish').textContent;
-  const heroTitle = document.querySelector('.search-panel h1');
-  const heroSubtitle = document.querySelector('.search-panel p.muted');
-  if (heroTitle) heroTitle.textContent = labels.heroTitle || heroTitle.textContent;
-  if (heroSubtitle) heroSubtitle.textContent = labels.heroSubtitle || heroSubtitle.textContent;
-
-      // populate filter options from translations
-      const decadeFilterEl = document.getElementById('decadeFilter');
-      const countryFilterEl = document.getElementById('countryFilter');
-      const genderFilterEl = document.getElementById('genderFilter');
-      // helper: build options using canonical values from EN and localized labels
-      function buildSelectOptions(el, canonicalList, localizedList, placeholderKey){
-        if (!el) return;
-        // fallback label from translations for placeholder
-        const placeholder = (labels && labels[placeholderKey]) ? labels[placeholderKey] : placeholderKey;
-        let html = `<option value="All">${placeholder}</option>`;
-        // canonicalList is expected to be an array of canonical keys (from EN), localizedList parallel array of same length
-        for (let i = 0; i < canonicalList.length; i++){
-          const val = canonicalList[i];
-          const label = (localizedList && localizedList[i]) ? localizedList[i] : val;
-          html += `<option value="${encodeURIComponent(String(val))}">${label}</option>`;
-        }
-        el.innerHTML = html;
-      }
-
-      // Use canonical lists from EN to keep filter values stable
-      const enMap = (TRANSLATIONS && TRANSLATIONS['en']) ? TRANSLATIONS['en'] : null;
-      const canonicalDecades = enMap ? enMap.decades : (labels.decades || []);
+    const canonicalDecades = enMap ? enMap.decades : (labels.decades || []);
       const canonicalCountries = enMap ? enMap.countries : (labels.countries || []);
       const canonicalGenders = enMap ? enMap.genderOptions : (labels.genderOptions || []);
 
@@ -511,7 +301,6 @@
       if (DATA && DATA.length && (hasSearched || document.getElementById('results').children.length > 0)){
         applyFilters();
       }
-    }
     // accessible dropdown: toggle and keyboard
     langBtn.addEventListener('click', (e)=>{ langDropdown.classList.toggle('open'); langBtn.setAttribute('aria-expanded', langDropdown.classList.contains('open')); });
     langBtn.setAttribute('aria-haspopup', 'listbox');
@@ -748,6 +537,8 @@
       // global error hooks suppressed for in-page debug reporting; let errors go to console
     })();
   </script>
+
+  
 
   <script>
     // Flow-based hero positioning: keep the .search-panel in-flow but make sure
