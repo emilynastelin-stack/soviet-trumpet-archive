@@ -1,35 +1,77 @@
 ---
 ---
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Soviet Trumpet Archive results</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <style>
-      /* background overlay controls */
-      #bg-overlay{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
-      #bg-overlay img{position:absolute;left:0;top:0;width:100vw;height:100vh;object-fit:cover}
-      #bg-adjust-control{position:fixed;left:12px;bottom:80px;z-index:80;background:rgba(255,255,255,0.95);border:1px solid #e6e9ef;padding:6px 8px;border-radius:8px;display:flex;gap:6px;align-items:center;box-shadow:0 6px 18px rgba(16,24,40,0.08)}
-      #bg-adjust-control button{background:#fff;border:1px solid #d1d5db;padding:6px;border-radius:6px;cursor:pointer}
-      #bg-adjust-control #bg-value{min-width:36px;text-align:center;font-weight:600}
-      @media (max-width:600px){#bg-adjust-control{left:8px;bottom:92px}}
+    :root { --accent:#8b0000; --muted:#6b7280; --bg:#f7f9fc; }
+    * { box-sizing:border-box; }
+    body {
+      font-family: Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      margin: 0;
+      color: #0f172a;
+      background-color: var(--bg);
+      background-image: none;
+      padding-bottom: 64px; /* reserve space for fixed footer */
+    }
+
+    header {
+      background:white; 
+      border-bottom:1px solid #e6e9ef; 
+      position:sticky; 
+      top:0; 
+      z-index:1000; /* ensure header sits above overlays */
+    }
+
+  /* Header: span full width so title can be flush left; language selector sits flush right via flex */
+  header .container { width:100%; max-width:none; margin:0; padding:12px 20px; }
+  /* top title absolutely flush left (no left padding) */
+  #navEnglish { display:inline-block; padding-left:0; }
+    .container { max-width:1100px; margin:0 auto; padding:20px; }
+
+    .nav { display:flex; align-items:center; gap:18px; }
+    .logo { font-weight:800; color:var(--accent); font-size:20px; }
+    .nav-english { color:var(--accent); font-weight:800; }
+    .nav-pipe { color:#000; margin:0 8px; }
+    .nav-russian { color:var(--muted); }
+
+    /* language toggle */
+    .lang-toggle { position:relative; display:inline-block; margin-right:12px; }
+    .lang-btn { background:transparent; border:1px solid #e6e9ef; padding:6px 8px; border-radius:6px; cursor:pointer; font-weight:600; }
+    .lang-dropdown { position:absolute; top:100%; right:0; background:white; border:1px solid #e6e9ef; border-radius:6px; padding:6px; box-shadow:0 6px 18px rgba(16,24,40,0.06); display:none; min-width:140px; }
+    .lang-dropdown.open { display:block; }
+    .lang-option { padding:6px 8px; cursor:pointer; }
+    .lang-option:hover { background:#f3f4f6; }
+
+    /* Hero & search panel (reduced to essentials used by results page) */
+    .search-bar { display:flex; gap:8px; padding:12px 20px; }
+    .search-input, #qinput { flex:1; padding:10px 12px; border-radius:8px; border:1px solid #e5e7eb; }
+    .search-cta, #qbtn { padding:10px 12px; border-radius:8px; background:var(--accent); color:white; border:none; font-weight:700; cursor:pointer; }
+
+    .filters { width:260px; }
+    .results { flex:1; }
+    .composer-box { width:300px; }
+    .section-divider { height:1px; background:#e6e9ef; margin:8px 0; }
+
+    /* Fixed footer bar locked to viewport (shared with main site) */
+    #fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#8b0000; color:white; z-index:1200; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
+    .fixed-footer-inner { width:100%; max-width:none; margin:0; padding:0 20px; display:flex; gap:12px; justify-content:space-between; align-items:center; }
+    .footer-left { display:flex; flex-direction:column; transform: translateY(-5px); }
+    .footer-left .title { font-weight:700; color:white; font-size:16px; line-height:1.1; padding:12px 0 0 0; margin-left:0; }
+    .footer-left .subtitle { color:rgba(255,255,255,0.8); font-size:13px; margin-top:0; margin-left:0; padding-left:0; }
+    .fixed-footer-center { flex:1; display:flex; align-items:center; justify-content:center; transform: translateY(-3px); }
+    .fixed-footer-center .links { color:white; font-size:13px; text-align:center; }
+    .fixed-footer-center .links a { color:inherit; text-decoration:none; margin:0 8px; }
+    .fixed-footer-right { display:flex; align-items:center; justify-content:flex-end; min-width:220px; transform: translateY(-3px); }
+    .fixed-footer-right .copyright { color:rgba(255,255,255,0.9); font-size:13px; }
+
+    @media (max-width:900px) { .grid { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:600px) { .grid{grid-template-columns:1fr;} .search-row{flex-direction:column;} .container{padding:14px;} }
+
+    /* background overlay: ensure it sits behind content and doesn't intercept clicks */
+    #bg-overlay { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+    #bg-overlay img { position:absolute; left:0; top:0; width:100vw; height:100vh; object-fit:cover; will-change:left,top,width,height; pointer-events:none; }
+    /* Make sure interactive UI elements are clickable above the overlay */
+    .search-panel, .search-panel.fixed, .search-cta, .search-input, .cta-row a, .lang-btn, .lang-dropdown, .filters select, .small-btn, .reset-btn { position:relative; z-index:2000; pointer-events:auto; }
     </style>
-    <style>
-      :root{--accent:#8b0000;--muted:#6b7280;--bg:#f7f9fc}
-      *{box-sizing:border-box}
-      body{padding-bottom:64px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial}
-      header{background:white;border-bottom:1px solid #e6e9ef;position:sticky;top:0;z-index:30}
-      header .container{width:100%;max-width:none;margin:0;padding:12px 20px}
-      .result-item{border-bottom:1px solid #e6e9ef;padding:1rem 0}
-      .result-item:last-child{border-bottom:none}
-      .result-item h2{font-size:1.2rem;margin:0;color:#004d7a;cursor:pointer}
-      .result-item p{margin:0.25rem 0}
-      strong,.filters h3 strong{color:var(--accent);font-weight:700}
-      footer{background:#004d7a;color:white;text-align:center;padding:1rem;margin-top:2rem;font-size:0.9rem}
-      .container{max-width:1100px;margin:0 auto;padding:12px}
-      .logo{font-weight:700}
-      .lang-toggle{display:flex;align-items:center;gap:8px}
       .search-bar{display:flex;gap:8px;padding:12px 20px}
       .filters{width:260px}
       .results{flex:1}
