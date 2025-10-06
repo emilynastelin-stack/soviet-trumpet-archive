@@ -11,6 +11,7 @@
       background-color: var(--bg);
       background-image: none;
       padding-bottom: 64px; /* reserve space for fixed footer */
+      padding-top: 64px; /* reserve space for fixed header */
     }
 
     header {
@@ -74,6 +75,24 @@
     </style>
   </head>
   <body>
+    <header style="position:fixed;left:0;right:0;top:0;z-index:1500;background:white;">
+      <div class="container nav" style="display:flex;justify-content:space-between;align-items:center">
+        <div class="logo">
+          <span class="nav-english" id="navEnglish">Archive of Soviet Trumpet Music</span>
+          <span class="nav-pipe">|</span>
+          <span class="nav-russian" id="navRussian">Архив советской трубной музыки</span>
+        </div>
+        <div class="lang-toggle" id="langToggle">
+          <button class="lang-btn" id="langBtn">EN ▾</button>
+          <div class="lang-dropdown" id="langDropdown" style="display:none">
+            <div class="lang-option" data-locale="en">English</div>
+            <div class="lang-option" data-locale="de">Deutsch</div>
+          </div>
+        </div>
+      </div>
+    </header>
+    <!-- space to avoid content being hidden behind fixed header -->
+    <div style="height:64px" aria-hidden="true"></div>
     <!-- background overlay -->
     <div id="bg-overlay" aria-hidden="true">
       <img id="bg-img" src="/assets/bg-K13qQAs.png" alt="" />
