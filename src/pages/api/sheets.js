@@ -70,7 +70,14 @@ export async function GET(request) {
   const q = url ? url.searchParams : null;
   const sheetName = q && q.get('sheet');
   const overrideRange = q && q.get('range');
-  const primaryRange = overrideRange || (sheetName ? `${sheetName}!A1:Z1000` : DEFAULT_SHEET_RANGE);
+  // Make primaryRange mutable so we can prefer a sane default when the
+  // configured DEFAULT_SHEET_RANGE still points at 'Sheet1'. Prefer the
+  // MusicList tab for composer aggregation when no explicit sheet/range is
+  // provided.
+  let primaryRange = overrideRange || (sheetName ? `${sheetName}!A1:Z1000` : DEFAULT_SHEET_RANGE);
+  if (!sheetName && !overrideRange && String(primaryRange).includes('Sheet1')) {
+    primaryRange = 'MusicList!A1:Z1000';
+  }
   const strictRequest = Boolean(sheetName || overrideRange);
   // If callers didn't provide a sheet explicitly and DEFAULT_SHEET_RANGE references 'Sheet1',
   // try a small set of likely renamed tabs (e.g. MusicList) to be tolerant of renames.

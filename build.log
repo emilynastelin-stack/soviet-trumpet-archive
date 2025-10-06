@@ -1,0 +1,36 @@
+﻿
+> soviet-archive@0.0.1 build
+> astro build
+
+18:29:12 [content] Syncing content
+18:29:12 [content] Synced content
+18:29:12 [types] Generated 40ms
+18:29:12 [build] output: "static"
+18:29:12 [build] mode: "static"
+18:29:12 [build] directory: C:\Users\emily\Downloads\astro-latest\soviet-archive\dist\
+18:29:12 [build] adapter: @astrojs/vercel
+18:29:12 [build] Collecting build info...
+18:29:12 [build] Γ£ô Completed in 58ms.
+18:29:12 [build] Building static entrypoints...
+18:29:13 [vite] [32mΓ£ô built in 814ms[39m
+18:29:13 [build] Γ£ô Completed in 841ms.
+
+ building client (vite) 
+18:29:13 [vite] transforming...
+18:29:13 [vite] [32mΓ£ô[39m 4 modules transformed.
+node.exe : 18:29:13 [ERROR] [vite] [31mΓ£ù[39m Build failed in 36ms
+At line:1 char:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (18:29:13 [ERROR... failed in 36ms:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Unexpected "catch"
+  Location:
+    C:/Users/emily/Downloads/astro-latest/soviet-archive/src/pages/composers-results.astro?astro&type=script&index=0&lang.ts:416:13
+  Stack trace:
+    at failureErrorWithLog (C:\Users\emily\Downloads\astro-latest\soviet-archive\node_modules\esbuild\lib\main.js:1467:15)
+    at responseCallbacks.<computed> (C:\Users\emily\Downloads\astro-latest\soviet-archive\node_modules\esbuild\lib\main.js:603:9)
+    at Socket.readFromStdout (C:\Users\emily\Downloads\astro-latest\soviet-archive\node_modules\esbuild\lib\main.js:581:7)
+    at addChunk (node:internal/streams/readable:561:12)
+    at Readable.push (node:internal/streams/readable:392:5)
