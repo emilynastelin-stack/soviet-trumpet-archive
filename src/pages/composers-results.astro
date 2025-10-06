@@ -1,406 +1,43 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Soviet Trumpet Archive results</title>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="alternate icon" href="/favicon.ico">
-  <style>
-    :root { --accent:#8b0000; --muted:#6b7280; --bg:#f7f9fc; }
-    * { box-sizing:border-box; }
-    body { padding-bottom:64px; }
-    header { background:white; border-bottom:1px solid #e6e9ef; position:sticky; top:0; z-index:30; }
-    header .container { width:100%; max-width:none; margin:0; padding:12px 20px; }
-    #navEnglish { display:inline-block; padding-left:0; }
-    .container { max-width:1100px; margin:0 auto; padding:20px; }
-    .nav { display:flex; align-items:center; gap:18px; }
-    .logo { font-weight:800; color:var(--accent); font-size:20px; }
-    .nav-english { color:var(--accent); font-weight:800; }
-    .nav-pipe { color:#000; margin:0 8px; }
-    .nav-russian { color:var(--muted); }
-    .lang-toggle { position:relative; display:inline-block; margin-right:12px; }
-    .lang-btn { background:transparent; border:1px solid #e6e9ef; padding:6px 8px; border-radius:6px; cursor:pointer; font-weight:600; }
-    .lang-dropdown { position:absolute; top:100%; right:0; background:white; border:1px solid #e6e9ef; border-radius:6px; padding:6px; box-shadow:0 6px 18px rgba(16,24,40,0.06); display:none; min-width:140px; }
-    .lang-dropdown.open { display:block; }
-    .lang-option { padding:6px 8px; cursor:pointer; }
-    .lang-option:hover { background:#f3f4f6; }
-  #fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#8b0000; color:white; z-index:1200; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
-    .fixed-footer-inner { width:100%; max-width:none; margin:0; padding:0 20px; display:flex; gap:12px; justify-content:space-between; align-items:center; }
-    .footer-left { display:flex; flex-direction:column; transform: translateY(-5px); }
-    .footer-left .title { font-weight:700; color:white; font-size:16px; line-height:1.1; padding:12px 0 0 0; margin-left:0; }
-    .footer-left .subtitle { color:rgba(255,255,255,0.8); font-size:13px; margin-top:0; margin-left:0; padding-left:0; }
-    .fixed-footer-center { flex:1; display:flex; align-items:center; justify-content:center; transform: translateY(-3px); }
-    .fixed-footer-center .links { color:white; font-size:13px; text-align:center; }
-    .fixed-footer-center .links a { color:inherit; text-decoration:none; margin:0 8px; }
-    .fixed-footer-right { display:flex; align-items:center; justify-content:flex-end; min-width:220px; transform: translateY(-3px); }
-    .fixed-footer-right .copyright { color:rgba(255,255,255,0.9); font-size:13px; }
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      background: transparent; /* show the overlay behind the page */
-      color: #333;
-    }
-
-  /* Background overlay (non-interactive) - force behind nav/footer/content */
-  /* Use z-index:0 so overlay doesn't create a stacking context that might capture clicks in some browsers */
-  #bg-overlay { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
-  #bg-overlay img { position:absolute; left:0; top:0; width:100vw; height:100vh; object-fit:cover; will-change:left,top,width,height; pointer-events:none; }
-
-    /* Navbar: match composers page height and style */
-    header {
-      background: white;
-      border-bottom: 1px solid #e6e9ef;
-      position: sticky;
-      top: 0;
-        z-index: 3000; /* ensure header is above the background overlay */
-    }
-    header .container { width:100%; max-width:none; margin:0; padding:12px 20px; display:flex; align-items:center; justify-content:space-between; }
-    .logo { font-weight:800; color:var(--accent); font-size:20px; line-height:1; }
-    header h1 { margin:0; font-size:1.5rem; color:var(--accent); }
-
-    .search-bar {
-      background: #e9ecef;
-      opacity: 0.75; /* make the gray search box 75% opaque */
-      padding: 1rem;
-      text-align: center;
-      display:flex;
-      flex-direction:row;
-      align-items:center;
-      gap:8px;
-      justify-content:center;
-    position: relative;
-    z-index: 1001; /* ensure search bar sits above overlay and header */
-    }
-    .search-bar input {
-      width: 60%;
-      padding: 0.5rem;
-      font-size: 1rem;
-    }
-    .search-bar button {
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-      margin-left: .5rem;
-      background: var(--accent); /* maroon */
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
-    .container {
-      display: grid;
-  /* left filters, main results, right composer box (composer box widened to align with search button) */
-  grid-template-columns: 250px 1fr 420px;
-      gap: 1rem;
-      /* full-bleed container so left column (filters) sits flush to viewport left */
-      padding: 1rem 10px 1rem 0;
-      position: relative;
-      z-index: 10; /* put main content above the background overlay */
-      max-width: none;
-      margin: 0;
-      width: 100%;
-    }
-
-    .filters {
-      background: #fffff7;
-      /* add 15px extra left padding as requested */
-      padding: 1rem;
-      padding-left: calc(1rem + 15px);
-      border-radius: 8px;
-      box-shadow: 0 10px 30px rgba(16,24,40,0.12);
-      /* previously offset from the viewport edge; removed margin so headings/dividers align with other boxes */
-      margin-left: 0;
-    }
-    .filters h3 {
-      /* legacy rule - headings now use .section-header for consistent Results-style headings */
-      font-size: 1rem;
-      margin-bottom: 0.5rem;
-    }
-    .filters label {
-      display: block;
-      margin-bottom: 0.5rem;
-    }
-    .list-title { color: #000; font-weight:700; margin-bottom:6px; font-size:0.95rem; }
-
-    .results {
-      background: #fffff7;
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 10px 30px rgba(16,24,40,0.12);
-    }
-
-    /* Maroon spinner for composer box quick-loading state */
-    .spinner {
-      width: 18px;
-      height: 18px;
-      border: 2px solid rgba(139,0,0,0.15);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 800ms linear infinite;
-      display:inline-block;
-      vertical-align:middle;
-      margin-left:8px;
-    }
-    @keyframes spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
-
-    /* Right-hand composer box (matches filters box style) */
-    .composer-box {
-      background: #fffff7;
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 10px 30px rgba(16,24,40,0.12);
-      margin-right: 0; /* flush to the right column edge */
-    }
-  /* composer links maroon by default; piece links black. Hover changes color for both */
-  .composer-link { color: var(--accent) !important; font-weight:700; text-decoration:none !important; }
-  .piece-link { color: #000 !important; font-weight:700; text-decoration:none !important; }
-  .composer-link:hover { color: #5a0000 !important; text-decoration:underline !important; }
-  .piece-link:hover { color: #333 !important; text-decoration:underline !important; }
-  /* ensure visited links keep color */
-  .composer-link:visited { color: var(--accent) !important; }
-  .piece-link:visited { color: #000 !important; }
-  /* stronger selectors */
-  .results .result-item a.composer-link, .results .result-item a.piece-link, .result-item a.composer-link, .result-item a.piece-link { text-decoration:none !important; }
-  .composer-box h3 { font-size:1rem; margin-bottom:0.5rem; }
-
-  /* Shared section header that matches the Results header (color, size, line-height) */
-  .section-header { margin:0; padding:0; color:var(--accent); font-size:1.125rem; font-weight:700; line-height:1; }
-  /* force identical spacing for headings inside the three primary boxes so dividers align */
-  .results > .results-header > .section-header,
-  .filters > .section-header,
-  .composer-box > div > .section-header { display:block; margin:0; padding:0; font-size:1.125rem; line-height:1; }
-  /* nudge the Filters heading slightly lower for perfect alignment */
-  .filters > .section-header { transform: translateY(3px); }
-  .section-divider { border-bottom:1px solid #e6e9ef; margin-top:8px; margin-bottom:12px; }
-  /* nudge only the Filters box divider down slightly to match visual alignment */
-  .filters > .section-divider { transform: translateY(3px); }
-    .pagination { display:flex; gap:8px; align-items:center; justify-content:center; margin-top:12px; }
-    .pagination button { padding:6px 10px; border-radius:6px; border:1px solid #d1d5db; background:white; cursor:pointer; }
-    .pagination button.active { background:var(--accent); color:white; border-color:var(--accent); }
-    .result-item {
-      border-bottom: 1px solid #d1d5db; /* clearer gray divider between entries */
-      padding: 1rem 0;
-    }
-    /* ensure divider isn't overridden by other layout rules */
-    .results .result-item { border-bottom: 1px solid #d1d5db !important; }
-    .result-item:last-child {
-      border-bottom: none;
-    }
-    .result-item h2 {
-      font-size: 1.2rem;
-      margin: 10px 0 0 0; /* 10px between the gray divider and the title */
-      color: #004d7a;
-      cursor: pointer;
-    }
-    .result-item p {
-      margin: 0.25rem 0;
-    }
-
-    /* Make bold text maroon to match site accent */
-    strong, .filters h3 strong { color: var(--accent); font-weight:700; }
-
-    footer {
-      background: #004d7a;
-      color: white;
-      text-align: center;
-      padding: 1rem;
-      margin-top: 2rem;
-      font-size: 0.9rem;
-    }
-    /* mobile: collapse left filters and right composer panel; use overlays instead */
-    @media (max-width:700px){
-      .container { display:block; padding:0 12px 84px 12px; }
-      .filters { display:none !important; }
-      .composer-box { display:none !important; }
-        /* hide the fixed footer on mobile to maximize viewport space */
-        #fixed-footer { display: none !important; visibility: hidden !important; }
-      .results { border-radius:8px; box-shadow:none; }
-      /* ensure results take full width */
-      main.results { width:100%; }
-        /* make small control buttons above the results and in filters-controls visually smaller on mobile */
-        .results .results-header button, #results-pagination-top button, #filters-controls button, .pagination button {
-          font-size: 12px !important;
-          padding: 6px 8px !important;
-          line-height: 1 !important;
-        }
-    }
-  </style>
-</head>
-<body>
-
-  <!-- background overlay (non-interactive, no adjustment controls) -->
-  <div id="bg-overlay" aria-hidden="true">
-    <img id="bg-img" src="/assets/bg-K13qQAs.png" alt="" />
-  </div>
-
-  <header>
-    <div class="container nav" style="display:flex;justify-content:space-between;align-items:center">
-      <a href="/composers" class="logo" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;">
-        <span class="nav-english" id="navEnglish">Archive of Soviet Trumpet Music</span>
-        <span class="nav-pipe">|</span>
-        <span class="nav-russian" id="navRussian">Архив советской трубной музыки</span>
-      </a>
-      <div class="lang-toggle" id="langToggle">
-        <button class="lang-btn" id="langBtn">EN ▾</button>
-        <div class="lang-dropdown" id="langDropdown">
-          <div class="lang-option" data-locale="en">English</div>
-          <div class="lang-option" data-locale="de">Deutsch</div>
-        </div>
-      </div>
-    </div>
-  </header>
-
-<div class="search-bar">
-  <input id="qinput" type="text" placeholder="Search ProQuest...">
-  <button id="qbtn">Search</button>
-</div>
-
-<!-- pagination controls will be injected inside the results box so the right edge can align with the results column -->
-
-<div class="container">
-  <aside class="filters">
-    <h3 class="section-header"><strong>Filters</strong></h3>
-    <div class="section-divider"></div>
-    <!-- Clear-all moved to the pagination area to match original layout -->
-  <h4 class="section-header" style="font-weight:600;margin-top:6px;margin-bottom:6px;"><strong>Country</strong></h4>
-  <div class="section-divider"></div>
-  <div id="filter-country" style="margin-bottom:12px;">&nbsp;</div>
-
-  <h4 class="section-header" style="font-weight:600;margin-top:6px;margin-bottom:6px;"><strong>Decade</strong></h4>
-  <div class="section-divider"></div>
-    <div id="filter-decade" style="margin-bottom:12px;">&nbsp;</div>
-
-    <h4 class="section-header" style="font-weight:600;margin-top:6px;margin-bottom:6px;"><strong>Type of piece</strong></h4>
-    <div class="section-divider"></div>
-    <div id="filter-type" style="margin-bottom:12px;">&nbsp;</div>
-    <!-- Global filter controls (Clear all / Clear last) moved here from pagination -->
-    <div id="filters-controls" style="margin-top:12px; display:flex; gap:8px; justify-content:flex-start;"></div>
-  </aside>
-
-  <main class="results" id="results">
-    <div class="results-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-      <h3 class="section-header">Results</h3>
-      <div id="results-pagination-top" style="display:flex;align-items:center;justify-content:flex-end;"></div>
-    </div>
-    <div class="section-divider"></div>
-    <div id="results-list">
-      <div class="result-item"><em>Loading results…</em></div>
-    </div>
-  </main>
-
-  <aside class="composer-box" id="composer-box">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-      <h3 class="section-header">Composer</h3>
-      <div style="margin-left:auto;">
-        <button id="clear-composer" style="display:none;padding:6px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear composer</button>
-      </div>
-    </div>
-    <div class="section-divider"></div>
-    <div id="composer-content" style="margin-top:8px;">Select a result to view composer details.</div>
-  </aside>
-</div>
-
-  <!-- Fixed footer bar locked to viewport (shared with main site) -->
-  <div id="fixed-footer" aria-hidden="false" role="contentinfo">
-    <div class="fixed-footer-inner">
-      <div class="footer-left">
-        <div class="title">Archive of Soviet Trumpet Music</div>
-        <div class="subtitle">Архив советской трубной музыки</div>
-      </div>
-      <div class="fixed-footer-center">
-        <div class="links">
-          <a href="/about">About</a>
-          <a href="#">Contact</a>
-          <a href="/sources">Sources</a>
-        </div>
-      </div>
-      <div class="fixed-footer-right">
-        <div class="copyright">© 2025 Archive of Soviet Trumpet Music</div>
-      </div>
-    </div>
-  </div>
-
-<script>
-  // populate the search input from query param and match front-page placeholder
+// Client script for composers-results page
+// Extracted and cleaned. Provides filters, pagination, sheet fetching and composer details.
+(function(){
+  // Lightweight runtime diagnostics to help debug blank page issues
+  try{
+    console.log('[composers-results] client script loaded');
+    window.addEventListener('error', function(ev){
+      try{
+        console.error('[composers-results] uncaught error', ev.error || ev.message || ev);
+        const rl = document.getElementById('results-list');
+        if (rl) rl.innerText = 'Client error: ' + String(ev.message || (ev.error && ev.error.message) || ev.error || ev);
+        const cc = document.getElementById('composer-content'); if (cc) cc.innerText = 'Client error: see console';
+      }catch(_){ /* ignore */ }
+    });
+    // visible debug badge so users can see client status without DevTools
+    try{
+      const badge = document.createElement('div');
+      badge.id = 'cr-debug';
+      badge.style.position = 'fixed';
+      badge.style.right = '12px';
+      badge.style.top = '72px';
+      badge.style.zIndex = '9999';
+      badge.style.background = 'rgba(0,0,0,0.6)';
+      badge.style.color = '#fff';
+      badge.style.padding = '6px 8px';
+      badge.style.borderRadius = '6px';
+      badge.style.fontSize = '12px';
+      badge.style.fontFamily = 'system-ui,Segoe UI,Roboto,Arial';
+      badge.textContent = 'client: loaded';
+      document.body.appendChild(badge);
+    }catch(_){ }
+  }catch(_){ /* ignore */ }
   const params = new URLSearchParams(window.location.search);
   const q = params.get('q') || '';
   const qinput = document.getElementById('qinput');
-  qinput.placeholder = 'Search composers, countries, or pieces...';
-  qinput.value = decodeURIComponent(q);
-
-  // --- History / back-button state handling helpers ---
-  function parseParamList(str){ if (!str) return []; try{ return String(str||'').split('|').map(s=>decodeURIComponent(s)).filter(Boolean); }catch(e){ return []; } }
-  function getSelectedFiltersArray(){
-    const countries = Array.from(document.querySelectorAll('#filter-country input[type=checkbox]:checked')).map(cb=> decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''));
-    const decades = Array.from(document.querySelectorAll('#filter-decade input[type=checkbox]:checked')).map(cb=> decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''));
-    const types = Array.from(document.querySelectorAll('#filter-type input[type=checkbox]:checked')).map(cb=> decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''));
-    return { countries, decades, types };
-  }
-  function buildStateFromUI(){
-    const s = { q: (qinput && qinput.value) ? String(qinput.value) : '', page: Number(currentPage || 1), scrollY: Math.max(0, Math.floor(window.scrollY || 0)) };
-    const f = getSelectedFiltersArray();
-    if (f.countries && f.countries.length) s.countries = f.countries;
-    if (f.decades && f.decades.length) s.decades = f.decades;
-    if (f.types && f.types.length) s.types = f.types;
-    // include currently selected composer so Back/Forward can restore/clear it
-    if (typeof selectedComposer !== 'undefined' && selectedComposer) s.selectedComposer = String(selectedComposer || '');
-    return s;
-  }
-  function paramsFromState(state){ const p = new URLSearchParams(); if (state.q) p.set('q', state.q); if (state.page) p.set('page', String(state.page)); if (state.countries && state.countries.length) p.set('country', state.countries.map(encodeURIComponent).join('|')); if (state.decades && state.decades.length) p.set('decade', state.decades.map(encodeURIComponent).join('|')); if (state.types && state.types.length) p.set('type', state.types.map(encodeURIComponent).join('|')); return p; }
-  function applyStateToUI(state){
-    try{
-      if (!state) return;
-      if (state.q !== undefined && qinput) qinput.value = String(state.q||'');
-      // set checkboxes
-      const setChecks = (sel, vals)=>{
-        if (!Array.isArray(vals)) return;
-        document.querySelectorAll(sel).forEach(cb=>{ try{ const v = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); cb.checked = vals.includes(v); }catch(e){} });
-      };
-      setChecks('#filter-country input[type=checkbox]', state.countries || []);
-      setChecks('#filter-decade input[type=checkbox]', state.decades || []);
-      setChecks('#filter-type input[type=checkbox]', state.types || []);
-      currentPage = state.page ? Number(state.page) : 1;
-      // don't populate composer here; popstate handler will handle composer after results render
-      selectedComposer = '';
-    }catch(e){ console.error('applyStateToUI failed', e); }
+  if (qinput) {
+    qinput.placeholder = 'Search composers, countries, or pieces...';
+    qinput.value = decodeURIComponent(q);
   }
 
-  // popstate: restore UI and results (don't push new history entry when restoring)
-  window.addEventListener('popstate', (ev)=>{
-    try{
-      const st = ev.state;
-      if (!st){
-        // fallback to parsing URL params
-        const ps = new URLSearchParams(window.location.search || '');
-        const fallback = { q: ps.get('q') || '', page: Number(ps.get('page') || 1), countries: parseParamList(ps.get('country')), decades: parseParamList(ps.get('decade')), types: parseParamList(ps.get('type')), scrollY: 0 };
-        applyStateToUI(fallback);
-        loadResults(null, { resetPage: false, historyChange: 'none' }).then(()=>{ window.scrollTo({ top: fallback.scrollY || 0, behavior: 'auto' }); });
-        return;
-      }
-      applyStateToUI(st);
-      // restore results without causing another history mutation
-      loadResults(null, { resetPage: false, historyChange: 'none' }).then(()=>{
-        try{ window.scrollTo({ top: st.scrollY || 0, behavior: 'auto' }); }catch(e){}
-        try{
-          // after results rendered, restore or clear composer
-          if (st && st.selectedComposer){
-            const sc = String(st.selectedComposer || '');
-            selectedComposer = sc;
-            const sampleRow = (lastFiltered && lastFiltered.length) ? lastFiltered.find(rr=>{ const cand = String(rr['Composer']||rr.Composer||''); return normalize(cand||'') === normalize(sc||''); }) : null;
-            populateComposerBox(sc, sampleRow || null);
-            try{ updateComposerBtnVisibility(); }catch(e){}
-          } else {
-            selectedComposer = '';
-            const composerContent = document.getElementById('composer-content'); if (composerContent) composerContent.innerHTML = 'Select a result to view composer details.';
-            try{ updateComposerBtnVisibility(); }catch(e){}
-          }
-        }catch(e){ console.error('post-popstate composer restore failed', e); }
-      });
-    }catch(e){ console.error('popstate handler failed', e); }
-  });
-
-
-  // language toggle: simple behavior to set locale and reload
   const langBtn = document.getElementById('langBtn');
   const langDropdown = document.getElementById('langDropdown');
   if (langBtn && langDropdown){
@@ -410,621 +47,11 @@
   }
 
   function normalize(s){ if(!s) return ''; try{ return s.toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase(); }catch(e){ return s.toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); } }
-
-  // Top-level clear function so the button in filters can reuse it
-  function clearAllFilters(){
-    try{
-      if (qinput) qinput.value = '';
-      selectedComposer = '';
-      selectedPieceIndex = null;
-      selectedPieceFilter = null; // when set, filter results to this piece title
-      lastAppliedFilter = null;
-      const clearComposerBtn = document.getElementById('clear-composer'); if (clearComposerBtn) clearComposerBtn.style.display = 'none';
-      const composerContent = document.getElementById('composer-content'); if (composerContent) composerContent.innerHTML = 'Select a result to view composer details.';
-      document.querySelectorAll('#filter-country input[type=checkbox], #filter-decade input[type=checkbox], #filter-type input[type=checkbox]').forEach(cb=> cb.checked = false);
-      currentPage = 1;
-      loadResults();
-    }catch(e){ console.error('clearAllFilters failed', e); }
-  }
-
-  // Clear only the last applied filter (tracked in lastAppliedFilter)
-  // (clear-last-filter removed)
-
-  // Mobile helper: add a small toggle to collapse/expand filters on narrow screens
-  function enableMobileUI(){
-    try{
-      const fs = document.querySelector('.filters');
-      if (!fs) return;
-
-      // Create backdrop
-      if (!document.getElementById('mobile-backdrop')){
-        const bd = document.createElement('div');
-        bd.id = 'mobile-backdrop';
-        bd.setAttribute('aria-hidden','true');
-        bd.style.position = 'fixed';
-        bd.style.left = '0'; bd.style.top = '0'; bd.style.right = '0'; bd.style.bottom = '0';
-        bd.style.background = 'rgba(0,0,0,0.32)';
-        bd.style.opacity = '0';
-        bd.style.transition = 'opacity 180ms ease';
-        bd.style.zIndex = '4400';
-        bd.style.display = 'none';
-        bd.addEventListener('click', ()=>{ hideMobileSheet(); });
-        document.body.appendChild(bd);
-      }
-
-      // left-drawer backdrop (separate from bottom-sheet backdrop) and drawer
-      if (!document.getElementById('left-drawer-backdrop')){
-        const lbd = document.createElement('div');
-        lbd.id = 'left-drawer-backdrop';
-        lbd.setAttribute('aria-hidden','true');
-        lbd.style.position = 'fixed'; lbd.style.left = '0'; lbd.style.top = '0'; lbd.style.right = '0'; lbd.style.bottom = '0';
-        lbd.style.background = 'rgba(0,0,0,0.32)'; lbd.style.opacity = '0'; lbd.style.transition = 'opacity 180ms ease'; lbd.style.zIndex = '4400'; lbd.style.display = 'none';
-        lbd.addEventListener('click', ()=>{ if (window.__mobileLeftDrawer && typeof window.__mobileLeftDrawer.hide === 'function') window.__mobileLeftDrawer.hide(); });
-        document.body.appendChild(lbd);
-      }
-
-      if (!document.getElementById('left-drawer')){
-        const drawer = document.createElement('div');
-        drawer.id = 'left-drawer';
-        drawer.setAttribute('role','dialog'); drawer.setAttribute('aria-modal','true');
-        drawer.style.position = 'fixed'; drawer.style.left = '0'; drawer.style.top = '0'; drawer.style.bottom = '0'; drawer.style.width = '86%';
-        drawer.style.maxWidth = '420px'; drawer.style.background = '#fff'; drawer.style.zIndex = '4450'; drawer.style.boxShadow = '6px 0 32px rgba(16,24,40,0.18)';
-        drawer.style.transform = 'translateX(-110%)'; drawer.style.transition = 'transform 260ms cubic-bezier(.2,.8,.2,1)'; drawer.style.overflow = 'auto';
-        // add a close header
-        const hdr = document.createElement('div'); hdr.style.display='flex'; hdr.style.alignItems='center'; hdr.style.justifyContent='space-between'; hdr.style.padding='12px 14px'; hdr.style.borderBottom='1px solid #f3f4f6';
-        const title = document.createElement('strong'); title.id = 'left-drawer-title'; title.style.fontSize='1rem'; title.textContent=''; hdr.appendChild(title);
-        const close = document.createElement('button'); close.setAttribute('aria-label','Close'); close.textContent='Close'; close.style.padding='6px 10px'; close.style.borderRadius='8px'; close.style.border='1px solid #e6e9ef'; close.style.background='#fff'; close.addEventListener('click', ()=>{ if (window.__mobileLeftDrawer && typeof window.__mobileLeftDrawer.hide === 'function') window.__mobileLeftDrawer.hide(); });
-        hdr.appendChild(close);
-        drawer.appendChild(hdr);
-        const body = document.createElement('div'); body.id = 'left-drawer-body'; body.style.padding = '12px'; drawer.appendChild(body);
-        document.body.appendChild(drawer);
-
-        // Ensure filters are visible when moved into the left drawer (override page mobile hide)
-        if (!document.getElementById('left-drawer-styles')){
-          const ldStyles = document.createElement('style');
-          ldStyles.id = 'left-drawer-styles';
-          ldStyles.type = 'text/css';
-          ldStyles.appendChild(document.createTextNode(`
-            /* when filters are moved into the left drawer, show them despite the mobile hide rule */
-            #left-drawer .filters { display: block !important; position: relative !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; }
-            #left-drawer .filters > * { display: block !important; }
-            #left-drawer #filter-country, #left-drawer #filter-decade, #left-drawer #filter-type { display:block !important; }
-            #left-drawer .list-title { margin-top: 6px; }
-            #left-drawer .filters { padding-left: calc(1rem + 15px) !important; padding-right: 12px !important; }
-          `));
-          document.head.appendChild(ldStyles);
-        }
-
-        // left-drawer show/hide and restore logic
-        const leftBackdrop = document.getElementById('left-drawer-backdrop');
-        function leftOpen(){ drawer.style.display = 'block'; leftBackdrop.style.display = 'block'; requestAnimationFrame(()=> leftBackdrop.style.opacity='1'); drawer.style.transform = 'translateX(0)'; trapFocus(drawer); }
-        function leftClose(){ drawer.style.transform = 'translateX(-110%)'; leftBackdrop.style.opacity = '0'; setTimeout(()=>{ leftBackdrop.style.display='none'; drawer.style.display='none'; restoreLeftMovedNodes(); restoreFocus(); }, 260); releaseFocusTrap(); }
-
-        function restoreLeftMovedNodes(){ try{ if (!window.__mobileLeftDrawer || !Array.isArray(window.__mobileLeftDrawer._moved)) return; while(window.__mobileLeftDrawer._moved.length){ const entry = window.__mobileLeftDrawer._moved.pop(); try{ if (entry && entry.node && entry.placeholder && entry.placeholder.parentNode){ entry.placeholder.parentNode.insertBefore(entry.node, entry.placeholder); entry.placeholder.parentNode.removeChild(entry.placeholder); } }catch(e){} try{ if (entry && entry.container && entry.container.parentNode){ if (entry.container.childNodes.length === 0) entry.container.parentNode.removeChild(entry.container); } }catch(e){} } }catch(e){} }
-
-        window.__mobileLeftDrawer = window.__mobileLeftDrawer || {};
-        window.__mobileLeftDrawer.show = function(titleText, contentNode){ const bodyEl = document.getElementById('left-drawer-body'); const titleEl = document.getElementById('left-drawer-title'); if (!bodyEl || !titleEl) return; bodyEl.innerHTML = ''; if (contentNode) { try{ bodyEl.appendChild(contentNode); }catch(e){ try{ bodyEl.appendChild(contentNode.cloneNode(true)); }catch(e){} } } titleEl.textContent = titleText || ''; leftOpen(); };
-        window.__mobileLeftDrawer.hide = leftClose;
-      }
-
-      // right-drawer (for composer details) - mirrors left-drawer but anchors to the right
-      if (!document.getElementById('right-drawer-backdrop')){
-        const rbd = document.createElement('div');
-        rbd.id = 'right-drawer-backdrop';
-        rbd.setAttribute('aria-hidden','true');
-        rbd.style.position = 'fixed'; rbd.style.left = '0'; rbd.style.top = '0'; rbd.style.right = '0'; rbd.style.bottom = '0';
-        rbd.style.background = 'rgba(0,0,0,0.32)'; rbd.style.opacity = '0'; rbd.style.transition = 'opacity 180ms ease'; rbd.style.zIndex = '4400'; rbd.style.display = 'none';
-        rbd.addEventListener('click', ()=>{ if (window.__mobileRightDrawer && typeof window.__mobileRightDrawer.hide === 'function') window.__mobileRightDrawer.hide(); });
-        document.body.appendChild(rbd);
-      }
-
-      if (!document.getElementById('right-drawer')){
-        const rdrawer = document.createElement('div');
-        rdrawer.id = 'right-drawer';
-        rdrawer.setAttribute('role','dialog'); rdrawer.setAttribute('aria-modal','true');
-        rdrawer.style.position = 'fixed'; rdrawer.style.right = '0'; rdrawer.style.top = '0'; rdrawer.style.bottom = '0'; rdrawer.style.width = '86%';
-        rdrawer.style.maxWidth = '520px'; rdrawer.style.background = '#fff'; rdrawer.style.zIndex = '4450'; rdrawer.style.boxShadow = '-6px 0 32px rgba(16,24,40,0.18)';
-        rdrawer.style.transform = 'translateX(110%)'; rdrawer.style.transition = 'transform 260ms cubic-bezier(.2,.8,.2,1)'; rdrawer.style.overflow = 'auto';
-        const rhdr = document.createElement('div'); rhdr.style.display='flex'; rhdr.style.alignItems='center'; rhdr.style.justifyContent='space-between'; rhdr.style.padding='12px 14px'; rhdr.style.borderBottom='1px solid #f3f4f6';
-        const rtitle = document.createElement('strong'); rtitle.id = 'right-drawer-title'; rtitle.style.fontSize='1rem'; rtitle.textContent=''; rhdr.appendChild(rtitle);
-        const rclose = document.createElement('button'); rclose.setAttribute('aria-label','Close'); rclose.textContent='Close'; rclose.style.padding='6px 10px'; rclose.style.borderRadius='8px'; rclose.style.border='1px solid #e6e9ef'; rclose.style.background='#fff'; rclose.addEventListener('click', ()=>{ if (window.__mobileRightDrawer && typeof window.__mobileRightDrawer.hide === 'function') window.__mobileRightDrawer.hide(); });
-        rhdr.appendChild(rclose);
-        rdrawer.appendChild(rhdr);
-        const rbody = document.createElement('div'); rbody.id = 'right-drawer-body'; rbody.style.padding = '12px'; rdrawer.appendChild(rbody);
-        document.body.appendChild(rdrawer);
-
-        // right-drawer show/hide and restore logic
-        const rightBackdrop = document.getElementById('right-drawer-backdrop');
-        function rightOpen(){ rdrawer.style.display = 'block'; rightBackdrop.style.display = 'block'; requestAnimationFrame(()=> rightBackdrop.style.opacity='1'); rdrawer.style.transform = 'translateX(0)'; trapFocus(rdrawer); }
-        function rightClose(){ rdrawer.style.transform = 'translateX(110%)'; rightBackdrop.style.opacity = '0'; setTimeout(()=>{ rightBackdrop.style.display='none'; rdrawer.style.display='none'; restoreRightMovedNodes(); restoreFocus(); }, 260); releaseFocusTrap(); }
-
-        function restoreRightMovedNodes(){ try{ if (!window.__mobileRightDrawer || !Array.isArray(window.__mobileRightDrawer._moved)) return; while(window.__mobileRightDrawer._moved.length){ const entry = window.__mobileRightDrawer._moved.pop(); try{ if (entry && entry.node && entry.placeholder && entry.placeholder.parentNode){ entry.placeholder.parentNode.insertBefore(entry.node, entry.placeholder); entry.placeholder.parentNode.removeChild(entry.placeholder); } }catch(e){} try{ if (entry && entry.container && entry.container.parentNode){ if (entry.container.childNodes.length === 0) entry.container.parentNode.removeChild(entry.container); } }catch(e){} } }catch(e){} }
-
-        window.__mobileRightDrawer = window.__mobileRightDrawer || {};
-        window.__mobileRightDrawer.show = function(titleText, contentNode){ const bodyEl = document.getElementById('right-drawer-body'); const titleEl = document.getElementById('right-drawer-title'); if (!bodyEl || !titleEl) return; bodyEl.innerHTML = ''; if (contentNode) { try{ bodyEl.appendChild(contentNode); }catch(e){ try{ bodyEl.appendChild(contentNode.cloneNode(true)); }catch(e){} } } titleEl.textContent = titleText || ''; rightOpen(); };
-        window.__mobileRightDrawer.hide = rightClose;
-      }
-
-      // Create bottom-sheet element
-      if (!document.getElementById('mobile-sheet')){
-        const sheet = document.createElement('div');
-        sheet.id = 'mobile-sheet';
-        sheet.setAttribute('role','dialog');
-        sheet.setAttribute('aria-modal','true');
-        sheet.style.position = 'fixed';
-        sheet.style.left = '0'; sheet.style.right = '0'; sheet.style.bottom = '0';
-        sheet.style.height = 'calc(100vh - 72px)'; // allow peek area when fully open
-        sheet.style.maxHeight = '100vh';
-        sheet.style.background = '#fff';
-        sheet.style.zIndex = '4500';
-        sheet.style.borderTopLeftRadius = '12px';
-        sheet.style.borderTopRightRadius = '12px';
-        sheet.style.boxShadow = '0 -12px 40px rgba(16,24,40,0.2)';
-        sheet.style.transform = 'translateY(100%)';
-        sheet.style.transition = 'transform 220ms cubic-bezier(.2,.8,.2,1)';
-        sheet.style.overflow = 'auto';
-
-        // handle area
-        const handle = document.createElement('div');
-        handle.id = 'mobile-sheet-handle';
-        handle.style.height = '44px';
-        handle.style.display = 'flex';
-        handle.style.alignItems = 'center';
-        handle.style.justifyContent = 'space-between';
-        handle.style.padding = '8px 12px';
-        handle.style.cursor = 'grab';
-        handle.innerHTML = `<div style="width:36px;display:flex;align-items:center;justify-content:center"><div style=\"width:36px;height:4px;background:#e6e9ef;border-radius:4px;\"></div></div><strong id=\"mobile-sheet-title\" style=\"flex:1;text-align:left;margin-left:8px;\"></strong>`;
-
-        const closeBtn = document.createElement('button');
-        closeBtn.setAttribute('aria-label','Close');
-        closeBtn.textContent = 'Close';
-        closeBtn.style.marginLeft = '8px';
-        closeBtn.style.padding = '6px 10px';
-        closeBtn.style.borderRadius = '8px';
-        closeBtn.style.border = '1px solid #e6e9ef';
-        closeBtn.style.background = '#fff';
-        closeBtn.addEventListener('click', ()=> hideMobileSheet());
-        handle.appendChild(closeBtn);
-
-        sheet.appendChild(handle);
-
-        const body = document.createElement('div');
-        body.id = 'mobile-sheet-body';
-        body.style.padding = '12px';
-        sheet.appendChild(body);
-
-        document.body.appendChild(sheet);
-
-        // Drag-to-snap behavior
-        let startY = 0, currentY = 0, dragging = false, startTranslate = 0;
-        const sheetEl = sheet;
-        const backdrop = document.getElementById('mobile-backdrop');
-
-        const setTranslate = (ty) => { sheetEl.style.transform = `translateY(${ty}px)`; };
-
-        const pxToPercent = (px) => {
-          const h = window.innerHeight || document.documentElement.clientHeight;
-          return (px / h) * 100;
-        };
-
-        const openSheetTo = (percent) => {
-          // percent: 0 = top (fully open), 50 = half, 100 = closed
-          const h = window.innerHeight || document.documentElement.clientHeight;
-          const ty = Math.max(0, percent/100 * h);
-          sheetEl.style.transition = 'transform 220ms cubic-bezier(.2,.8,.2,1)';
-          setTranslate(ty);
-          if (backdrop){ backdrop.style.display = 'block'; requestAnimationFrame(()=> backdrop.style.opacity = '1'); }
-          sheetEl.style.display = 'block';
-          // ensure focus trap
-          trapFocus(sheetEl);
-          // hide mobile toolbar while sheet is open
-          try{ const tb = document.getElementById('mobile-toolbar'); if (tb) tb.style.visibility = 'hidden'; }catch(e){}
-        };
-
-        const restoreMovedNodes = () => {
-          try{
-            if (!window.__mobileSheet || !Array.isArray(window.__mobileSheet._moved)) return;
-            // pop in reverse order
-            while(window.__mobileSheet._moved.length){
-              const entry = window.__mobileSheet._moved.pop();
-              try{
-                if (entry && entry.node && entry.placeholder && entry.placeholder.parentNode){
-                  entry.placeholder.parentNode.insertBefore(entry.node, entry.placeholder);
-                  entry.placeholder.parentNode.removeChild(entry.placeholder);
-                }
-                // remove any empty container left behind in the sheet body
-                try{ if (entry && entry.container && entry.container.parentNode){ if (entry.container.childNodes.length === 0) entry.container.parentNode.removeChild(entry.container); } }catch(e){}
-              }catch(e){}
-            }
-          }catch(e){}
-        };
-
-        const closeSheet = () => {
-          sheetEl.style.transition = 'transform 220ms cubic-bezier(.2,.8,.2,1)';
-          setTranslate(window.innerHeight || document.documentElement.clientHeight);
-          if (backdrop){ backdrop.style.opacity = '0'; setTimeout(()=>{ if (backdrop) backdrop.style.display = 'none'; }, 220); }
-          setTimeout(()=>{ try{ sheetEl.style.display = 'none'; restoreFocus(); }catch(e){} }, 240);
-          releaseFocusTrap();
-          // restore any moved nodes back into the page
-          try{ restoreMovedNodes(); }catch(e){}
-          // restore mobile toolbar visibility after sheet closes (only on small screens)
-          try{ const tb = document.getElementById('mobile-toolbar'); if (tb){ const mq = window.matchMedia && window.matchMedia('(max-width:700px)'); if (mq && mq.matches) tb.style.visibility = 'visible'; else tb.style.visibility = 'hidden'; } }catch(e){}
-        };
-
-        function onPointerDown(e){
-          dragging = true;
-          startY = e.touches ? e.touches[0].clientY : e.clientY;
-          startTranslate = (sheetEl.getBoundingClientRect().top) || (window.innerHeight || document.documentElement.clientHeight);
-          sheetEl.style.transition = 'none';
-          handle.setPointerCapture && handle.setPointerCapture(e.pointerId);
-        }
-
-          pag = document.createElement('div');
-          pag.id = 'pagination';
-          pag.className = 'pagination';
-
-          // If only one page, show a compact '1 of 1' indicator
-          pagRoot.innerHTML = '';
-          if (pageCount <= 1) {
-            const ph = document.createElement('div');
-            ph.style.color = '#6b7280';
-            ph.style.paddingRight = '6px';
-            ph.textContent = '1 of 1';
-            pagRoot.appendChild(ph);
-            return;
-          }
-
-          // build new compact pagination with First / Prev / numbered (with ellipses) / Next / Last
-          const makeBtn = (text, title) => { const b = document.createElement('button'); b.textContent = text; if (title) b.title = title; b.style.padding = '6px 10px'; b.style.borderRadius = '6px'; b.style.border = '1px solid #d1d5db'; b.style.background = '#fff'; return b; };
-
-          const first = makeBtn('<<', 'First page');
-          const prev = makeBtn('<', 'Previous page');
-          const next = makeBtn('>', 'Next page');
-          const last = makeBtn('>>', 'Last page');
-
-          first.disabled = active === 1;
-          prev.disabled = active === 1;
-          next.disabled = active >= pageCount;
-          last.disabled = active >= pageCount;
-
-          first.addEventListener('click', ()=>{ if (currentPage !== 1){ currentPage = 1; renderPage(currentPage); window.scrollTo({top:0,behavior:'smooth'}); } });
-          prev.addEventListener('click', ()=>{ if (currentPage>1){ currentPage--; renderPage(currentPage); window.scrollTo({top:0,behavior:'smooth'}); } });
-          next.addEventListener('click', ()=>{ if (currentPage<pageCount){ currentPage++; renderPage(currentPage); window.scrollTo({top:0,behavior:'smooth'}); } });
-          last.addEventListener('click', ()=>{ if (currentPage !== pageCount){ currentPage = pageCount; renderPage(currentPage); window.scrollTo({top:0,behavior:'smooth'}); } });
-
-          // helper to create a numbered button
-          const makePageNumber = (i) => { const b = makeBtn(String(i)); if (i === active) b.classList.add('active'); b.addEventListener('click', ()=>{ if (currentPage !== i){ currentPage = i; renderPage(currentPage); window.scrollTo({top:0,behavior:'smooth'}); } }); return b; };
-
-          // build numeric range with ellipses when needed
-          const pageContainer = document.createElement('div');
-          pageContainer.style.display = 'flex';
-          pageContainer.style.alignItems = 'center';
-          pageContainer.style.gap = '6px';
-
-          // always show first and last, and a window around active
-          const windowSize = 5; // how many numbered buttons to show in the sliding window
-          let start = Math.max(1, active - Math.floor(windowSize/2));
-          let end = Math.min(pageCount, start + windowSize - 1);
-          if (end - start < windowSize - 1) start = Math.max(1, end - windowSize + 1);
-
-          if (start > 1){ pageContainer.appendChild(makePageNumber(1)); if (start > 2){ const ell = document.createElement('span'); ell.textContent = '…'; ell.style.color = '#6b7280'; pageContainer.appendChild(ell); } }
-          for (let i = start; i <= end; i++){ pageContainer.appendChild(makePageNumber(i)); }
-          if (end < pageCount){ if (end < pageCount - 1){ const ell = document.createElement('span'); ell.textContent = '…'; ell.style.color = '#6b7280'; pageContainer.appendChild(ell); } pageContainer.appendChild(makePageNumber(pageCount)); }
-
-          // goto input
-          const gotoWrap = document.createElement('div');
-          gotoWrap.style.display = 'flex'; gotoWrap.style.alignItems = 'center'; gotoWrap.style.gap = '8px';
-          const gotoLabel = document.createElement('span'); gotoLabel.style.color = '#6b7280'; gotoLabel.textContent = `${active} / ${pageCount}`;
-          const gotoInput = document.createElement('input'); gotoInput.type = 'number'; gotoInput.min = '1'; gotoInput.max = String(pageCount); gotoInput.value = String(active); gotoInput.style.width = '64px'; gotoInput.style.padding = '6px'; gotoInput.style.border = '1px solid #d1d5db'; gotoInput.style.borderRadius = '6px';
-          const gotoBtn = makeBtn('Go');
-          gotoBtn.addEventListener('click', ()=>{ const val = Number(gotoInput.value || 0); if (Number.isFinite(val) && val >= 1 && val <= pageCount){ currentPage = val; renderPage(currentPage); window.scrollTo({top:0,behavior:'smooth'}); } else { gotoInput.value = String(active); } });
-          gotoInput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') gotoBtn.click(); });
-          gotoWrap.appendChild(gotoLabel); gotoWrap.appendChild(gotoInput); gotoWrap.appendChild(gotoBtn);
-
-          // assemble top-level layout: left controls / center pages / right goto
-          const topRow = document.createElement('div'); topRow.style.display = 'flex'; topRow.style.alignItems = 'center'; topRow.style.justifyContent = 'space-between'; topRow.style.gap = '12px'; topRow.style.width = '100%';
-          const leftGroup = document.createElement('div'); leftGroup.style.display = 'flex'; leftGroup.style.alignItems = 'center'; leftGroup.style.gap = '6px'; leftGroup.appendChild(first); leftGroup.appendChild(prev);
-          const centerGroup = document.createElement('div'); centerGroup.style.display = 'flex'; centerGroup.style.alignItems = 'center'; centerGroup.appendChild(pageContainer);
-          const rightGroup = document.createElement('div'); rightGroup.style.display = 'flex'; rightGroup.style.alignItems = 'center'; rightGroup.appendChild(next); rightGroup.appendChild(last);
-
-          topRow.appendChild(leftGroup); topRow.appendChild(centerGroup); topRow.appendChild(rightGroup);
-
-          // place everything into pagRoot
-          pagRoot.appendChild(topRow);
-          // show goto under the top row, aligned to the right
-          const gotoRow = document.createElement('div'); gotoRow.style.display = 'flex'; gotoRow.style.justifyContent = 'flex-end'; gotoRow.style.marginTop = '8px'; gotoRow.appendChild(gotoWrap);
-          pagRoot.appendChild(gotoRow);
-              // If the contentNode contains an element that has been moved (e.g., .filters or .composer-box), it will be appended already.
-              body.appendChild(contentNode);
-            }catch(e){
-              try{ body.appendChild(contentNode.cloneNode(true)); }catch(e){}
-            }
-          }
-          titleEl.textContent = title || '';
-          // display
-          const h = window.innerHeight || document.documentElement.clientHeight;
-          // default: Filters -> half, Composer -> full
-          const initial = (String(title||'').toLowerCase().includes('filter')) ? 50 : 8; // 8% from top -> nearly full
-          sheetEl.style.display = 'block';
-          if (backdrop){ backdrop.style.display = 'block'; requestAnimationFrame(()=> backdrop.style.opacity = '1'); }
-          // open to chosen snap after a frame
-          requestAnimationFrame(()=>{ sheetEl.style.transition = 'transform 260ms cubic-bezier(.2,.8,.2,1)'; setTranslate(initial/100 * h); trapFocus(sheetEl); try{ const tb = document.getElementById('mobile-toolbar'); if (tb) tb.style.visibility = 'hidden'; }catch(e){} });
-        };
-        window.__mobileSheet.hide = closeSheet;
-      }
-
-      // toolbar with two actions
-      if (!document.getElementById('mobile-toolbar')){
-        const tb = document.createElement('div');
-        tb.id = 'mobile-toolbar';
-        tb.setAttribute('role','toolbar');
-        tb.setAttribute('aria-label','Composer actions');
-        tb.style.position = 'fixed'; tb.style.left='0'; tb.style.right='0'; tb.style.height='56px'; tb.style.display='none';
-        // put toolbar above the site's fixed footer but allow the sheet/backdrop to cover it when open
-        tb.style.zIndex='4300';
-        tb.style.background = 'linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.98))'; tb.style.boxShadow='0 -6px 18px rgba(11,10,10,0.08)'; tb.style.display='flex'; tb.style.alignItems='center'; tb.style.justifyContent='center'; tb.style.gap='12px';
-  const btnFilters = document.createElement('button'); btnFilters.id='mobile-open-filters'; btnFilters.setAttribute('aria-label','Open filters'); btnFilters.setAttribute('aria-expanded','false'); btnFilters.className='mobile-toolbar-btn'; btnFilters.style.padding='10px 14px'; btnFilters.style.borderRadius='8px'; btnFilters.style.border='1px solid #d1d5db'; btnFilters.style.background='#fff'; btnFilters.style.display='flex'; btnFilters.style.alignItems='center'; btnFilters.style.gap='8px'; btnFilters.style.paddingBottom = 'calc(env(safe-area-inset-bottom, 0px) + 6px)';
-        const btnLinks = document.createElement('button'); btnLinks.id='mobile-open-links'; btnLinks.setAttribute('aria-label','Open links'); btnLinks.className='mobile-toolbar-btn'; btnLinks.style.display='flex'; btnLinks.style.flexDirection='column'; btnLinks.style.alignItems='center'; btnLinks.style.justifyContent='center'; btnLinks.style.width='48px'; btnLinks.style.height='48px'; btnLinks.style.border='none'; btnLinks.style.background='transparent'; btnLinks.style.padding='6px';
-        // center three-bar handle: equal length, thicker, rounded, gray; bars only a few pixels apart
-        btnLinks.style.gap = '2px';
-        btnLinks.style.touchAction = 'none'; // allow dragging
-        btnLinks.innerHTML = `
-          <span class="mobile-handle-bar" style="display:block;width:28px;height:5px;background:#9ca3af;border-radius:6px;margin:1px 0;"></span>
-          <span class="mobile-handle-bar" style="display:block;width:28px;height:5px;background:#9ca3af;border-radius:6px;margin:1px 0;"></span>
-          <span class="mobile-handle-bar" style="display:block;width:28px;height:5px;background:#9ca3af;border-radius:6px;margin:1px 0;"></span>
-        `;
-
-        // Drag-to-open: support pointer and touch. If user drags upward beyond threshold, open the links sheet.
-        (function(){
-          let active = false; let startY = 0; let moved = false; const THRESH = 22; // px upward to trigger
-          let sheetEl = null; let backdropEl = null; let winH = 0;
-          function ensureSheetElements(){ sheetEl = document.getElementById('mobile-sheet'); backdropEl = document.getElementById('mobile-backdrop'); winH = window.innerHeight || document.documentElement.clientHeight; }
-          function onPointerDown(e){
-            active = true; moved = false; startY = (e.touches ? e.touches[0].clientY : e.clientY);
-            try{ if (e.pointerId) btnLinks.setPointerCapture && btnLinks.setPointerCapture(e.pointerId); }catch(e){}
-            ensureSheetElements();
-            // prepare peek: display sheet and backdrop without full open
-            try{
-              if (sheetEl){ sheetEl.style.transition = 'none'; sheetEl.style.display = 'block'; }
-              if (backdropEl){ backdropEl.style.display = 'block'; backdropEl.style.opacity = '0'; }
-            }catch(e){}
-          }
-          function onPointerMove(e){
-            if (!active) return;
-            const y = (e.touches ? e.touches[0].clientY : e.clientY);
-            const dy = startY - y; // positive when dragging upward
-            if (dy > 2) moved = true;
-            // update sheet position to follow finger (peek) with easing so it doesn't fully track the finger
-            try{
-              if (sheetEl && backdropEl){
-                const h = winH || (window.innerHeight || document.documentElement.clientHeight);
-                // scale drag into a normalized 0..1 range (use half the viewport as the 'full' gesture)
-                const norm = Math.max(0, Math.min(1, (Math.max(0, dy) / (h * 0.5))));
-                // apply an easing (power < 1 makes initial movement slower, more resistance)
-                const eased = Math.pow(norm, 0.6);
-                const ty = Math.round(h - eased * h);
-                sheetEl.style.transform = `translateY(${ty}px)`;
-                const pct = Math.max(0, Math.min(1, eased));
-                backdropEl.style.opacity = String(pct * 0.9);
-              }
-            }catch(e){}
-            if (dy > THRESH){
-              // trigger full open
-              active = false;
-              try{ if (e.pointerId) btnLinks.releasePointerCapture && btnLinks.releasePointerCapture(e.pointerId); }catch(e){}
-              // simulate click: build links wrapper and fully open using existing API
-              const wrap = document.createElement('div');
-              wrap.style.display = 'flex'; wrap.style.flexDirection = 'column'; wrap.style.gap = '12px';
-              const a1 = document.createElement('a'); a1.href = '/about'; a1.textContent = 'About'; a1.className = 'composer-link'; a1.style.fontSize='1rem'; a1.style.display='block';
-              const a2 = document.createElement('a'); a2.href = '#'; a2.textContent = 'Contact'; a2.className = 'composer-link'; a2.style.fontSize='1rem'; a2.style.display='block';
-              const a3 = document.createElement('a'); a3.href = '/sources'; a3.textContent = 'Sources'; a3.className = 'composer-link'; a3.style.fontSize='1rem'; a3.style.display='block';
-              wrap.appendChild(a1); wrap.appendChild(a2); wrap.appendChild(a3);
-              window.__mobileSheet && window.__mobileSheet.show('Links', wrap);
-            }
-          }
-          function onPointerUp(e){
-            if (active && moved){
-              // if we were peeking but didn't pass threshold, animate closed
-              try{
-                ensureSheetElements();
-                if (sheetEl){ sheetEl.style.transition = 'transform 200ms ease'; sheetEl.style.transform = `translateY(${window.innerHeight || document.documentElement.clientHeight}px)`; }
-                if (backdropEl){ backdropEl.style.transition = 'opacity 160ms ease'; backdropEl.style.opacity = '0'; setTimeout(()=>{ try{ if (backdropEl) backdropEl.style.display='none'; if (sheetEl) sheetEl.style.display='none'; }catch(e){} }, 220); }
-              }catch(e){}
-            }
-            active = false; moved = false;
-            try{ if (e.pointerId) btnLinks.releasePointerCapture && btnLinks.releasePointerCapture(e.pointerId); }catch(e){}
-          }
-          btnLinks.addEventListener('pointerdown', onPointerDown, { passive: true });
-          window.addEventListener('pointermove', onPointerMove, { passive: true });
-          window.addEventListener('pointerup', onPointerUp);
-          // touch fallback
-          btnLinks.addEventListener('touchstart', onPointerDown, { passive: true });
-          window.addEventListener('touchmove', onPointerMove, { passive: true });
-          window.addEventListener('touchend', onPointerUp);
-        })();
-  const btnComposer = document.createElement('button'); btnComposer.id='mobile-open-composer'; btnComposer.setAttribute('aria-label','Open composer details'); btnComposer.setAttribute('aria-expanded','false'); btnComposer.className='mobile-toolbar-btn'; btnComposer.style.padding='10px 14px'; btnComposer.style.borderRadius='8px'; btnComposer.style.border='1px solid #d1d5db'; btnComposer.style.background='#fff'; btnComposer.style.display='flex'; btnComposer.style.alignItems='center'; btnComposer.style.gap='8px'; btnComposer.style.paddingBottom = 'calc(env(safe-area-inset-bottom, 0px) + 6px)';
-        // add icons + labels
-        btnFilters.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M10 18h4v-2h-4v2zM4 6v2h16V6H4zm3 6h10v-2H7v2z" fill="#8b0000"/></svg><span>Filters</span>`;
-        btnComposer.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" fill="#8b0000"/></svg><span>Composer</span>`;
-  // layout toolbar into left/center/right zones
-  const leftWrap = document.createElement('div'); leftWrap.style.display='flex'; leftWrap.style.alignItems='center'; leftWrap.appendChild(btnFilters);
-  const centerWrap = document.createElement('div'); centerWrap.style.display='flex'; centerWrap.style.flex='1'; centerWrap.style.justifyContent='center'; centerWrap.appendChild(btnLinks);
-  const rightWrap = document.createElement('div'); rightWrap.style.display='flex'; rightWrap.style.alignItems='center'; rightWrap.appendChild(btnComposer);
-  tb.appendChild(leftWrap); tb.appendChild(centerWrap); tb.appendChild(rightWrap); document.body.appendChild(tb);
-
-        // Inject CSS to sturdily enforce fixed-bottom behavior on mobile and hide on desktop.
-        if (!document.getElementById('mobile-toolbar-styles')){
-          const s = document.createElement('style');
-          s.id = 'mobile-toolbar-styles';
-          s.type = 'text/css';
-          s.appendChild(document.createTextNode(`
-            /* mobile toolbar: fixed to viewport bottom on small screens */
-            @media (max-width:700px){
-              #mobile-toolbar{ position: fixed !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100% !important; box-sizing: border-box !important; z-index: 99999 !important; display: flex !important; justify-content: space-between !important; padding: 6px 12px calc(env(safe-area-inset-bottom, 0px) + 6px) !important; background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(255,255,255,0.98)) !important; }
-              #mobile-toolbar .mobile-toolbar-btn { margin-right: 10px !important; }
-              #mobile-toolbar > div { display: flex; align-items: center; }
-              #mobile-toolbar > div:nth-child(2) { justify-content: center; }
-            }
-            /* hide toolbar on larger screens */
-            @media (min-width:701px){
-              #mobile-toolbar{ display: none !important; visibility: hidden !important; }
-            }
-            /* composer button fade-in */
-            #mobile-open-composer.composer-fade-in{ opacity: 0; transform: translateY(6px); animation: composerFadeIn 280ms ease forwards; }
-            @keyframes composerFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-            #mobile-open-composer.composer-btn-hidden{ opacity: 0 !important; pointer-events: none; transform: translateY(6px); }
-          `));
-          document.head.appendChild(s);
-        }
-
-        // Filters button handler remains (moves filters into left drawer)
-        btnFilters.addEventListener('click', ()=>{
-          const wrap = document.createElement('div');
-          // Prefer moving the real Filters aside into the sheet on mobile so event listeners and state are preserved.
-          const filtersAside = document.querySelector('.filters');
-          if (filtersAside && filtersAside.parentNode){
-            // create a lightweight placeholder so we can restore later
-            const placeholder = document.createElement('div');
-            placeholder.setAttribute('data-mobile-placeholder', 'filters');
-            filtersAside.parentNode.insertBefore(placeholder, filtersAside);
-            // move the aside into our wrapper
-            wrap.appendChild(filtersAside);
-            // record moved into the left-drawer store (create if needed)
-            window.__mobileLeftDrawer = window.__mobileLeftDrawer || {};
-            window.__mobileLeftDrawer._moved = window.__mobileLeftDrawer._moved || [];
-            window.__mobileLeftDrawer._moved.push({ node: filtersAside, placeholder: placeholder, container: wrap });
-          } else {
-            // fallback: clone individual filter containers
-            const fc = document.getElementById('filter-country'); const fd = document.getElementById('filter-decade'); const ft = document.getElementById('filter-type');
-            if (fc) wrap.appendChild(fc.cloneNode(true)); if (fd) wrap.appendChild(fd.cloneNode(true)); if (ft) wrap.appendChild(ft.cloneNode(true));
-          }
-          // prefer showing in the left drawer when available
-          if (window.__mobileLeftDrawer && typeof window.__mobileLeftDrawer.show === 'function') window.__mobileLeftDrawer.show('Filters', wrap);
-          else window.__mobileSheet && window.__mobileSheet.show('Filters', wrap);
-        });
-        btnFilters.addEventListener('keydown', (ev)=>{ if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); btnFilters.click(); } });
-
-        // Links center handle: open bottom sheet showing About/Contact/Sources
-        btnLinks.addEventListener('click', ()=>{
-          const wrap = document.createElement('div');
-          wrap.style.display = 'flex'; wrap.style.flexDirection = 'column'; wrap.style.gap = '12px';
-          const a1 = document.createElement('a'); a1.href = '/about'; a1.textContent = 'About'; a1.className = 'composer-link'; a1.style.fontSize='1rem'; a1.style.display='block';
-          const a2 = document.createElement('a'); a2.href = '#'; a2.textContent = 'Contact'; a2.className = 'composer-link'; a2.style.fontSize='1rem'; a2.style.display='block';
-          const a3 = document.createElement('a'); a3.href = '/sources'; a3.textContent = 'Sources'; a3.className = 'composer-link'; a3.style.fontSize='1rem'; a3.style.display='block';
-          wrap.appendChild(a1); wrap.appendChild(a2); wrap.appendChild(a3);
-          // show using bottom sheet so drag-to-snap still works
-          window.__mobileSheet && window.__mobileSheet.show('Links', wrap);
-        });
-        btnLinks.addEventListener('keydown', (ev)=>{ if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); btnLinks.click(); } });
-
-        // Composer button remains on right but deploys into the left drawer (so it slides in from left)
-        // hide by default until a composer is selected; we'll toggle a fade-in class when visible
-        btnComposer.setAttribute('aria-hidden','true');
-        btnComposer.classList.add('composer-btn-hidden');
-        btnComposer.addEventListener('click', ()=>{
-          console.debug('[DEBUG] mobile composer button clicked, selectedComposer=', selectedComposer);
-          // When opening composer on mobile, clone the composer content into the right drawer body
-          const wrap = document.createElement('div');
-          const cb = document.getElementById('composer-content');
-          if (cb){
-            // clone to avoid moving the desktop node out of place
-            wrap.appendChild(cb.cloneNode(true));
-          } else {
-            // fallback: copy the .composer-box if present
-            const ca = document.querySelector('.composer-box'); if (ca) wrap.appendChild(ca.cloneNode(true));
-          }
-          if (window.__mobileRightDrawer && typeof window.__mobileRightDrawer.show === 'function') window.__mobileRightDrawer.show('Composer', wrap);
-          else if (window.__mobileLeftDrawer && typeof window.__mobileLeftDrawer.show === 'function') window.__mobileLeftDrawer.show('Composer', wrap);
-          else window.__mobileSheet && window.__mobileSheet.show('Composer', wrap);
-        });
-        btnComposer.addEventListener('keydown', (ev)=>{ if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); btnComposer.click(); } });
-      }
-
-  // Show the toolbar only on small screens (mobile). Keep it fixed to the viewport bottom.
-  const toolbar = document.getElementById('mobile-toolbar');
-  const mql = window.matchMedia && window.matchMedia('(max-width:700px)');
-  const applyToolbar = ()=>{
-    try{
-      if (!toolbar) return;
-      // Ensure core fixed-bottom styles
-      toolbar.style.position = 'fixed';
-      toolbar.style.left = '0';
-      toolbar.style.right = '0';
-      toolbar.style.bottom = '0';
-      toolbar.style.width = '100%';
-      toolbar.style.justifyContent = 'flex-start';
-      toolbar.style.paddingLeft = '12px';
-      toolbar.style.paddingBottom = 'calc(env(safe-area-inset-bottom, 0px) + 6px)';
-      if (mql && mql.matches){ toolbar.style.display = 'flex'; toolbar.style.visibility = 'visible'; }
-      else { toolbar.style.display = 'none'; toolbar.style.visibility = 'hidden'; }
-    }catch(e){}
-  };
-  applyToolbar();
-  if (mql && (mql.addEventListener || mql.addListener)){
-    const handler = applyToolbar;
-    if (mql.addEventListener) mql.addEventListener('change', handler); else mql.addListener(handler);
-  }
-  // Enforce fixed-bottom behavior: sometimes other scripts/styles can move the element
-  // shortly after creation; this helper re-applies core fixed styles and watches for mutations.
-  try{
-    const enforceToolbarFix = () => {
-      try{
-        if (!toolbar) return;
-        const mq = window.matchMedia && window.matchMedia('(max-width:700px)');
-        if (mq && mq.matches){
-          toolbar.style.position = 'fixed';
-          toolbar.style.left = '0';
-          toolbar.style.right = '0';
-          toolbar.style.bottom = '0';
-          toolbar.style.top = 'auto';
-          toolbar.style.width = '100%';
-          toolbar.style.transform = 'none';
-          toolbar.style.margin = '0';
-          toolbar.style.zIndex = '99999';
-          toolbar.style.display = 'flex';
-          toolbar.style.visibility = 'visible';
-        }
-      }catch(e){}
-    };
-    // run a few times after init to counteract race conditions
-    enforceToolbarFix();
-    setTimeout(enforceToolbarFix, 80);
-    setTimeout(enforceToolbarFix, 400);
-
-    // reapply on scroll/resizes
-    window.addEventListener('scroll', enforceToolbarFix, { passive: true });
-    window.addEventListener('resize', enforceToolbarFix);
-
-    // MutationObserver to catch inline-style overrides and restore fixed positioning
-    if (window.MutationObserver && toolbar){
-      const mo = new MutationObserver((records)=>{ try{ enforceToolbarFix(); }catch(e){} });
-      mo.observe(toolbar, { attributes: true, attributeFilter: ['style', 'class'] });
-      // stop observing after a short time to avoid long-running observers
-      setTimeout(()=> mo.disconnect(), 5000);
-    }
-  }catch(e){}
-    }catch(e){ /* ignore mobile UI errors */ }
-  }
-
-  // Create global Clear buttons so other init code can reference them safely
-  function createClearAll(){
-    const clearBtn = document.createElement('button');
-    clearBtn.textContent = 'Clear all filters';
-    clearBtn.style.padding = '6px 10px';
-    clearBtn.style.borderRadius = '6px';
-    clearBtn.style.border = '1px solid #d1d5db';
-    clearBtn.style.background = '#fff';
-    clearBtn.addEventListener('click', ()=>{ try{ clearAllFilters(); }catch(e){} });
-    return clearBtn;
-  }
- 
-
   function escapeHtml(str){ if (str == null) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
-  // Client-side GViz fetch fallback for public spreadsheets.
   async function gvizFetch(sheetName, range = 'A1:Z1000'){
     try{
-      const id = '1UiK8QDq98C-9wCpQjdQAVpSdH8mZkpxYgMMEHM3uaGk'; // same spreadsheet id as server
+      const id = '1UiK8QDq98C-9wCpQjdQAVpSdH8mZkpxYgMMEHM3uaGk';
       const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&range=${encodeURIComponent(range)}`;
       const txt = await (await fetch(url)).text();
       const m = txt.match(/google\.visualization\.Query\.setResponse\((.*)\);?/s);
@@ -1037,37 +64,28 @@
     }catch(_){ return null; }
   }
 
-  // pagination state
-  const PAGE_SIZE = 25;
-  let currentPage = 1;
-  let lastFiltered = [];
-  let selectedComposer = '';
-  let selectedPieceIndex = null;
-  let selectedPieceFilter = null;
-  // remember the last filter the user changed so "Return to search" can drop it
-  let lastAppliedFilter = null; // { kind: 'country'|'decade'|'type', value: '<data-val string>' }
-  // live update state
-  let lastRowsJson = null;
-  const POLL_INTERVAL = 30000; // 30s
-  let liveTimer = null;
+  // state
+  window.PAGE_SIZE = 25;
+  window.currentPage = 1;
+  window.lastFiltered = [];
+  window.selectedComposer = '';
+  window.lastAppliedFilter = null;
+  window.lastRowsJson = null;
+  window.POLL_INTERVAL = 30000;
+  window.liveTimer = null;
 
-  // populate country checkboxes from translations (canonical EN list + localized labels)
-  async function populateCountryCheckboxes(){
+  window.populateCountryCheckboxes = async function(){
     const container = document.getElementById('filter-country');
     if (!container) return;
-    // fallback canonical list
     const fallbackCountries = ['Russia','Ukraine','Belarus','Armenia','Georgia','Latvia','Estonia','Lithuania','Kazakhstan','Uzbekistan','Other'];
     try{
       const res = await fetch('/i18n/translations.json');
       const json = await res.json();
       const en = json && json.en ? json.en : null;
       const canonical = en && en.countries ? en.countries : fallbackCountries;
-      // determine locale for localized labels
       const locale = (function(){ try{ return localStorage.getItem('locale') || 'en'; }catch(e){ return 'en'; } })();
       const localized = (json && json[locale] && json[locale].countries) ? json[locale].countries : canonical;
-      // build title + checkbox list; controls will be placed at the bottom
-  container.innerHTML = '';
-      // build checkbox list
+      container.innerHTML = '';
       for (let i=0;i<canonical.length;i++){
         const val = canonical[i];
         const lab = (localized && localized[i]) ? localized[i] : val;
@@ -1076,34 +94,25 @@
         wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" /> ${lab}</label>`;
         container.appendChild(wrapper);
       }
-      // build controls (Select All / Clear) placed at bottom
       const controls = document.createElement('div');
       controls.style.marginTop = '8px';
       controls.innerHTML = `<button id="country-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="country-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`;
       container.appendChild(controls);
-    // attach change handler to all checkboxes
-  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); lastAppliedFilter = { kind: 'country', value: val }; }catch(_){} selectedComposer = ''; try{ updateComposerBtnVisibility(); }catch(e){} currentPage = 1; loadResults(); }));
-      // wire select all / clear
+  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); window.lastAppliedFilter = { kind: 'country', value: val }; }catch(_){} window.currentPage = 1; window.loadResults(); }));
       const selAll = document.getElementById('country-select-all');
       const clr = document.getElementById('country-clear');
-  if (selAll) selAll.addEventListener('click', ()=>{ lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
-  if (clr) clr.addEventListener('click', ()=>{ lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
+  if (selAll) selAll.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); window.currentPage = 1; window.loadResults(); });
+  if (clr) clr.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); window.currentPage = 1; window.loadResults(); });
     }catch(e){
-      // fallback: render simple list + controls
-  container.innerHTML = fallbackCountries.map((c,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(c)}" id="country_cb_f${i}" /> ${c}</label>`).join('');
-  const controlsWrap = document.createElement('div');
-  controlsWrap.style.marginTop = '8px';
-  controlsWrap.innerHTML = `<button id="country-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="country-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`;
-  container.appendChild(controlsWrap);
-  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); lastAppliedFilter = { kind: 'decade', value: val }; }catch(_){} selectedComposer = ''; try{ updateComposerBtnVisibility(); }catch(e){} currentPage = 1; loadResults(); }));
-      const selAll = document.getElementById('country-select-all');
-      const clr = document.getElementById('country-clear');
-  if (selAll) selAll.addEventListener('click', ()=>{ lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
-  if (clr) clr.addEventListener('click', ()=>{ lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
+      container.innerHTML = fallbackCountries.map((c,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(c)}" id="country_cb_f${i}" /> ${c}</label>`).join('');
+      const controlsWrap = document.createElement('div');
+      controlsWrap.style.marginTop = '8px';
+      controlsWrap.innerHTML = `<button id="country-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="country-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`;
+      container.appendChild(controlsWrap);
+  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); window.lastAppliedFilter = { kind: 'decade', value: val }; }catch(_){} window.currentPage = 1; window.loadResults(); }));
     }
-  }
+  };
 
-  // populate decades checkboxes from translations
   async function populateDecadeCheckboxes(){
     const container = document.getElementById('filter-decade');
     if (!container) return;
@@ -1115,9 +124,8 @@
       const canonical = en && en.decades ? en.decades : fallbackDecades;
       const locale = (function(){ try{ return localStorage.getItem('locale') || 'en'; }catch(e){ return 'en'; } })();
       const localized = (json && json[locale] && json[locale].decades) ? json[locale].decades : canonical;
-  // checkbox list; the section header is rendered server-side (maroon .section-header),
-  // so we avoid injecting a duplicate title here.
-  container.innerHTML = '';
+      container.innerHTML = '';
+      const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Decade'; container.appendChild(title);
       for (let i=0;i<canonical.length;i++){
         const val = canonical[i];
         const lab = (localized && localized[i]) ? localized[i] : val;
@@ -1127,36 +135,35 @@
         container.appendChild(wrapper);
       }
       const controls = document.createElement('div'); controls.style.marginTop = '8px'; controls.innerHTML = `<button id="decade-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="decade-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controls);
-  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ selectedComposer = ''; try{ updateComposerBtnVisibility(); }catch(e){} currentPage = 1; loadResults(); }));
+      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
       const selAll = document.getElementById('decade-select-all');
       const clr = document.getElementById('decade-clear');
-      if (selAll) selAll.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
-      if (clr) clr.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
+  if (selAll) selAll.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); window.currentPage = 1; window.loadResults(); });
+  if (clr) clr.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); window.currentPage = 1; window.loadResults(); });
     }catch(e){
-  // fallback checkbox list (no duplicated title)
-  container.innerHTML = '';
+      container.innerHTML = '';
+      const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Decade'; container.appendChild(title);
       container.innerHTML += fallbackDecades.map((d,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(d)}" id="decade_cb_f${i}" /> ${d}</label>`).join('');
       const controlsWrap = document.createElement('div'); controlsWrap.style.marginTop = '8px'; controlsWrap.innerHTML = `<button id="decade-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="decade-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controlsWrap);
-      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ currentPage = 1; loadResults(); }));
+      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
     }
   }
+  window.populateDecadeCheckboxes = populateDecadeCheckboxes;
 
-  // populate type-of-piece checkboxes by deriving unique types from the sheets if translations do not provide them
   async function populateTypeCheckboxes(){
     const container = document.getElementById('filter-type');
     if (!container) return;
     container.innerHTML = '';
     try{
-      // try translations first
       const resT = await fetch('/i18n/translations.json');
       const jsonT = await resT.json();
       const en = jsonT && jsonT.en ? jsonT.en : null;
       const canonicalTypes = en && en.types ? en.types : null;
       if (canonicalTypes && canonicalTypes.length){
-        const localized = (jsonT && jsonT[(localStorage.getItem('locale')||'en')] && jsonT[(localStorage.getItem('locale')||'en')].types) ? jsonT[(localStorage.getItem('locale')||'en')].types : canonicalTypes;
-  // title + checkboxes, controls at bottom
-  // note: the visible section header is provided in the HTML as an h4.section-header
-  container.innerHTML = '';
+        const locale = (function(){ try{ return localStorage.getItem('locale') || 'en'; }catch(e){ return 'en'; } })();
+        const localized = (jsonT && jsonT[locale] && jsonT[locale].types) ? jsonT[locale].types : canonicalTypes;
+        container.innerHTML = '';
+        const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Type of piece'; container.appendChild(title);
         canonicalTypes.forEach((val,i)=>{
           const lab = localized && localized[i] ? localized[i] : val;
           const id = 'type_cb_' + i;
@@ -1165,36 +172,21 @@
           container.appendChild(wrapper);
         });
         const controls = document.createElement('div'); controls.style.marginTop = '8px'; controls.innerHTML = `<button id="type-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="type-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controls);
-  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); lastAppliedFilter = { kind: 'type', value: val }; }catch(_){} currentPage = 1; loadResults(); }));
+  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); window.lastAppliedFilter = { kind: 'type', value: val }; }catch(_){} window.currentPage = 1; window.loadResults(); }));
         const selAll = document.getElementById('type-select-all');
         const clr = document.getElementById('type-clear');
-  if (selAll) selAll.addEventListener('click', ()=>{ lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
-  if (clr) clr.addEventListener('click', ()=>{ lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
+        if (selAll) selAll.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); window.currentPage = 1; window.loadResults(); });
+        if (clr) clr.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); window.currentPage = 1; window.loadResults(); });
         return;
       }
-      // otherwise derive types from the sheets
-  const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
-  const raw = await res.json().catch(()=>null);
-  const rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
+      const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
+      const raw = await res.json().catch(()=>null);
+      const rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
       const set = new Set();
-      rows.forEach(r => {
-        // Prefer explicit type fields, but also check for single-letter column P or variants
-        let t = r.Type || r.type || r['Type of piece'] || r['Type'] || '';
-        if (!t) {
-          // common single-letter header for the sheet-export
-          if (r.P !== undefined && r.P !== null && String(r.P).trim() !== '') t = r.P;
-          else if (r['P'] !== undefined && r['P'] !== null && String(r['P']).trim() !== '') t = r['P'];
-          else if (r.colP !== undefined && r.colP !== null && String(r.colP).trim() !== '') t = r.colP;
-        }
-        // fallbacks for labelled columns that may contain the type
-        if (!t) {
-          t = r['Label'] || r['label'] || r['Piece Type'] || r['Type of Piece'] || '';
-        }
-        if (t) set.add(String(t).trim());
-      });
+      (rows || []).forEach(r => { const t = r.Type || r.type || r['Type of piece'] || r['Type'] || ''; if (t) set.add(String(t).trim()); });
       const list = Array.from(set).sort();
-  // dynamically-generated type list (no duplicated title) 
-  container.innerHTML = '';
+      container.innerHTML = '';
+      const titleDyn = document.createElement('div'); titleDyn.className = 'list-title'; titleDyn.textContent = 'Type of piece'; container.appendChild(titleDyn);
       const controls = document.createElement('div'); controls.style.marginTop = '8px'; controls.innerHTML = `<button id="type-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="type-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controls);
       list.forEach((val,i)=>{
         const id = 'type_cb_dyn_' + i;
@@ -1202,841 +194,277 @@
         wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" /> ${val}</label>`;
         container.appendChild(wrapper);
       });
-      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ currentPage = 1; loadResults(); }));
+      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
       const selAll = document.getElementById('type-select-all');
       const clr = document.getElementById('type-clear');
-      if (selAll) selAll.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
-      if (clr) clr.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
-    }catch(e){
-      // best-effort fallback
-      container.innerHTML = '';
-    }
+  if (selAll) selAll.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); window.currentPage = 1; window.loadResults(); });
+  if (clr) clr.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); window.currentPage = 1; window.loadResults(); });
+    }catch(e){ container.innerHTML = ''; }
   }
+  window.populateTypeCheckboxes = populateTypeCheckboxes;
 
   function renderPage(page){
     const container = document.getElementById('results-list');
+    if (!container) return;
     container.innerHTML = '';
-    const start = (page - 1) * PAGE_SIZE;
-    const pageItems = lastFiltered.slice(start, start + PAGE_SIZE);
+    const start = (page - 1) * window.PAGE_SIZE;
+    const pageItems = (window.lastFiltered || []).slice(start, start + window.PAGE_SIZE);
     if (!pageItems.length) { container.innerHTML = '<div class="result-item">No results</div>'; return; }
     pageItems.forEach(r =>{
       const div = document.createElement('div');
       div.className = 'result-item';
-      const title = (r.Title || r.Compositions || 'Untitled');
-      const author = r['Composer'] || r.Composer || 'Unknown';
-      const published = r.Year || r.Published || r.Decade || '';
-      // remove snippet/source (column J) from display per request
-      const snippet = '';
-  // title and composer name are clickable
-  const composerEsc = escapeHtml(author);
-  const composerData = encodeURIComponent(String(author || ''));
-  const globalIndex = lastFiltered.indexOf(r);
-  div.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;"><h2 style="margin:0"><a href="#" class="piece-link" data-idx="${globalIndex}">${escapeHtml(title)}</a></h2><div class="result-right" data-idx="${globalIndex}" style="color:#6b7280;font-size:0.9rem;margin-left:12px;white-space:nowrap;cursor:pointer">Details</div></div><p><strong>Composer:</strong> <a href="#" class="composer-link" data-name="${composerData}">${composerEsc}</a></p><p><strong>Published:</strong> ${escapeHtml(published)}</p>`;
+      const title = (r.Title || r.Compositions || r.title || 'Untitled');
+      const author = r['Composer'] || r.Composer || r.composer || 'Unknown';
+      const published = r.Year || r.Published || r.Decade || r.year || '';
+      const composerEsc = escapeHtml(author);
+      const composerData = encodeURIComponent(String(author || ''));
+      div.innerHTML = `<h2>${escapeHtml(title)}</h2><p><strong>Composer:</strong> <a href="#" class="composer-link" data-name="${composerData}">${composerEsc}</a></p><p><strong>Published:</strong> ${escapeHtml(published)}</p>`;
       container.appendChild(div);
-      // attach click handler for composer link
       const link = div.querySelector('.composer-link');
       if (link){
         link.addEventListener('click', (e)=>{
           e.preventDefault();
           const name = decodeURIComponent(link.dataset.name || '');
-          console.debug('[DEBUG] composer link clicked, name=', name);
-          // populate composer box and set filter
-          // when a composer is clicked, show all results for that composer (clear any piece filter)
-          selectedPieceFilter = null;
-          selectedPieceIndex = null;
-          selectedComposer = name || '';
+          window.selectedComposer = name || '';
           populateComposerBox(name, r);
-          try{
-            // push a history entry so the URL reflects the selected composer
-            const st = buildStateFromUI(); st.selectedComposer = String(selectedComposer || ''); st.scrollY = Math.max(0, Math.floor(window.scrollY || 0));
-            const p = paramsFromState(st);
-            const url = window.location.pathname + (p.toString() ? ('?' + p.toString()) : '');
-            history.pushState(st, '', url);
-          }catch(e){ /* non-fatal */ }
-          try{ updateComposerBtnVisibility(); }catch(e){}
-          currentPage = 1;
-          loadResults();
+          window.currentPage = 1;
+          window.loadResults();
         });
       }
-      // enforce link styles and divider inline so client sees updates immediately
-      try{
-        // composer link style
-  if (link) { link.style.color = 'var(--accent)'; link.style.textDecoration = 'none'; link.style.fontWeight = '700'; }
-  const tlink = div.querySelector('.piece-link');
-  if (tlink) { tlink.style.color = '#000'; tlink.style.textDecoration = 'none'; tlink.style.fontWeight = '700'; }
-        // ensure the divider is visible
-        div.style.borderBottom = '1px solid #d1d5db';
-      }catch(e){ /* ignore */ }
-      // attach click handler for piece title
-      const tlink = div.querySelector('.piece-link');
-      if (tlink){
-        tlink.addEventListener('click', (e)=>{
-          e.preventDefault();
-          const idx = Number(tlink.dataset.idx);
-          if (!Number.isFinite(idx) || idx < 0 || idx >= lastFiltered.length) return;
-          const rowObj = lastFiltered[idx];
-          const comp = rowObj['Composer'] || rowObj.Composer || '';
-          selectedComposer = String(comp || '');
-          try{ updateComposerBtnVisibility(); }catch(e){}
-          populateComposerBox(selectedComposer, rowObj);
-          // set piece filter and reload results so page shows only that piece
-          selectedPieceFilter = String(rowObj.Title || rowObj.Compositions || rowObj['Title'] || rowObj['Compositions'] || '');
-          currentPage = 1;
-          loadResults();
-        });
-      }
-        // attach same behavior to the Details label (filter by piece + open composer box)
-        const detailsEl = div.querySelector('.result-right');
-        if (detailsEl){
-          detailsEl.addEventListener('click', (e)=>{
-            try{ e.preventDefault(); }catch(_){ }
-            const idx = Number(detailsEl.dataset.idx);
-            if (!Number.isFinite(idx) || idx < 0 || idx >= lastFiltered.length) return;
-            const rowObj = lastFiltered[idx];
-            const comp = rowObj['Composer'] || rowObj.Composer || '';
-            selectedComposer = String(comp || '');
-            try{ updateComposerBtnVisibility(); }catch(e){}
-            populateComposerBox(selectedComposer, rowObj);
-            selectedPieceFilter = String(rowObj.Title || rowObj.Compositions || rowObj['Title'] || rowObj['Compositions'] || '');
-            currentPage = 1;
-            loadResults();
-          });
-        }
-      // If this row matches the active piece filter, inject detailed columns J..R (indices 9..17)
-      try{
-        if (selectedPieceFilter && String(selectedPieceFilter).length){
-          const titleVal = String(r.Title || r.Compositions || r['Title'] || r['Compositions'] || '').trim();
-          if (titleVal && normalize(titleVal) === normalize(selectedPieceFilter)){
-            // helper: find a key in the row object that corresponds to a sheet letter (J..R)
-            const findKey = (rowObj, letter) => {
-              if (!rowObj) return null;
-              const keys = Object.keys(rowObj || {});
-              const up = String(letter || '').toUpperCase();
-              // exact header equal to letter
-              let exact = keys.find(k => String(k||'').trim() === up);
-              if (exact) return exact;
-              // colX style
-              const colForm = keys.find(k => String(k||'').toLowerCase().replace(/[^a-z0-9]/g,'') === ('col' + up.toLowerCase()).replace(/[^a-z0-9]/g,''));
-              if (colForm) return colForm;
-              // header whose trimmed uppercase equals letter (covers some cases)
-              const upperMatch = keys.find(k => String(k||'').trim().toUpperCase() === up);
-              if (upperMatch) return upperMatch;
-              // fallback by position: A->0, B->1 ... J->9
-              try{ const idx = up.charCodeAt(0) - 65; if (idx >= 0 && idx < keys.length) return keys[idx]; }catch(e){}
-              return null;
-            };
-
-            const letters = ['J','K','L','M','N','O','P','Q','R'];
-            const expanded = document.createElement('div');
-            expanded.className = 'piece-expanded';
-            expanded.style.marginTop = '10px';
-            expanded.style.padding = '10px';
-            expanded.style.background = '#fbfbfb';
-            expanded.style.borderRadius = '6px';
-            expanded.style.border = '1px solid #eee';
-            // build html rows for each letter
-            const rowsHtml = [];
-            for (const L of letters){
-              let key = null;
-              let val = '';
-              if (Array.isArray(r)){
-                // arrays: map by position (J -> index 9)
-                try{ const idx = L.charCodeAt(0) - 65; if (idx >=0 && idx < r.length) val = r[idx] == null ? '' : String(r[idx]); }catch(e){}
-              } else {
-                key = findKey(r, L);
-                if (key) val = r[key] == null ? '' : String(r[key]);
-              }
-              // if we still have no value, try to read from r["colX"]
-              if ((!val || String(val).trim() === '') && !key){
-                const fallback = Object.keys(r||{}).find(k => /col\s*?\.?\d+|col[a-z]/i.test(String(k)));
-                if (fallback) val = r[fallback] == null ? '' : String(r[fallback]);
-              }
-              // prefer actual header key/name when available, otherwise fall back to the column letter
-              let displayLabel = '';
-              if (key && String(key).trim() !== '') displayLabel = String(key).trim();
-              else displayLabel = L;
-              if (val && String(val).trim() !== '') rowsHtml.push(`<div style="margin:4px 0"><strong style="color:var(--accent);display:inline-block;width:200px">${escapeHtml(displayLabel)}</strong> ${escapeHtml(String(val))}</div>`);
-            }
-            expanded.innerHTML = rowsHtml.length ? rowsHtml.join('\n') : '<div style="color:#6b7280">No additional columns J–R present for this row.</div>';
-            div.appendChild(expanded);
-          }
-        }
-      }catch(e){ /* ignore errors in expanded render */ }
     });
-    renderPagination(Math.ceil(lastFiltered.length / PAGE_SIZE), page);
+    renderPagination(Math.ceil((window.lastFiltered || []).length / window.PAGE_SIZE), page);
   }
 
   function renderPagination(pageCount, active){
-    // remove existing pagination if any
     let pag = document.getElementById('pagination');
     if (pag) pag.remove();
-  // create pagination container inside the results header top area
-  const pagRoot = document.getElementById('results-pagination-top');
-  const resultsEl = document.getElementById('results');
-  if (!resultsEl || !pagRoot) return;
+    const pagRoot = document.getElementById('results-pagination-top');
+    const resultsEl = document.getElementById('results');
+    if (!resultsEl || !pagRoot) return;
     pag = document.createElement('div');
     pag.id = 'pagination';
     pag.className = 'pagination';
-    // if there is exactly one page, show a '1 of 1' placeholder aligned to the right
-    // helper to clear search and all filters (defined at top-level so it can be reused)
-
-    if (pageCount === 1) {
+    function clearAllFilters(){
+      try{
+        const qinput = document.getElementById('qinput'); if (qinput) qinput.value = '';
+        window.selectedComposer = '';
+        window.lastAppliedFilter = null;
+        const clearComposerBtn = document.getElementById('clear-composer'); if (clearComposerBtn) clearComposerBtn.style.display = 'none';
+        const composerContent = document.getElementById('composer-content'); if (composerContent) composerContent.innerHTML = 'Select a result to view composer details.';
+        document.querySelectorAll('#filter-country input[type=checkbox], #filter-decade input[type=checkbox], #filter-type input[type=checkbox]').forEach(cb=> cb.checked = false);
+        window.currentPage = 1;
+        window.loadResults();
+      }catch(e){ console.error('clearAllFilters failed', e); }
+    }
+    if (pageCount === 1){
       pagRoot.innerHTML = '';
-      // create container with placeholder and clear button
-      const phWrap = document.createElement('div');
-      phWrap.style.display = 'flex';
-      phWrap.style.alignItems = 'center';
-      phWrap.style.gap = '8px';
-      phWrap.style.justifyContent = 'flex-end';
-      const placeholder = document.createElement('div');
-      placeholder.style.color = '#6b7280';
-      placeholder.style.paddingRight = '6px';
-      placeholder.textContent = '1 of 1';
-  phWrap.appendChild(placeholder);
-      pagRoot.appendChild(phWrap);
-      return;
+      const phWrap = document.createElement('div'); phWrap.style.display='flex'; phWrap.style.alignItems='center'; phWrap.style.gap='8px'; phWrap.style.justifyContent='flex-end';
+      const placeholder = document.createElement('div'); placeholder.style.color='#6b7280'; placeholder.style.paddingRight='6px'; placeholder.textContent='1 of 1';
+      const clearBtn = document.createElement('button'); clearBtn.textContent='Clear all filters'; clearBtn.style.padding='6px 10px'; clearBtn.style.borderRadius='6px'; clearBtn.style.border='1px solid #d1d5db'; clearBtn.style.background='#fff'; clearBtn.addEventListener('click', clearAllFilters);
+      phWrap.appendChild(placeholder); phWrap.appendChild(clearBtn);
+      const liveToggle = document.createElement('button'); liveToggle.textContent='Live: Off'; liveToggle.style.marginLeft='8px'; liveToggle.style.padding='6px 10px'; liveToggle.style.borderRadius='6px'; liveToggle.addEventListener('click', ()=>{ if (window.liveTimer){ stopLiveUpdates(); liveToggle.textContent='Live: Off'; } else { startLiveUpdates(); liveToggle.textContent='Live: On'; }});
+      phWrap.appendChild(liveToggle); pagRoot.appendChild(phWrap); return;
     }
-
-  pag = document.createElement('div');
-  pag.id = 'pagination';
-  pag.className = 'pagination';
-    // prev
-    const prev = document.createElement('button'); prev.textContent = 'Prev'; prev.disabled = active === 1; prev.addEventListener('click', ()=>{ if (currentPage>1){ currentPage--; renderPage(currentPage); window.scrollTo({top:0,behavior:'smooth'}); }});
-    pag.appendChild(prev);
-    // page numbers (limit shown if many)
-    const maxButtons = 7;
-    const half = Math.floor(maxButtons/2);
-    let start = Math.max(1, active - half);
-    let end = Math.min(pageCount, start + maxButtons -1);
-    if (end - start < maxButtons -1) start = Math.max(1, end - maxButtons +1);
-    for (let i=start;i<=end;i++){
-      const b = document.createElement('button'); b.textContent = String(i); if (i===active) b.classList.add('active'); b.addEventListener('click', ()=>{ currentPage = i; renderPage(currentPage); window.scrollTo({top:0,behavior:'smooth'}); }); pag.appendChild(b);
-    }
-    // next
-    const next = document.createElement('button'); next.textContent = 'Next'; next.disabled = active >= pageCount; next.addEventListener('click', ()=>{ if (currentPage<pageCount){ currentPage++; renderPage(currentPage); window.scrollTo({top:0,behavior:'smooth'}); }});
-    pag.appendChild(next);
-    // place pagination inside the results element and align to the right edge of the results box
-    // clear any existing pagination top content and insert the new pagination & Clear button
+    const prev = document.createElement('button'); prev.textContent='Prev'; prev.disabled = active === 1; prev.addEventListener('click', ()=>{ if (window.currentPage>1){ window.currentPage--; renderPage(window.currentPage); window.scrollTo({top:0,behavior:'smooth'}); }}); pag.appendChild(prev);
+    const maxButtons = 7; const half = Math.floor(maxButtons/2); let start = Math.max(1, active - half); let end = Math.min(pageCount, start + maxButtons -1); if (end - start < maxButtons -1) start = Math.max(1, end - maxButtons +1);
+    for (let i=start;i<=end;i++){ const b = document.createElement('button'); b.textContent = String(i); if (i===active) b.classList.add('active'); b.addEventListener('click', ()=>{ window.currentPage = i; renderPage(window.currentPage); window.scrollTo({top:0,behavior:'smooth'}); }); pag.appendChild(b); }
+    const next = document.createElement('button'); next.textContent = 'Next'; next.disabled = active >= pageCount; next.addEventListener('click', ()=>{ if (window.currentPage<pageCount){ window.currentPage++; renderPage(window.currentPage); window.scrollTo({top:0,behavior:'smooth'}); }}); pag.appendChild(next);
     pagRoot.innerHTML = '';
-    // create a vertical container: first row = control buttons, second row = pagination
-    const topWrap = document.createElement('div');
-    topWrap.style.display = 'flex';
-    topWrap.style.flexDirection = 'column';
-    topWrap.style.gap = '8px';
-    // button row (controls)
-    const btnRow = document.createElement('div');
-    btnRow.style.display = 'flex';
-    btnRow.style.alignItems = 'center';
-    btnRow.style.gap = '8px';
-    btnRow.style.justifyContent = 'flex-end';
-    // (Clear-all lives in the Filters box; no controls added here)
-    topWrap.appendChild(btnRow);
-    // pagination row (below buttons)
-    const pagRow = document.createElement('div');
-    pagRow.style.display = 'flex';
-    pagRow.style.justifyContent = 'flex-end';
-    pagRow.appendChild(pag);
-    topWrap.appendChild(pagRow);
-    pagRoot.appendChild(topWrap);
+    const topWrap = document.createElement('div'); topWrap.style.display='flex'; topWrap.style.alignItems='center'; topWrap.style.gap='8px'; topWrap.style.justifyContent='flex-end';
+    const clearBtn2 = document.createElement('button'); clearBtn2.textContent='Clear all filters'; clearBtn2.style.padding='6px 10px'; clearBtn2.style.borderRadius='6px'; clearBtn2.style.border='1px solid #d1d5db'; clearBtn2.style.background='#fff'; clearBtn2.addEventListener('click', clearAllFilters);
+    topWrap.appendChild(clearBtn2);
+    const liveToggle2 = document.createElement('button'); liveToggle2.textContent = window.liveTimer ? 'Live: On' : 'Live: Off'; liveToggle2.style.marginRight='8px'; liveToggle2.style.padding='6px 10px'; liveToggle2.style.borderRadius='6px'; liveToggle2.addEventListener('click', ()=>{ if (window.liveTimer) { stopLiveUpdates(); liveToggle2.textContent='Live: Off'; } else { startLiveUpdates(); liveToggle2.textContent='Live: On'; } }); topWrap.appendChild(liveToggle2);
+    topWrap.appendChild(pag); pagRoot.appendChild(topWrap);
   }
 
   async function pollOnce(){
     try{
-  const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
-  const raw = await res.json().catch(()=>null);
-  const rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
+      const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
+      const raw = await res.json().catch(()=>null);
+      const rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
       const rowsJson = JSON.stringify(rows);
-      if (lastRowsJson !== rowsJson){
-        lastRowsJson = rowsJson;
-        // refresh results without resetting page
-        loadResults(rows, { resetPage: false });
-      }
+      if (window.lastRowsJson !== rowsJson){ window.lastRowsJson = rowsJson; window.loadResults(rows, { resetPage: false }); }
     }catch(e){ console.error('poll failed', e); }
   }
+  function startLiveUpdates(){ if (window.liveTimer) return; window.liveTimer = setInterval(pollOnce, window.POLL_INTERVAL); pollOnce(); }
+  function stopLiveUpdates(){ if (!window.liveTimer) return; clearInterval(window.liveTimer); window.liveTimer = null; }
 
-  function startLiveUpdates(){
-    if (liveTimer) return;
-    liveTimer = setInterval(pollOnce, POLL_INTERVAL);
-    // run once immediately
-    pollOnce();
-  }
-
-  function stopLiveUpdates(){ if (!liveTimer) return; clearInterval(liveTimer); liveTimer = null; }
-
-  // loadResults optionally accepts rows (pre-fetched) and an options object { resetPage: true }
-  async function loadResults(rowsParam, options = { resetPage: true, historyChange: 'replace' }){
+  async function loadResults(rowsParam, options = { resetPage: true }){
     try{
-  let rows = rowsParam;
-  if (!rows){
-    const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
-    const raw = await res.json().catch(()=>null);
-    rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
-  }
-      // Defensive: ensure we have an array of rows. If the API returned an error object, try GViz fallback
+      let rows = rowsParam;
+      if (!rows){
+        const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
+        const raw = await res.json().catch(()=>null);
+        rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
+      }
       if (!Array.isArray(rows)){
         try{
           const g = await gvizFetch('MusicList');
           if (g && g.rows && g.rows.length){
-            // build objects from headers
             const headers = g.cols.map((h,i) => h && String(h).trim() ? String(h).trim() : `col_${i}`);
             rows = g.rows.map(r => { const o={}; for(let i=0;i<headers.length;i++){ o[headers[i]] = r[i] !== undefined && r[i] !== null ? r[i] : ''; } return o; });
           } else {
             const errText = typeof rows === 'object' ? JSON.stringify(rows) : String(rows);
-            document.getElementById('results').innerText = 'Load failed: unexpected /api/sheets response: ' + errText;
-            return;
+            const resultsEl = document.getElementById('results'); if (resultsEl) resultsEl.innerText = 'Load failed: unexpected /api/sheets response: ' + errText; return;
           }
-        }catch(e){ const errText = typeof rows === 'object' ? JSON.stringify(rows) : String(rows); document.getElementById('results').innerText = 'Load failed: unexpected /api/sheets response: ' + errText; return; }
+        }catch(e){ const errText = typeof rows === 'object' ? JSON.stringify(rows) : String(rows); const resultsEl = document.getElementById('results'); if (resultsEl) resultsEl.innerText = 'Load failed: unexpected /api/sheets response: ' + errText; return; }
       }
-      const qv = normalize(qinput.value || '');
-  // read selected countries
-  const checked = Array.from(document.querySelectorAll('#filter-country input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
-  // read selected decades
-  const checkedDecades = Array.from(document.querySelectorAll('#filter-decade input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
-  // read selected types
-  const checkedTypes = Array.from(document.querySelectorAll('#filter-type input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
-  lastFiltered = rows.filter(r => {
+      const qinputEl = document.getElementById('qinput');
+      const qv = normalize(qinputEl ? qinputEl.value || '' : '');
+      const checked = Array.from(document.querySelectorAll('#filter-country input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
+      const checkedDecades = Array.from(document.querySelectorAll('#filter-decade input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
+      const checkedTypes = Array.from(document.querySelectorAll('#filter-type input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
+      window.lastFiltered = (rows || []).filter(r => {
         if (qv && !normalize(Object.values(r||{}).join(' ')).includes(qv)) return false;
-        // if a piece filter is set (user clicked a title), only include exact matching titles
-        if (selectedPieceFilter && selectedPieceFilter.length){
-          const titleVal = String(r.Title || r.Compositions || r['Title'] || r['Compositions'] || '').trim();
-          if (!titleVal || normalize(titleVal) !== normalize(selectedPieceFilter)) return false;
-        }
-        if (selectedComposer){
-          const comp = (r['Composer'] || r.Composer || '').toString();
-          if (!normalize(comp).includes(normalize(selectedComposer))) return false;
-        }
-        if (checked.length){
-          const countryVal = normalize(r.Country || r.Nationality || '');
-          // match if any selected country appears in the country field
-          const matches = checked.some(sel => normalize(sel) && countryVal.includes(normalize(sel)));
-          if (!matches) return false;
-        }
-        if (checkedDecades.length){
-          const decadeVal = normalize(r.Decade || r.Year || '');
-          const matches = checkedDecades.some(sel => normalize(sel) && decadeVal.includes(normalize(sel)));
-          if (!matches) return false;
-        }
-        if (checkedTypes.length){
-          const typeVal = normalize(r.Type || r.type || r['Type of piece'] || r['Type'] || '');
-          const matches = checkedTypes.some(sel => normalize(sel) && typeVal.includes(normalize(sel)));
-          if (!matches) return false;
-        }
+        if (window.selectedComposer){ const comp = (r['Composer'] || r.Composer || '').toString(); if (!normalize(comp).includes(normalize(window.selectedComposer))) return false; }
+        if (checked.length){ const countryVal = normalize(r.Country || r.Nationality || ''); const matches = checked.some(sel => normalize(sel) && countryVal.includes(normalize(sel))); if (!matches) return false; }
+        if (checkedDecades.length){ const decadeVal = normalize(r.Decade || r.Year || ''); const matches = checkedDecades.some(sel => normalize(sel) && decadeVal.includes(normalize(sel))); if (!matches) return false; }
+        if (checkedTypes.length){ const typeVal = normalize(r.Type || r.type || r['Type of piece'] || r['Type'] || ''); const matches = checkedTypes.some(sel => normalize(sel) && typeVal.includes(normalize(sel))); if (!matches) return false; }
         return true;
       });
-      if (options && options.resetPage) currentPage = 1;
-      renderPage(currentPage);
-      // After rendering, update history unless this call is part of a restore/popstate
       try{
-        const st = buildStateFromUI();
-        st.scrollY = Math.max(0, Math.floor(window.scrollY || 0));
-        const p = paramsFromState(st);
-        const url = window.location.pathname + (p.toString() ? ('?' + p.toString()) : '');
-        if (options && options.historyChange === 'push'){
-          history.pushState(st, '', url);
-        } else if (options && options.historyChange === 'replace'){
-          history.replaceState(st, '', url);
-        }
-        // if historyChange === 'none', do nothing
-      }catch(e){ /* non-fatal */ }
-      // If the user searched (qv) and it looks like a composer name, try to open the composer box for the first composer match.
-      try{
-        if (qv && qv.length){
-          let composerMatch = null;
-          // Prefer scanning the full rows (if available) to find a composer column match
-          const scanSource = Array.isArray(rows) && rows.length ? rows : (Array.isArray(lastFiltered) ? lastFiltered : []);
-          for (const rr of scanSource){
-            const cand = String(rr['Composer'] || rr.Composer || rr['composer'] || '').trim();
-            if (!cand) continue;
-            const nc = normalize(cand || '');
-            if (nc === qv || nc.includes(qv) || qv.includes(nc)){
-              composerMatch = { name: cand, row: rr };
-              break;
-            }
-          }
-          // Fallback: if no explicit composer match found but the first filtered row contains a composer that loosely matches, use it
-          if (!composerMatch && Array.isArray(lastFiltered) && lastFiltered.length){
-            const first = lastFiltered[0];
-            const cand = String(first['Composer'] || first.Composer || first['composer'] || '').trim();
-            if (cand){ const nc = normalize(cand||''); if (nc.includes(qv) || qv.includes(nc)) composerMatch = { name: cand, row: first }; }
-          }
-          if (composerMatch){
-            selectedComposer = String(composerMatch.name || '');
-            populateComposerBox(selectedComposer, composerMatch.row);
-            try{ updateComposerBtnVisibility(); }catch(e){}
-          }
-        }
-      }catch(e){ /* ignore composer auto-open failures */ }
-      // If caller requested a randomized open (via URL), open composer box for the first matching result
+        const bd = document.getElementById('cr-debug');
+        if (bd) bd.textContent = `client: ${ (window.lastFiltered || []).length } results`;
+      }catch(_){ }
+      if (options && options.resetPage) window.currentPage = 1;
+      renderPage(window.currentPage);
       try{
         const params = new URLSearchParams(window.location.search || '');
-        if (params.get('random') === '1' && lastFiltered && lastFiltered.length){
-          // pick the first visible result on the current page
-          const start = (currentPage - 1) * PAGE_SIZE;
-          const first = lastFiltered[start];
+        if (params.get('random') === '1' && window.lastFiltered && window.lastFiltered.length){
+          const start = (window.currentPage - 1) * window.PAGE_SIZE;
+          const first = window.lastFiltered[start];
           if (first){
             const composerName = first['Composer'] || first.Composer || first['composer'] || Object.values(first)[0] || '';
-            selectedComposer = String(composerName || '');
-            populateComposerBox(selectedComposer, first);
-            try{ updateComposerBtnVisibility(); }catch(e){}
+            window.selectedComposer = String(composerName || '');
+            populateComposerBox(window.selectedComposer, first);
           }
         }
-      }catch(e){ /* ignore */ }
-    }catch(e){ document.getElementById('results').innerText = 'Load failed: ' + String(e); }
+      }catch(e){ }
+    }catch(e){ const resultsEl = document.getElementById('results'); if (resultsEl) resultsEl.innerText = 'Load failed: ' + String(e); }
   }
+  window.loadResults = loadResults;
 
- async function populateComposerBox(name, row){
-  const content = document.getElementById('composer-content');
-  const clearBtn = document.getElementById('clear-composer');
-  if (!content) return;
-  if (!name){
-    content.innerHTML = 'Select a result to view composer details.';
-    if (clearBtn) clearBtn.style.display = 'none';
-    return;
-  }
-
-  // small helpers (prefer global normalize if present)
-  const normalizeKey = k => String(k || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').trim();
-  const normVal = v => (typeof normalize === 'function') ? normalize(String(v || '')) : String(v || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').trim();
-
-  // heuristics to decide whether a sheet looks like the CompDet sheet
-  const looksLikeCompDet = (sampleObj) => {
-    if (!sampleObj || typeof sampleObj !== 'object') return false;
-    const keys = Object.keys(sampleObj).map(k => normalizeKey(k));
-    const hasComposer = keys.some(k => k.includes('composer') || k.includes('композитор'));
-    const hasLife = keys.some(k => k.includes('lifespan') || k.includes('life') || k.includes('born') || k.includes('died') || k.includes('years'));
-    const hasCountry = keys.some(k => k.includes('country') || k.includes('republic') || k.includes('nationality') || k.includes('soviet'));
-    // indicators of MusicList/main music table (avoid these)
-    const looksLikeMusicList = keys.includes('title') || keys.includes('compositions') || keys.includes('snippet') || keys.includes('published');
-    // Require composer AND (life OR country) and explicitly exclude music-list-looking sheets
-    return hasComposer && (hasLife || hasCountry) && !looksLikeMusicList;
-  };
-
-  const candidates = ['CompDet','Sheet2','ComposersAggregated','Composers','Aggregated'];
-
-  let rows = [];
-  let sourceSheet = null;
-
-  // QUICK PATH: prefer aggregating from the 'MusicList' sheet (client wants immediate behavior)
-  try {
-    const mres = await fetch('/api/sheets?sheet=MusicList', { headers: { 'Accept': 'application/json' } });
-    const mj = await mres.json().catch(()=>null);
-    const mjRows = (mj && Array.isArray(mj)) ? mj : (mj && mj.rows && Array.isArray(mj.rows) ? mj.rows : null);
-      if (mjRows && mjRows.length) {
-      rows = mjRows;
-      sourceSheet = 'MusicList';
-      // debug: console.debug('COMPOSER_DEBUG using MusicList aggregation (client-side)');
-    }
-  } catch (e) { /* ignore */ }
-
-  // 1) Try server API for each candidate sheet, but validate contents strictly
-  for (const sname of candidates){
-    try{
-      const res = await fetch('/api/sheets?sheet=' + encodeURIComponent(sname), { headers: { 'Accept': 'application/json' } });
-      const jrRaw = await res.json().catch(()=>null);
-      // handle server-side wrapper { __sheet, rows }
-      const jr = Array.isArray(jrRaw) ? jrRaw : (jrRaw && Array.isArray(jrRaw.rows) ? jrRaw.rows : jrRaw);
-      if (Array.isArray(jr) && jr.length){
-        const sample = jr[0];
-          if (looksLikeCompDet(sample)){
-          rows = jr;
-          sourceSheet = sname;
-          // debug: console.debug('COMPOSER_DEBUG selected sheet (api):', sname, 'headers:', Object.keys(sample));
-          break;
-        } else {
-          // debug: console.debug('COMPOSER_DEBUG rejected sheet (api):', sname, 'headers:', Object.keys(sample));
-        }
-      } else {
-        // debug: console.debug('COMPOSER_DEBUG no-array or empty from API for', sname, jr);
-      }
-    }catch(e){
-      // debug: console.debug('COMPOSER_DEBUG api fetch failed for', sname, e);
-    }
-  }
-
-  // 2) If not found via API, try GViz client-side fetch (same strict checks)
-  if (!rows || rows.length === 0){
+  async function populateComposerBox(name, row){
+    const content = document.getElementById('composer-content');
+    const clearBtn = document.getElementById('clear-composer');
+    if (!content) return;
+    if (!name){ content.innerHTML = 'Select a result to view composer details.'; if (clearBtn) clearBtn.style.display = 'none'; return; }
+    const normalizeKey = k => String(k || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').trim();
+    const normVal = v => (typeof normalize === 'function') ? normalize(String(v || '')) : String(v || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').trim();
+    const looksLikeCompDet = (sampleObj) => {
+      if (!sampleObj || typeof sampleObj !== 'object') return false;
+      const keys = Object.keys(sampleObj).map(k => normalizeKey(k));
+      const hasComposer = keys.some(k => k.includes('composer') || k.includes('композитор'));
+      const hasLife = keys.some(k => k.includes('lifespan') || k.includes('life') || k.includes('born') || k.includes('died') || k.includes('years'));
+      const hasCountry = keys.some(k => k.includes('country') || k.includes('republic') || k.includes('nationality') || k.includes('soviet'));
+      const looksLikeMusicList = keys.includes('title') || keys.includes('compositions') || keys.includes('snippet') || keys.includes('published');
+      return hasComposer && (hasLife || hasCountry) && !looksLikeMusicList;
+    };
+    const candidates = ['CompDet','Sheet2','ComposersAggregated','Composers','Aggregated'];
+    let rows = [];
+    let sourceSheet = null;
+    try {
+      const mres = await fetch('/api/sheets?sheet=MusicList', { headers: { 'Accept': 'application/json' } });
+      const mj = await mres.json().catch(()=>null);
+      const mjRows = (mj && Array.isArray(mj)) ? mj : (mj && mj.rows && Array.isArray(mj.rows) ? mj.rows : null);
+      if (mjRows && mjRows.length) { rows = mjRows; sourceSheet = 'MusicList'; console.debug('COMPOSER_DEBUG using MusicList aggregation (client-side)'); }
+    } catch (e) { }
     for (const sname of candidates){
-      try {
-        const g = await gvizFetch(sname);
-        if (!g || !g.rows || !g.rows.length) continue;
-        const headers = g.cols.map(h => String(h).trim() || '');
-        // build a sample object mapping header->value for the first row
-        const sampleObj = {};
-        for (let i = 0; i < headers.length; i++){
-          const hk = headers[i] || `col${i+1}`;
-          sampleObj[hk] = g.rows[0][i];
-        }
-        if (!looksLikeCompDet(sampleObj)) continue;
-        // assemble rows as objects (header -> value)
-        rows = g.rows.map(r => {
-          const obj = {};
-          for (let i = 0; i < headers.length; i++){
-            const hk = headers[i] || `col${i+1}`;
-            obj[hk] = (r[i] !== undefined && r[i] !== null) ? r[i] : '';
+      try{
+        const res = await fetch('/api/sheets?sheet=' + encodeURIComponent(sname), { headers: { 'Accept': 'application/json' } });
+        const jrRaw = await res.json().catch(()=>null);
+        const jr = Array.isArray(jrRaw) ? jrRaw : (jrRaw && Array.isArray(jrRaw.rows) ? jrRaw.rows : jrRaw);
+        if (Array.isArray(jr) && jr.length){ const sample = jr[0]; if (looksLikeCompDet(sample)){ rows = jr; sourceSheet = sname; console.debug('COMPOSER_DEBUG selected sheet (api):', sname, 'headers:', Object.keys(sample)); break; } else { console.debug('COMPOSER_DEBUG rejected sheet (api):', sname, 'headers:', Object.keys(sample)); } }
+        else { console.debug('COMPOSER_DEBUG no-array or empty from API for', sname, jr); }
+      }catch(e){ console.debug('COMPOSER_DEBUG api fetch failed for', sname, e); }
+    }
+    if ((!rows || rows.length === 0)){
+      for (const sname of candidates){
+        try{
+          const g = await gvizFetch(sname);
+          if (g && g.rows && g.rows.length){
+            const headers = g.cols.map(h => String(h).trim() || '');
+            const sampleObj = {};
+            for (let i=0;i<headers.length;i++){ const hk = headers[i] || `col${i+1}`; sampleObj[hk] = g.rows[0][i]; }
+            if (looksLikeCompDet(sampleObj)){
+              rows = g.rows.map(r => { const obj = {}; for (let i = 0; i < headers.length; i++) { const hk = headers[i] || `col${i+1}`; obj[hk] = r[i] !== undefined && r[i] !== null ? r[i] : ''; } return obj; });
+              sourceSheet = sname; break;
+            }
           }
-          return obj;
-        });
-        sourceSheet = sname;
-        // we've found a suitable CompDet-like sheet via GViz; stop searching
-        break;
-      } catch (e) {
-        // debug: console.debug('COMPOSER_DEBUG gviz fetch failed for', sname, e);
+        }catch(e){ console.debug('COMPOSER_DEBUG gviz fetch failed for', sname, e); }
       }
     }
-  }
-
-  // If still nothing, explain and show a tiny debug hint
-  if (!rows || rows.length === 0){
-    content.innerHTML = `<div>No composer detail sheet (CompDet) could be located. I tried: ${candidates.join(', ')}.</div>`;
-    if (clearBtn) clearBtn.style.display = 'none';
-    return;
-  }
-
-  // Now find a matching row inside the selected rows
-  let matchRow = null;
-  let foundVal = null;
-  const target = String(name || '').trim();
-  const normTarget = normVal(target);
-
-  // Preferred: check 'composer'-like column if present
-  const sampleKeys = Object.keys(rows[0] || {});
-  const composerKey = sampleKeys.find(k => normalizeKey(k).includes('composer') || normalizeKey(k).includes('композитор'));
-
-  if (composerKey){
-    // search for composerKey matches first (more reliable)
-    for (const r of rows){
-      const val = String(r[composerKey] || '').trim();
-      if (!val) continue;
-      const nv = normVal(val);
-      if (nv === normTarget || nv.includes(normTarget) || normTarget.includes(nv)){
-        matchRow = r;
-        foundVal = val;
-        break;
-      }
-    }
-  }
-
-  // fallback: full-row scan
-  if (!matchRow){
-    for (const r of rows){
-      for (const v of Object.values(r)){
-        if (!v) continue;
-        const str = String(v || '').trim();
-        const nv = normVal(str);
-        if (nv === normTarget || nv.includes(normTarget) || normTarget.includes(nv)){
-          matchRow = r;
-          foundVal = str;
-          break;
-        }
-      }
-      if (matchRow) break;
-    }
-  }
-
-  // If still not found, surface a helpful message + a small sample for debugging
-  if (!matchRow){
-    content.innerHTML = `<div>No composer match was found in the detected detail sheet for <strong>${escapeHtml(name)}</strong>. Try adjusting the search or check the spelling.</div>`;
-    if (clearBtn) clearBtn.style.display = 'inline-block';
-    return;
-  }
-
-  // Build rowObj (robust conversion)
-  let rowObj = {};
-  if (Array.isArray(matchRow)){
-    // if row is an array, map by sample keys if possible
-    const sampleObj = (rows && rows.length && typeof rows[0] === 'object') ? rows[0] : null;
-    if (sampleObj){
-      const sampleKeys = Object.keys(sampleObj);
-      for (let i=0;i<matchRow.length;i++){
-        rowObj[sampleKeys[i] || `col${i+1}`] = matchRow[i];
-      }
-    } else {
-      for (let i=0;i<matchRow.length;i++) rowObj[`col${i+1}`] = matchRow[i];
-    }
-  } else if (typeof matchRow === 'object' && matchRow){
-    rowObj = matchRow;
-  }
-
-  // QUICK RENDER: if the caller provided the original result row, show a fast lightweight
-  // composer view immediately so the user sees details on first click. The rest of this
-  // function will continue and may replace the content with a richer CompDet lookup.
-  if (row && typeof row === 'object' && Object.keys(row).length){
-    const pick = (keys) => { for (const k of keys){ if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') return String(row[k]); } return ''; };
-    const pickPos = (idx) => { try{ if (Array.isArray(row) && row.length>idx) return String(row[idx]); }catch(_){ } return ''; };
-
-    const A_quick = pick(['A','colA','Composer','composer','Name','name']) || pickPos(0) || '';
-    const B_quick = pick(['B','colB','Lifespan','lifespan']) || pickPos(1) || '';
-  const C_quick = pick(['C','colC','Russian','russian']) || pickPos(2) || '';
-  const C_quick_label = (Object.keys(row).find(k=>String(k).trim().toUpperCase()==='C') || 'Russian');
-  const D_quick_key = (Object.keys(row).find(k=>String(k).trim().toUpperCase()==='D') || 'D');
-    // Use the cell value in column D as the label when present (user requested)
-    let D_quick_label = '';
-    try{
-      if (sampleKeys && sampleKeys[3] && rowObj && rowObj.hasOwnProperty(sampleKeys[3])) D_quick_label = String(rowObj[sampleKeys[3]] || '');
-      if (!D_quick_label) D_quick_label = (pick([D_quick_key, 'D', 'colD', 'Label', 'label']) || D_quick_key || 'D');
-    }catch(e){ D_quick_label = (pick([D_quick_key, 'D', 'colD', 'Label', 'label']) || D_quick_key || 'D'); }
-    const E_quick = pick(['E','colE','Value','value']) || pickPos(4) || '';
-    const F_quick = pick(['F','colF','Country','country','Nationality']) || pickPos(5) || '';
-    const G_quick = pick(['G','colG','Soviet republic','republic']) || pickPos(6) || '';
-    const H_quick = pick(['H','colH','Gender','gender']) || pickPos(7) || '';
-    const I_quick = pick(['I','colI','Notes','notes']) || pickPos(8) || '';
-
-    content.innerHTML = `
-      <div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><h1 style="margin:0 0 6px 0; font-size:1.25rem">${escapeHtml(A_quick)}</h1><span class="spinner" aria-hidden="true" title="Loading more details"></span></div>
-        ${B_quick ? `<p style="margin:0 0 8px 0"><i>${escapeHtml(B_quick)}</i></p>` : ''}
-        <br/>
-      // Removed temporary blocker mitigation script to avoid runtime hacks; overlay
-      // is now non-interactive via CSS (#bg-overlay { pointer-events: none }).
-        <p style="margin:6px 0"><b>${escapeHtml(C_quick_label)}:</b> ${escapeHtml(C_quick)}</p>
-        <p style="margin:6px 0"><b>${escapeHtml(D_quick_label)}:</b> ${escapeHtml(E_quick)}</p>
-        <br/>
-        <p style="margin:6px 0"><b>${escapeHtml(Object.keys(row).find(k=>String(k).trim().toUpperCase()==='F') || 'Country')}:</b> ${escapeHtml(F_quick)}</p>
-        <p style="margin:6px 0"><b>${escapeHtml(Object.keys(row).find(k=>String(k).trim().toUpperCase()==='G') || 'Soviet Republic')}:</b> ${escapeHtml(G_quick)}</p>
-        <br/>
-        <p style="margin:6px 0"><b>${escapeHtml(Object.keys(row).find(k=>String(k).trim().toUpperCase()==='H') || 'Gender')}:</b> ${escapeHtml(H_quick)}</p>
-        <p style="margin:6px 0"><b>${escapeHtml(Object.keys(row).find(k=>String(k).trim().toUpperCase()==='I') || 'Notes')}:</b> ${escapeHtml(I_quick)}</p>
-      </div>
-    `;
-    if (clearBtn) clearBtn.style.display = 'inline-block';
-    // continue on to richer lookup below
-  }
-
-  
-  
-  
-
-  // labels we want to show (adjust as you like)
-  const desired = ['Composer','Lifespan','Country','Soviet republic','Nationality','Language','Notes','Learn more'];
-
-  // normalize keys map
-  const normMap = {};
-  Object.keys(rowObj || {}).forEach(k => {
-    try { normMap[normalizeKey(k)] = rowObj[k]; }
-    catch (e) { normMap[String(k||'')] = rowObj[k]; }
-  });
-
-  // Special handling when the source is the MusicList aggregation sheet.
-  // Some MusicList exports use single-letter column headers (A,B,C...) or moved
-  // columns; support the common mapping provided by the spreadsheet owner.
-  if (sourceSheet === 'MusicList'){
-    const getByLetters = (letters, fallbacks=[]) => {
-      for (const L of letters){ if (rowObj.hasOwnProperty(L) && rowObj[L] !== undefined && rowObj[L] !== null && String(rowObj[L]).trim() !== '') return String(rowObj[L]); }
-      for (const fb of fallbacks){ for (const k of Object.keys(rowObj)){ if (String(k||'').toLowerCase().trim() === fb.toLowerCase().trim() && rowObj[k]) return String(rowObj[k]); } }
+    if (!rows || rows.length === 0){ content.innerHTML = `<div>No composer detail sheet (CompDet) could be located. I tried: ${candidates.join(', ')}.</div>`; if (clearBtn) clearBtn.style.display = 'none'; return; }
+    let matchRow = null; let foundVal = null; const target = String(name || '').trim(); const normTarget = normVal(target);
+    const sampleKeys = Object.keys(rows[0] || {});
+    const composerKey = sampleKeys.find(k => normalizeKey(k).includes('composer') || normalizeKey(k).includes('композитор'));
+    if (composerKey){ for (const r of rows){ const val = String(r[composerKey] || '').trim(); if (!val) continue; const nv = normVal(val); if (nv === normTarget || nv.includes(normTarget) || normTarget.includes(nv)){ matchRow = r; foundVal = val; break; } } }
+    if (!matchRow){ for (const r of rows){ for (const v of Object.values(r)){ if (!v) continue; const str = String(v || '').trim(); const nv = normVal(str); if (nv === normTarget || nv.includes(normTarget) || normTarget.includes(nv)){ matchRow = r; foundVal = str; break; } } if (matchRow) break; } }
+    if (!matchRow){ const samplePreview = escapeHtml(JSON.stringify(rows[0] || {}, null, 2)); content.innerHTML = `<div>No composer match in ${escapeHtml(sourceSheet || 'CompDet')} for <strong>${escapeHtml(name)}</strong>.</div><div style="margin-top:8px;color:#6b7280;font-size:0.9rem">Sample headers from detected sheet (for debugging):</div><pre style="max-height:220px;overflow:auto;background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;font-size:0.85rem">${samplePreview}</pre>`; if (clearBtn) clearBtn.style.display = 'inline-block'; return; }
+    let rowObj = {};
+    if (Array.isArray(matchRow)){
+      const sampleObj = (rows && rows.length && typeof rows[0] === 'object') ? rows[0] : null;
+      if (sampleObj){ const sampleKeys = Object.keys(sampleObj); for (let i=0;i<matchRow.length;i++){ rowObj[sampleKeys[i] || `col${i+1}`] = matchRow[i]; } } else { for (let i=0;i<matchRow.length;i++) rowObj[`col${i+1}`] = matchRow[i]; }
+    } else if (typeof matchRow === 'object' && matchRow){ rowObj = matchRow; }
+    const desired = ['Composer','Lifespan','Country','Soviet republic','Nationality','Language','Notes','Learn more'];
+    const normMap = {};
+    Object.keys(rowObj || {}).forEach(k => { try { normMap[normalizeKey(k)] = rowObj[k]; } catch { normMap[String(k||'')] = rowObj[k]; } });
+    const getValForLabels = (labels) => {
+      for (const lab of labels){ const nk = normalizeKey(lab); if (nk && (nk in normMap) && normMap[nk] !== undefined && normMap[nk] !== null && String(normMap[nk]).trim() !== '') { return String(normMap[nk]); } }
+      const allValues = Object.values(normMap||{}).map(v => v==null? '': String(v));
+      const lifeHintRegex = /\b\d{3,4}\s*[–—-]\s*\d{2,4}\b|\b\d{3,4}\b/;
+      for (const v of allValues){ if (v && lifeHintRegex.test(String(v))) return v; }
+      for (const v of allValues){ if (v && String(v).trim() !== '') return v; }
       return '';
     };
-
-    const colA = getByLetters(['A','colA','Composer','composer','name']);
-    const colN = getByLetters(['B','colN','Lifespan','lifespan','Years']);
-    const colB = getByLetters(['C','colB','Russian','russian']);
-    const labelFromP = getByLetters(['D','P','Label','label']);
-    const valueFromC = getByLetters(['E','C','Value','native']);
-    const colK = getByLetters(['F','K','Country','country']);
-    const colO = getByLetters(['G','O','Soviet republic','republic']);
-    const colQ = getByLetters(['I','Q','Notes','notes']);
-
-    if (colA) normMap['composer'] = colA;
-    if (colN) normMap['lifespan'] = colN;
-    if (colB) normMap['russian'] = colB;
-    if (labelFromP && valueFromC) normMap[normalizeKey(labelFromP)] = valueFromC;
-    if (colK) normMap['country'] = colK;
-    if (colO) normMap['soviet republic'] = colO;
-    if (colQ) normMap['notes'] = colQ;
-  }
-
-  // helper to find candidate data by a list of label fragments
-  const getValForLabels = (labels) => {
-    for (const lab of labels){
-      const nk = normalizeKey(lab);
-      if (nk && (nk in normMap) && normMap[nk] !== undefined && normMap[nk] !== null && String(normMap[nk]).trim() !== '') {
-        return String(normMap[nk]);
-      }
-    }
-    // heuristics: return first lifespan-like value if present
-    const allValues = Object.values(normMap||{}).map(v => v==null? '': String(v));
-    const lifeHintRegex = /\b\d{3,4}\s*[–—-]\s*\d{2,4}\b|\b\d{3,4}\b/;
-    for (const v of allValues){
-      if (v && lifeHintRegex.test(String(v))) return v;
-    }
-    // last resort: first non-empty
-    for (const v of allValues){ if (v && String(v).trim() !== '') return v; }
-    return '';
-  };
-
-  const headerAliases = {
-    'Composer': ['Composer','Композитор','composer','Name','name'],
-    'Lifespan': ['Lifespan','Life span','Born','Died','Years'],
-    'Country': ['Country','country','Страна','Country of birth','Nationality'],
-    'Soviet republic': ['Soviet republic','Republic','Soviet'],
-    'Nationality': ['Nationality','Nationality (EN)'],
-    'Language': ['Language','language','Язык'],
-    'Notes': ['Notes','notes','Примечания'],
-    'Learn more': ['Learn more','Link','URL']
-  };
-
-  const values = desired.map(h => {
-    const aliases = headerAliases[h] || [h];
-    const v = getValForLabels(aliases);
-    return v == null ? '' : String(v);
-  });
-
-  // prefer Lifespan for the small italic line shown under the composer name
-  const lifespanIndex = desired.indexOf('Lifespan');
-  const lifespanRaw = (lifespanIndex >= 0 ? (values[lifespanIndex] || '') : '') || '';
-  const cleanDisplay = s => String(s || '').replace(/[\r\n\t]+/g,' ').replace(/\s+/g,' ').trim();
-  const dispFound = cleanDisplay(foundVal);
-  const dispLifespan = cleanDisplay(lifespanRaw);
-  const sourceHtml = sourceSheet ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Source: ${escapeHtml(sourceSheet)}</div>` : '';
-
-  // prefer Lifespan for the small italic line shown under the composer name
-  const colEHtml = dispLifespan ? `<div style="margin-top:4px;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(dispLifespan)}</div>` : '';
-
-  // Helper: find the actual key in rowObj that corresponds to a single-letter column (A..Z)
-  const findKeyForLetter = (L) => {
-    if (!L) return null;
-    const plain = String(L).trim().toLowerCase();
-    // exact match
-    const exact = Object.keys(rowObj).find(k => String(k||'').trim().toLowerCase() === plain);
-    if (exact) return exact;
-    // common "colX" style
-    const colForms = Object.keys(rowObj).find(k => String(k||'').toLowerCase().replace(/[^a-z0-9]/g,'') === ('col' + plain).replace(/[^a-z0-9]/g,''));
-    if (colForms) return colForms;
-    // try uppercase single-letter header
-    const upper = Object.keys(rowObj).find(k => String(k||'').trim() === String(L).toUpperCase());
-    if (upper) return upper;
-    // fallback by position using sampleKeys (A->0, B->1...)
-    try{
-      const idx = String(L).toUpperCase().charCodeAt(0) - 65;
-      if (typeof sampleKeys !== 'undefined' && Array.isArray(sampleKeys) && idx >= 0 && idx < sampleKeys.length) return sampleKeys[idx];
-    }catch(_){ }
-    return null;
-  };
-
-  const getValForKey = (k) => { if (!k) return ''; const v = rowObj[k]; return v == null ? '' : String(v); };
-
-  // Pull the requested columns A..I
-  const A = getValForKey(findKeyForLetter('A'));
-  const B = getValForKey(findKeyForLetter('B'));
-  const C = getValForKey(findKeyForLetter('C'));
-  const D_key = findKeyForLetter('D');
-  const D_label = D_key ? String(D_key) : 'D';
-  const E = getValForKey(findKeyForLetter('E'));
-  const F = getValForKey(findKeyForLetter('F'));
-  const G = getValForKey(findKeyForLetter('G'));
-  const H = getValForKey(findKeyForLetter('H'));
-  const I = getValForKey(findKeyForLetter('I'));
-
-  // Determine human-friendly labels using the actual header keys if available
-  const C_label = findKeyForLetter('C') || 'Russian';
-  // Prefer the cell value in column D as the label if available
-  let D_label_final = D_label;
-  try{ if (rowObj && Object.keys(rowObj)[3] && rowObj[Object.keys(rowObj)[3]]) D_label_final = String(rowObj[Object.keys(rowObj)[3]]); }catch(e){}
-  const F_label = findKeyForLetter('F') || 'Country';
-  const G_label = findKeyForLetter('G') || 'Soviet Republic';
-  const H_label = findKeyForLetter('H') || 'Gender';
-  const I_label = findKeyForLetter('I') || 'Notes';
-
-  // Render only the composer heading and the requested formatted block
-  content.innerHTML = `
-    <div>
-      <h1 style="margin:0 0 6px 0; font-size:1.25rem">${escapeHtml(A)}</h1>
-      ${B ? `<p style="margin:0 0 8px 0"><i>${escapeHtml(B)}</i></p>` : ''}
-      <br/>
-      <p style="margin:6px 0"><b>Russian:</b> ${escapeHtml(C)}</p>
-      <p style="margin:6px 0"><b>${escapeHtml(D_label_final)}:</b> ${escapeHtml(E)}</p>
-      <br/>
-      <p style="margin:6px 0"><b>Country:</b> ${escapeHtml(F)}</p>
-      <p style="margin:6px 0"><b>Soviet Republic:</b> ${escapeHtml(G)}</p>
-      <br/>
-      <p style="margin:6px 0"><b>Gender:</b> ${escapeHtml(H)}</p>
-      <p style="margin:6px 0"><b>Notes:</b> ${escapeHtml(I)}</p>
-    </div>
-  `;
-
-  if (clearBtn) {
-    clearBtn.style.display = 'inline-block';
-    clearBtn.onclick = () => {
-      selectedComposer = '';
-      try{ updateComposerBtnVisibility(); }catch(e){}
-      if (clearBtn) clearBtn.style.display = 'none';
-      populateComposerBox('', null);
-      currentPage = 1;
-      loadResults();
+    const headerAliases = {
+      'Composer': ['Composer','Композитор','composer','Name','name'],
+      'Lifespan': ['Lifespan','Life span','Born','Died','Years'],
+      'Country': ['Country','country','Страна','Country of birth','Nationality'],
+      'Soviet republic': ['Soviet republic','Republic','Soviet'],
+      'Nationality': ['Nationality','Nationality (EN)'],
+      'Language': ['Language','language','Язык'],
+      'Notes': ['Notes','notes','Примечания'],
+      'Learn more': ['Learn more','Link','URL']
     };
+    const values = desired.map(h => { const aliases = headerAliases[h] || [h]; const v = getValForLabels(aliases); return v == null ? '' : String(v); });
+    const lifespanIndex = desired.indexOf('Lifespan');
+    const lifespanRaw = (lifespanIndex >= 0 ? (values[lifespanIndex] || '') : '') || '';
+    const cleanDisplay = s => String(s || '').replace(/[\r\n\t]+/g,' ').replace(/\s+/g,' ').trim();
+    const dispFound = cleanDisplay(foundVal);
+    const dispLifespan = cleanDisplay(lifespanRaw);
+    const sourceHtml = sourceSheet ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Source: ${escapeHtml(sourceSheet)}</div>` : '';
+    const preStyle = 'background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;margin-top:8px;font-size:0.95rem;white-space:pre-wrap';
+    const colEHtml = dispLifespan ? `<div style="margin-top:4px;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(dispLifespan)}</div>` : '';
+    content.innerHTML = `<div><strong style="color:var(--accent)">${escapeHtml(dispFound)}</strong>${colEHtml}${sourceHtml}<pre style="${preStyle}">${escapeHtml(desired.join('\t'))}\n${escapeHtml(values.join('\t'))}</pre></div>`;
+    if (clearBtn) { clearBtn.style.display = 'inline-block'; clearBtn.onclick = () => { window.selectedComposer = ''; if (clearBtn) clearBtn.style.display = 'none'; populateComposerBox('', null); window.currentPage = 1; window.loadResults(); }; }
   }
+  window.populateComposerBox = populateComposerBox;
 
-  // Do not auto-open the mobile composer drawer here; only update the composer button visibility.
-  try{ updateComposerBtnVisibility(); }catch(e){}
-}
-
-// helper to toggle visibility of the mobile composer button
-function updateComposerBtnVisibility(){
-  try{
-    const btn = document.getElementById('mobile-open-composer');
-    console.debug('[DEBUG] updateComposerBtnVisibility selectedComposer=', selectedComposer, 'btn=', !!btn);
-    if (!btn) return;
-    const has = !!(selectedComposer && String(selectedComposer).trim());
-    if (has){
-      btn.setAttribute('aria-hidden','false');
-      btn.classList.remove('composer-btn-hidden');
-      // trigger fade-in animation
-      btn.classList.add('composer-fade-in');
-      setTimeout(()=>{ try{ btn.classList.remove('composer-fade-in'); }catch(e){} }, 400);
-    } else {
-      btn.setAttribute('aria-hidden','true');
-      btn.classList.add('composer-btn-hidden');
-      btn.classList.remove('composer-fade-in');
-    }
-  }catch(e){}
-}
-
-// Initialization: populate filters and load initial results
-(async function init(){
-  try{
-  const resultsList = document.getElementById('results-list'); if (resultsList) resultsList.innerHTML = '<div class="result-item"><em>Loading results…</em></div>';
-  const fc = document.getElementById('filter-country'); if (fc) fc.innerHTML = '<div style="color:#6b7280">Loading…</div>';
-  const fd = document.getElementById('filter-decade'); if (fd) fd.innerHTML = '<div style="color:#6b7280">Loading…</div>';
-  const ft = document.getElementById('filter-type'); if (ft) ft.innerHTML = '<div style="color:#6b7280">Loading…</div>';
-  // Apply mobile UI tweaks (collapsible filters) as early as possible
-  try{ enableMobileUI(); }catch(e){}
-
-    // run population in parallel but don't fail the whole init if one fails
-    await Promise.allSettled([populateCountryCheckboxes(), populateDecadeCheckboxes(), populateTypeCheckboxes()]);
-
-    // wire search button and Enter key
-    const sbtn = document.getElementById('qbtn'); if (sbtn) sbtn.addEventListener('click', ()=>{ currentPage = 1; loadResults(); });
-    if (qinput) qinput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { currentPage = 1; loadResults(); } });
-
-    // place Show All and Clear-all into the filters-controls area
-
-    // Ensure Show All / Clear controls live in the filters-controls area
+  (async function init(){
     try{
-      const fc = document.getElementById('filters-controls');
-      if (fc && !fc.dataset.init) {
-        // Show All (navigate to full results without query)
-        const showAllBtn = document.createElement('button');
-        showAllBtn.textContent = 'Show all';
-        showAllBtn.style.padding = '6px 10px';
-        showAllBtn.style.borderRadius = '6px';
-        showAllBtn.style.border = '1px solid #d1d5db';
-        showAllBtn.style.background = '#fff';
-        showAllBtn.addEventListener('click', ()=>{ try{ qinput.value=''; selectedComposer=''; lastAppliedFilter=null; document.querySelectorAll('#filter-country input, #filter-decade input, #filter-type input').forEach(cb=> cb.checked=false); currentPage=1; loadResults(); }catch(e){} });
-        fc.appendChild(showAllBtn);
-  // add Clear-all button to top of filters
-  fc.appendChild(createClearAll());
-  // leave Clear-last out (removed per request)
-        fc.dataset.init = '1';
-      }
-    }catch(e){}
+      const resultsList = document.getElementById('results-list'); if (resultsList) resultsList.innerHTML = '<div class="result-item"><em>Loading results…</em></div>';
+      const fc = document.getElementById('filter-country'); if (fc) fc.innerHTML = '<div style="color:#6b7280">Loading…</div>';
+      const fd = document.getElementById('filter-decade'); if (fd) fd.innerHTML = '<div style="color:#6b7280">Loading…</div>';
+      const ft = document.getElementById('filter-type'); if (ft) ft.innerHTML = '<div style="color:#6b7280">Loading…</div>';
+      await Promise.allSettled([window.populateCountryCheckboxes(), window.populateDecadeCheckboxes(), window.populateTypeCheckboxes()]);
+      const sbtn = document.getElementById('qbtn'); if (sbtn) sbtn.addEventListener('click', ()=>{ window.currentPage = 1; window.loadResults(); });
+      const qinputEl = document.getElementById('qinput'); if (qinputEl) qinputEl.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { window.currentPage = 1; window.loadResults(); } });
+      try{ window.populateComposerBox('', null); }catch(_){ }
+      await window.loadResults();
+    }catch(e){ const resultsEl = document.getElementById('results'); if (resultsEl) resultsEl.innerText = 'Initialization failed: ' + String(e); console.error('Initialization failed', e); }
+  })();
 
-  // ensure composer box starts empty
-  try{ populateComposerBox('', null); }catch(_){}
-  try{ updateComposerBtnVisibility(); }catch(e){}
+  // expose helpers
+  window.gvizFetch = gvizFetch;
+  window.normalize = normalize;
+  window.escapeHtml = escapeHtml;
 
-    // finally load results
-    await loadResults();
-  }catch(e){
-    const resultsEl = document.getElementById('results'); if (resultsEl) resultsEl.innerText = 'Initialization failed: ' + String(e);
-    console.error('Initialization failed', e);
-  }
+  // basic wiring
+  try{
+    window.populateCountryCheckboxes().catch(()=>{});
+    const sbtn = document.getElementById('qbtn'); if (sbtn) sbtn.addEventListener('click', ()=>{ window.currentPage = 1; window.loadResults(); });
+    const qinputEl = document.getElementById('qinput'); if (qinputEl) qinputEl.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { window.currentPage = 1; window.loadResults(); } });
+  }catch(e){ console.error('client init failed', e); }
+
 })();
