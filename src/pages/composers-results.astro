@@ -5,38 +5,120 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Composers results</title>
+    <title>Soviet Trumpet Archive results</title>
+    <style>
+      /* background overlay controls */
+      #bg-overlay{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+      #bg-overlay img{position:absolute;left:0;top:0;width:100vw;height:100vh;object-fit:cover}
+      #bg-adjust-control{position:fixed;left:12px;bottom:80px;z-index:80;background:rgba(255,255,255,0.95);border:1px solid #e6e9ef;padding:6px 8px;border-radius:8px;display:flex;gap:6px;align-items:center;box-shadow:0 6px 18px rgba(16,24,40,0.08)}
+      #bg-adjust-control button{background:#fff;border:1px solid #d1d5db;padding:6px;border-radius:6px;cursor:pointer}
+      #bg-adjust-control #bg-value{min-width:36px;text-align:center;font-weight:600}
+      @media (max-width:600px){#bg-adjust-control{left:8px;bottom:92px}}
+    </style>
+    <style>
+      :root{--accent:#8b0000;--muted:#6b7280;--bg:#f7f9fc}
+      *{box-sizing:border-box}
+      body{padding-bottom:64px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial}
+      header{background:white;border-bottom:1px solid #e6e9ef;position:sticky;top:0;z-index:30}
+      header .container{width:100%;max-width:none;margin:0;padding:12px 20px}
+      .result-item{border-bottom:1px solid #e6e9ef;padding:1rem 0}
+      .result-item:last-child{border-bottom:none}
+      .result-item h2{font-size:1.2rem;margin:0;color:#004d7a;cursor:pointer}
+      .result-item p{margin:0.25rem 0}
+      strong,.filters h3 strong{color:var(--accent);font-weight:700}
+      footer{background:#004d7a;color:white;text-align:center;padding:1rem;margin-top:2rem;font-size:0.9rem}
+      .container{max-width:1100px;margin:0 auto;padding:12px}
+      .logo{font-weight:700}
+      .lang-toggle{display:flex;align-items:center;gap:8px}
+      .search-bar{display:flex;gap:8px;padding:12px 20px}
+      .filters{width:260px}
+      .results{flex:1}
+      .composer-box{width:300px}
+      .section-divider{height:1px;background:#e6e9ef;margin:8px 0}
+    </style>
   </head>
   <body>
-    <main id="results">
-      <header id="results-header" style="display:flex;align-items:center;gap:12px;justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <input id="qinput" type="search" aria-label="Search" placeholder="Search composers, countries, or pieces..." />
-          <button id="clear-composer" style="display:none">Clear composer</button>
+    <!-- background overlay -->
+    <div id="bg-overlay" aria-hidden="true">
+      <img id="bg-img" src="/assets/bg-K13qQAs.png" alt="" />
+    </div>
+
+    <!-- Background adjustment control (quick tweaks) -->
+    <div id="bg-adjust-control" aria-hidden="false">
+      <button id="bg-up" title="Move background up">▲</button>
+      <div id="bg-value">18</div>
+      <button id="bg-down" title="Move background down">▼</button>
+      <button id="bg-reset" title="Reset background">Reset</button>
+    </div>
+
+    <header>
+      <div class="container nav" style="display:flex;justify-content:space-between;align-items:center">
+        <div class="logo">
++          <span class="nav-english" id="navEnglish">Archive of Soviet Trumpet Music</span>
+          <span class="nav-pipe">|</span>
+          <span class="nav-russian" id="navRussian">Архив советской трубной музыки</span>
         </div>
-        <div>
-          <button id="langBtn">Language</button>
-          <div id="langDropdown" class="lang-dropdown" style="display:none"></div>
+        <div class="lang-toggle" id="langToggle">
+          <button class="lang-btn" id="langBtn">EN ▾</button>
+          <div class="lang-dropdown" id="langDropdown" style="display:none">
+            <div class="lang-option" data-locale="en">English</div>
+            <div class="lang-option" data-locale="de">Deutsch</div>
+          </div>
         </div>
-      </header>
-
-      <div id="main-grid" style="display:flex;gap:16px;margin-top:16px;">
-        <aside id="filters" style="width:260px;">
-          <section id="filter-country"></section>
-          <section id="filter-decade" style="margin-top:12px"></section>
-          <section id="filter-type" style="margin-top:12px"></section>
-        </aside>
-
-        <section id="results-area" style="flex:1;">
-          <div id="results-pagination-top"></div>
-          <div id="results-list"></div>
-        </section>
-
-        <aside id="composer-panel" style="width:300px;">
-          <div id="composer-content">Select a result to view composer details.</div>
-        </aside>
       </div>
-    </main>
+    </header>
+
+    <div class="search-bar">
+      <input id="qinput" type="text" placeholder="Search ProQuest..." />
+      <button id="qbtn">Search</button>
+    </div>
+
+    <div class="container" style="display:flex;gap:16px;align-items:flex-start">
+      <aside class="filters">
+        <h3 class="section-header"><strong>Filters</strong></h3>
+        <div class="section-divider"></div>
+        <h4 style="font-weight:600;margin-top:6px;margin-bottom:6px;"><strong>Country</strong></h4>
+        <div class="section-divider"></div>
+        <div id="filter-country" style="margin-bottom:12px">&nbsp;</div>
+        <h4 style="font-weight:600;margin-top:6px;margin-bottom:6px;"><strong>Decade</strong></h4>
+        <div class="section-divider"></div>
+        <div id="filter-decade" style="margin-bottom:12px">&nbsp;</div>
+        <h4 style="font-weight:600;margin-top:6px;margin-bottom:6px;"><strong>Type of piece</strong></h4>
+        <div class="section-divider"></div>
++        <div id="filter-type" style="margin-bottom:12px">&nbsp;</div>
+      </aside>
+
+      <main class="results" id="results" style="flex:1">
+        <div class="results-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <h3 class="section-header">Results</h3>
+          <div id="results-pagination-top" style="display:flex;align-items:center;justify-content:flex-end;"></div>
+        </div>
+        <div class="section-divider"></div>
+        <div id="results-list"><div class="result-item"><em>Loading results…</em></div></div>
+      </main>
+
+      <aside class="composer-box" id="composer-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <h3 class="section-header">Composer</h3>
+          <div style="margin-left:auto;"><button id="clear-composer" style="display:none;padding:6px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear composer</button></div>
+        </div>
+        <div class="section-divider"></div>
+        <div id="composer-content" style="margin-top:8px">Select a result to view composer details.</div>
+      </aside>
+    </div>
+
+    <div id="fixed-footer" role="contentinfo">
+      <div class="fixed-footer-inner" style="display:flex;justify-content:space-between;align-items:center;padding:12px 20px;">
++        <div class="footer-left">
+          <div class="title">Archive of Soviet Trumpet Music</div>
+          <div class="subtitle">Архив советской трубной музыки</div>
+        </div>
++        <div class="fixed-footer-center">
+          <div class="links"><a href="/about">About</a> <a href="#">Contact</a> <a href="#">Help</a></div>
+        </div>
++        <div class="fixed-footer-right"><div class="copyright">© 2025 Archive of Soviet Trumpet Music</div></div>
+      </div>
+    </div>
 
     <script src="/composers-results.client.js" defer></script>
   </body>
