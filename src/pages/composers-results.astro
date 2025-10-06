@@ -113,9 +113,24 @@
     </div>
     <!-- three horizontal panels, 20px below the search strip -->
     <div class="three-panels" role="region" aria-label="Quick panels">
-      <div class="panel" id="panel-left">Left panel — filters or summary</div>
-      <div class="panel" id="panel-center">Center panel — featured results / actions</div>
-      <div class="panel" id="panel-right">Right panel — composer details / shortcuts</div>
+      <div class="panel" id="panel-left">
+        <h4 style="margin-top:0;margin-bottom:8px;font-weight:700">Filters</h4>
+        <div id="filter-country" style="margin-bottom:12px">&nbsp;</div>
+        <div id="filter-decade" style="margin-bottom:12px">&nbsp;</div>
+        <div id="filter-type" style="margin-bottom:12px">&nbsp;</div>
+      </div>
+      <div class="panel" id="panel-center">
+        <div id="results-pagination-top" style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:8px"></div>
+        <div id="results-list"><div class="result-item"><em>Loading results…</em></div></div>
+      </div>
+      <div class="panel" id="panel-right">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <h4 style="margin:0;font-weight:700">Composer</h4>
+          <div style="margin-left:auto;"><button id="clear-composer" style="display:none;padding:6px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear composer</button></div>
+        </div>
+        <div class="section-divider"></div>
+        <div id="composer-content" style="margin-top:8px">Select a result to view composer details.</div>
+      </div>
     </div>
     <!-- background overlay (moved to page top) -->
 
@@ -134,39 +149,7 @@
       <button id="qbtn">Search</button>
     </div>
 
-    <div class="container" style="display:flex;gap:16px;align-items:flex-start">
-      <aside class="filters">
-        <h3 class="section-header"><strong>Filters</strong></h3>
-        <div class="section-divider"></div>
-        <h4 style="font-weight:600;margin-top:6px;margin-bottom:6px;"><strong>Country</strong></h4>
-        <div class="section-divider"></div>
-        <div id="filter-country" style="margin-bottom:12px">&nbsp;</div>
-        <h4 style="font-weight:600;margin-top:6px;margin-bottom:6px;"><strong>Decade</strong></h4>
-        <div class="section-divider"></div>
-        <div id="filter-decade" style="margin-bottom:12px">&nbsp;</div>
-        <h4 style="font-weight:600;margin-top:6px;margin-bottom:6px;"><strong>Type of piece</strong></h4>
-        <div class="section-divider"></div>
-+        <div id="filter-type" style="margin-bottom:12px">&nbsp;</div>
-      </aside>
-
-      <main class="results" id="results" style="flex:1">
-        <div class="results-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <h3 class="section-header">Results</h3>
-          <div id="results-pagination-top" style="display:flex;align-items:center;justify-content:flex-end;"></div>
-        </div>
-        <div class="section-divider"></div>
-        <div id="results-list"><div class="result-item"><em>Loading results…</em></div></div>
-      </main>
-
-      <aside class="composer-box" id="composer-box">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <h3 class="section-header">Composer</h3>
-          <div style="margin-left:auto;"><button id="clear-composer" style="display:none;padding:6px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear composer</button></div>
-        </div>
-        <div class="section-divider"></div>
-        <div id="composer-content" style="margin-top:8px">Select a result to view composer details.</div>
-      </aside>
-    </div>
+    <!-- main content is now presented inside the three panels above -->
 
     <div id="fixed-footer" role="contentinfo">
       <div class="fixed-footer-inner" style="display:flex;justify-content:space-between;align-items:center;padding:12px 20px;">
