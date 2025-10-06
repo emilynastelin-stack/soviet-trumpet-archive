@@ -1,315 +1,43 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Soviet Trumpet Archive results</title>
-  <style>
-    :root { --accent:#8b0000; --muted:#6b7280; --bg:#f7f9fc; }
-    * { box-sizing:border-box; }
-    body { padding-bottom:64px; }
-    header { background:white; border-bottom:1px solid #e6e9ef; position:sticky; top:0; z-index:30; }
-    header .container { width:100%; max-width:none; margin:0; padding:12px 20px; }
-    #navEnglish { display:inline-block; padding-left:0; }
-    .container { max-width:1100px; margin:0 auto; padding:20px; }
-    .nav { display:flex; align-items:center; gap:18px; }
-    .logo { font-weight:800; color:var(--accent); font-size:20px; }
-    .nav-english { color:var(--accent); font-weight:800; }
-    .nav-pipe { color:#000; margin:0 8px; }
-    .nav-russian { color:var(--muted); }
-    .lang-toggle { position:relative; display:inline-block; margin-right:12px; }
-    .lang-btn { background:transparent; border:1px solid #e6e9ef; padding:6px 8px; border-radius:6px; cursor:pointer; font-weight:600; }
-    .lang-dropdown { position:absolute; top:100%; right:0; background:white; border:1px solid #e6e9ef; border-radius:6px; padding:6px; box-shadow:0 6px 18px rgba(16,24,40,0.06); display:none; min-width:140px; }
-    .lang-dropdown.open { display:block; }
-    .lang-option { padding:6px 8px; cursor:pointer; }
-    .lang-option:hover { background:#f3f4f6; }
-  #fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#8b0000; color:white; z-index:1200; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
-    .fixed-footer-inner { width:100%; max-width:none; margin:0; padding:0 20px; display:flex; gap:12px; justify-content:space-between; align-items:center; }
-    .footer-left { display:flex; flex-direction:column; transform: translateY(-5px); }
-    .footer-left .title { font-weight:700; color:white; font-size:16px; line-height:1.1; padding:12px 0 0 0; margin-left:0; }
-    .footer-left .subtitle { color:rgba(255,255,255,0.8); font-size:13px; margin-top:0; margin-left:0; padding-left:0; }
-    .fixed-footer-center { flex:1; display:flex; align-items:center; justify-content:center; transform: translateY(-3px); }
-    .fixed-footer-center .links { color:white; font-size:13px; text-align:center; }
-    .fixed-footer-center .links a { color:inherit; text-decoration:none; margin:0 8px; }
-    .fixed-footer-right { display:flex; align-items:center; justify-content:flex-end; min-width:220px; transform: translateY(-3px); }
-    .fixed-footer-right .copyright { color:rgba(255,255,255,0.9); font-size:13px; }
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      background: transparent; /* show the overlay behind the page */
-      color: #333;
-    }
-
-  /* Background overlay (non-interactive) - force behind nav/footer/content */
-  /* Use z-index:0 so overlay doesn't create a stacking context that might capture clicks in some browsers */
-  #bg-overlay { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
-  #bg-overlay img { position:absolute; left:0; top:0; width:100vw; height:100vh; object-fit:cover; will-change:left,top,width,height; pointer-events:none; }
-
-    /* Navbar: match composers page height and style */
-    header {
-      background: white;
-      border-bottom: 1px solid #e6e9ef;
-      position: sticky;
-      top: 0;
-        z-index: 3000; /* ensure header is above the background overlay */
-    }
-    header .container { width:100%; max-width:none; margin:0; padding:12px 20px; display:flex; align-items:center; justify-content:space-between; }
-    .logo { font-weight:800; color:var(--accent); font-size:20px; line-height:1; }
-    header h1 { margin:0; font-size:1.5rem; color:var(--accent); }
-
-    .search-bar {
-      background: #e9ecef;
-      opacity: 0.75; /* make the gray search box 75% opaque */
-      padding: 1rem;
-      text-align: center;
-      display:flex;
-      flex-direction:row;
-      align-items:center;
-      gap:8px;
-      justify-content:center;
-    position: relative;
-    z-index: 1001; /* ensure search bar sits above overlay and header */
-    }
-    .search-bar input {
-      width: 60%;
-      padding: 0.5rem;
-      font-size: 1rem;
-    }
-    .search-bar button {
-      padding: 0.5rem 1rem;
-      font-size: 1rem;
-      margin-left: .5rem;
-      background: var(--accent); /* maroon */
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
-    .container {
-      display: grid;
-  /* left filters, main results, right composer box (composer box widened to align with search button) */
-  grid-template-columns: 250px 1fr 420px;
-      gap: 1rem;
-      /* full-bleed container so left column (filters) sits flush to viewport left */
-      padding: 1rem 10px 1rem 0;
-      position: relative;
-      z-index: 10; /* put main content above the background overlay */
-      max-width: none;
-      margin: 0;
-      width: 100%;
-    }
-
-    .filters {
-      background: #fffff7;
-      /* add 15px extra left padding as requested */
-      padding: 1rem;
-      padding-left: calc(1rem + 15px);
-      border-radius: 8px;
-      box-shadow: 0 10px 30px rgba(16,24,40,0.12);
-      /* previously offset from the viewport edge; removed margin so headings/dividers align with other boxes */
-      margin-left: 0;
-    }
-    .filters h3 {
-      /* legacy rule - headings now use .section-header for consistent Results-style headings */
-      font-size: 1rem;
-      margin-bottom: 0.5rem;
-    }
-    .filters label {
-      display: block;
-      margin-bottom: 0.5rem;
-    }
-    .list-title { color: #000; font-weight:700; margin-bottom:6px; font-size:0.95rem; }
-
-    .results {
-      background: #fffff7;
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 10px 30px rgba(16,24,40,0.12);
-    }
-
-    /* Maroon spinner for composer box quick-loading state */
-    .spinner {
-      width: 18px;
-      height: 18px;
-      border: 2px solid rgba(139,0,0,0.15);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 800ms linear infinite;
-      display:inline-block;
-      vertical-align:middle;
-      margin-left:8px;
-    }
-    @keyframes spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
-
-    /* Right-hand composer box (matches filters box style) */
-    .composer-box {
-      background: #fffff7;
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 10px 30px rgba(16,24,40,0.12);
-      margin-right: 0; /* flush to the right column edge */
-    }
-  /* composer links maroon by default; piece links black. Hover changes color for both */
-  .composer-link { color: var(--accent) !important; font-weight:700; text-decoration:none !important; }
-  .piece-link { color: #000 !important; font-weight:700; text-decoration:none !important; }
-  .composer-link:hover { color: #5a0000 !important; text-decoration:underline !important; }
-  .piece-link:hover { color: #333 !important; text-decoration:underline !important; }
-  /* ensure visited links keep color */
-  .composer-link:visited { color: var(--accent) !important; }
-  .piece-link:visited { color: #000 !important; }
-  /* stronger selectors */
-  .results .result-item a.composer-link, .results .result-item a.piece-link, .result-item a.composer-link, .result-item a.piece-link { text-decoration:none !important; }
-  .composer-box h3 { font-size:1rem; margin-bottom:0.5rem; }
-
-  /* Shared section header that matches the Results header (color, size, line-height) */
-  .section-header { margin:0; padding:0; color:var(--accent); font-size:1.125rem; font-weight:700; line-height:1; }
-  /* force identical spacing for headings inside the three primary boxes so dividers align */
-  .results > .results-header > .section-header,
-  .filters > .section-header,
-  .composer-box > div > .section-header { display:block; margin:0; padding:0; font-size:1.125rem; line-height:1; }
-  /* nudge the Filters heading slightly lower for perfect alignment */
-  .filters > .section-header { transform: translateY(3px); }
-  .section-divider { border-bottom:1px solid #e6e9ef; margin-top:8px; margin-bottom:12px; }
-  /* nudge only the Filters box divider down slightly to match visual alignment */
-  .filters > .section-divider { transform: translateY(3px); }
-    .pagination { display:flex; gap:8px; align-items:center; justify-content:center; margin-top:12px; }
-    .pagination button { padding:6px 10px; border-radius:6px; border:1px solid #d1d5db; background:white; cursor:pointer; }
-    .pagination button.active { background:var(--accent); color:white; border-color:var(--accent); }
-    .result-item {
-      border-bottom: 1px solid #d1d5db; /* clearer gray divider between entries */
-      padding: 1rem 0;
-    }
-    /* ensure divider isn't overridden by other layout rules */
-    .results .result-item { border-bottom: 1px solid #d1d5db !important; }
-    .result-item:last-child {
-      border-bottom: none;
-    }
-    .result-item h2 {
-      font-size: 1.2rem;
-      margin: 0;
-      color: #004d7a;
-      cursor: pointer;
-    }
-    .result-item p {
-      margin: 0.25rem 0;
-    }
-
-    /* Make bold text maroon to match site accent */
-    strong, .filters h3 strong { color: var(--accent); font-weight:700; }
-
-    footer {
-      background: #004d7a;
-      color: white;
-      text-align: center;
-      padding: 1rem;
-      margin-top: 2rem;
-      font-size: 0.9rem;
-    }
-  </style>
-</head>
-<body>
-
-  <!-- background overlay (non-interactive, no adjustment controls) -->
-  <div id="bg-overlay" aria-hidden="true">
-    <img id="bg-img" src="/assets/bg-K13qQAs.png" alt="" />
-  </div>
-
-  <header>
-    <div class="container nav" style="display:flex;justify-content:space-between;align-items:center">
-      <a href="/composers" class="logo" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;">
-        <span class="nav-english" id="navEnglish">Archive of Soviet Trumpet Music</span>
-        <span class="nav-pipe">|</span>
-        <span class="nav-russian" id="navRussian">Архив советской трубной музыки</span>
-      </a>
-      <div class="lang-toggle" id="langToggle">
-        <button class="lang-btn" id="langBtn">EN ▾</button>
-        <div class="lang-dropdown" id="langDropdown">
-          <div class="lang-option" data-locale="en">English</div>
-          <div class="lang-option" data-locale="de">Deutsch</div>
-        </div>
-      </div>
-    </div>
-  </header>
-
-<div class="search-bar">
-  <input id="qinput" type="text" placeholder="Search ProQuest...">
-  <button id="qbtn">Search</button>
-</div>
-
-<!-- pagination controls will be injected inside the results box so the right edge can align with the results column -->
-
-<div class="container">
-  <aside class="filters">
-    <h3 class="section-header"><strong>Filters</strong></h3>
-    <div class="section-divider"></div>
-    <!-- Clear-all moved to the pagination area to match original layout -->
-  <h4 class="section-header" style="font-weight:600;margin-top:6px;margin-bottom:6px;"><strong>Country</strong></h4>
-  <div class="section-divider"></div>
-  <div id="filter-country" style="margin-bottom:12px;">&nbsp;</div>
-
-  <h4 class="section-header" style="font-weight:600;margin-top:6px;margin-bottom:6px;"><strong>Decade</strong></h4>
-  <div class="section-divider"></div>
-    <div id="filter-decade" style="margin-bottom:12px;">&nbsp;</div>
-
-    <h4 class="section-header" style="font-weight:600;margin-top:6px;margin-bottom:6px;"><strong>Type of piece</strong></h4>
-    <div class="section-divider"></div>
-    <div id="filter-type" style="margin-bottom:12px;">&nbsp;</div>
-    <!-- Global filter controls (Clear all / Clear last) moved here from pagination -->
-    <div id="filters-controls" style="margin-top:12px; display:flex; gap:8px; justify-content:flex-start;"></div>
-  </aside>
-
-  <main class="results" id="results">
-    <div class="results-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-      <h3 class="section-header">Results</h3>
-      <div id="results-pagination-top" style="display:flex;align-items:center;justify-content:flex-end;"></div>
-    </div>
-    <div class="section-divider"></div>
-    <div id="results-list">
-      <div class="result-item"><em>Loading results…</em></div>
-    </div>
-  </main>
-
-  <aside class="composer-box" id="composer-box">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-      <h3 class="section-header">Composer</h3>
-      <div style="margin-left:auto;">
-        <button id="clear-composer" style="display:none;padding:6px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear composer</button>
-      </div>
-    </div>
-    <div class="section-divider"></div>
-    <div id="composer-content" style="margin-top:8px;">Select a result to view composer details.</div>
-  </aside>
-</div>
-
-  <!-- Fixed footer bar locked to viewport (shared with main site) -->
-  <div id="fixed-footer" aria-hidden="false" role="contentinfo">
-    <div class="fixed-footer-inner">
-      <div class="footer-left">
-        <div class="title">Archive of Soviet Trumpet Music</div>
-        <div class="subtitle">Архив советской трубной музыки</div>
-      </div>
-      <div class="fixed-footer-center">
-        <div class="links">
-          <a href="/about">About</a>
-          <a href="#">Contact</a>
-          <a href="/sources">Sources</a>
-        </div>
-      </div>
-      <div class="fixed-footer-right">
-        <div class="copyright">© 2025 Archive of Soviet Trumpet Music</div>
-      </div>
-    </div>
-  </div>
-
-<script>
-  // populate the search input from query param and match front-page placeholder
+// Client script for composers-results page
+// Extracted and cleaned. Provides filters, pagination, sheet fetching and composer details.
+(function(){
+  // Lightweight runtime diagnostics to help debug blank page issues
+  try{
+    console.log('[composers-results] client script loaded');
+    window.addEventListener('error', function(ev){
+      try{
+        console.error('[composers-results] uncaught error', ev.error || ev.message || ev);
+        const rl = document.getElementById('results-list');
+        if (rl) rl.innerText = 'Client error: ' + String(ev.message || (ev.error && ev.error.message) || ev.error || ev);
+        const cc = document.getElementById('composer-content'); if (cc) cc.innerText = 'Client error: see console';
+      }catch(_){ /* ignore */ }
+    });
+    // visible debug badge so users can see client status without DevTools
+    try{
+      const badge = document.createElement('div');
+      badge.id = 'cr-debug';
+      badge.style.position = 'fixed';
+      badge.style.right = '12px';
+      badge.style.top = '72px';
+      badge.style.zIndex = '9999';
+      badge.style.background = 'rgba(0,0,0,0.6)';
+      badge.style.color = '#fff';
+      badge.style.padding = '6px 8px';
+      badge.style.borderRadius = '6px';
+      badge.style.fontSize = '12px';
+      badge.style.fontFamily = 'system-ui,Segoe UI,Roboto,Arial';
+      badge.textContent = 'client: loaded';
+      document.body.appendChild(badge);
+    }catch(_){ }
+  }catch(_){ /* ignore */ }
   const params = new URLSearchParams(window.location.search);
   const q = params.get('q') || '';
   const qinput = document.getElementById('qinput');
-  qinput.placeholder = 'Search composers, countries, or pieces...';
-  qinput.value = decodeURIComponent(q);
+  if (qinput) {
+    qinput.placeholder = 'Search composers, countries, or pieces...';
+    qinput.value = decodeURIComponent(q);
+  }
 
-  // language toggle: simple behavior to set locale and reload
   const langBtn = document.getElementById('langBtn');
   const langDropdown = document.getElementById('langDropdown');
   if (langBtn && langDropdown){
@@ -319,68 +47,11 @@
   }
 
   function normalize(s){ if(!s) return ''; try{ return s.toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase(); }catch(e){ return s.toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); } }
-
-  // Top-level clear function so the button in filters can reuse it
-  function clearAllFilters(){
-    try{
-      if (qinput) qinput.value = '';
-      selectedComposer = '';
-      selectedPieceIndex = null;
-      selectedPieceFilter = null; // when set, filter results to this piece title
-      lastAppliedFilter = null;
-      const clearComposerBtn = document.getElementById('clear-composer'); if (clearComposerBtn) clearComposerBtn.style.display = 'none';
-      const composerContent = document.getElementById('composer-content'); if (composerContent) composerContent.innerHTML = 'Select a result to view composer details.';
-      document.querySelectorAll('#filter-country input[type=checkbox], #filter-decade input[type=checkbox], #filter-type input[type=checkbox]').forEach(cb=> cb.checked = false);
-      currentPage = 1;
-      loadResults();
-    }catch(e){ console.error('clearAllFilters failed', e); }
-  }
-
-  // Clear only the last applied filter (tracked in lastAppliedFilter)
-  function clearLastAppliedFilter(){
-    try{
-      if (!lastAppliedFilter || !lastAppliedFilter.kind) return;
-      const kind = lastAppliedFilter.kind;
-      const val = lastAppliedFilter.value || '';
-      const sel = kind === 'country' ? '#filter-country input[type=checkbox]' : (kind === 'decade' ? '#filter-decade input[type=checkbox]' : '#filter-type input[type=checkbox]');
-      document.querySelectorAll(sel).forEach(cb=>{
-        try{ const v = decodeURIComponent(cb.getAttribute('data-val')||cb.dataset.val||''); if (v === val) cb.checked = false; }catch(_){ }
-      });
-      lastAppliedFilter = null;
-      currentPage = 1;
-      loadResults();
-    }catch(e){ console.error('clearLastAppliedFilter failed', e); }
-  }
-
-  // Create global Clear buttons so other init code can reference them safely
-  function createClearAll(){
-    const clearBtn = document.createElement('button');
-    clearBtn.textContent = 'Clear all filters';
-    clearBtn.style.padding = '6px 10px';
-    clearBtn.style.borderRadius = '6px';
-    clearBtn.style.border = '1px solid #d1d5db';
-    clearBtn.style.background = '#fff';
-    clearBtn.addEventListener('click', ()=>{ try{ clearAllFilters(); }catch(e){} });
-    return clearBtn;
-  }
-
-  function createClearLast(){
-    const clearLastBtn = document.createElement('button');
-    clearLastBtn.textContent = 'Clear last filter';
-    clearLastBtn.style.padding = '6px 10px';
-    clearLastBtn.style.borderRadius = '6px';
-    clearLastBtn.style.border = '1px solid #d1d5db';
-    clearLastBtn.style.background = '#fff';
-    clearLastBtn.addEventListener('click', ()=>{ try{ if (typeof clearLastAppliedFilter === 'function') clearLastAppliedFilter(); }catch(e){} });
-    return clearLastBtn;
-  }
-
   function escapeHtml(str){ if (str == null) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
-  // Client-side GViz fetch fallback for public spreadsheets.
   async function gvizFetch(sheetName, range = 'A1:Z1000'){
     try{
-      const id = '1UiK8QDq98C-9wCpQjdQAVpSdH8mZkpxYgMMEHM3uaGk'; // same spreadsheet id as server
+      const id = '1UiK8QDq98C-9wCpQjdQAVpSdH8mZkpxYgMMEHM3uaGk';
       const url = `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}&range=${encodeURIComponent(range)}`;
       const txt = await (await fetch(url)).text();
       const m = txt.match(/google\.visualization\.Query\.setResponse\((.*)\);?/s);
@@ -393,37 +64,28 @@
     }catch(_){ return null; }
   }
 
-  // pagination state
-  const PAGE_SIZE = 25;
-  let currentPage = 1;
-  let lastFiltered = [];
-  let selectedComposer = '';
-  let selectedPieceIndex = null;
-  let selectedPieceFilter = null;
-  // remember the last filter the user changed so "Return to search" can drop it
-  let lastAppliedFilter = null; // { kind: 'country'|'decade'|'type', value: '<data-val string>' }
-  // live update state
-  let lastRowsJson = null;
-  const POLL_INTERVAL = 30000; // 30s
-  let liveTimer = null;
+  // state
+  window.PAGE_SIZE = 25;
+  window.currentPage = 1;
+  window.lastFiltered = [];
+  window.selectedComposer = '';
+  window.lastAppliedFilter = null;
+  window.lastRowsJson = null;
+  window.POLL_INTERVAL = 30000;
+  window.liveTimer = null;
 
-  // populate country checkboxes from translations (canonical EN list + localized labels)
-  async function populateCountryCheckboxes(){
+  window.populateCountryCheckboxes = async function(){
     const container = document.getElementById('filter-country');
     if (!container) return;
-    // fallback canonical list
     const fallbackCountries = ['Russia','Ukraine','Belarus','Armenia','Georgia','Latvia','Estonia','Lithuania','Kazakhstan','Uzbekistan','Other'];
     try{
       const res = await fetch('/i18n/translations.json');
       const json = await res.json();
       const en = json && json.en ? json.en : null;
       const canonical = en && en.countries ? en.countries : fallbackCountries;
-      // determine locale for localized labels
       const locale = (function(){ try{ return localStorage.getItem('locale') || 'en'; }catch(e){ return 'en'; } })();
       const localized = (json && json[locale] && json[locale].countries) ? json[locale].countries : canonical;
-      // build title + checkbox list; controls will be placed at the bottom
-  container.innerHTML = '';
-      // build checkbox list
+      container.innerHTML = '';
       for (let i=0;i<canonical.length;i++){
         const val = canonical[i];
         const lab = (localized && localized[i]) ? localized[i] : val;
@@ -432,34 +94,25 @@
         wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" /> ${lab}</label>`;
         container.appendChild(wrapper);
       }
-      // build controls (Select All / Clear) placed at bottom
       const controls = document.createElement('div');
       controls.style.marginTop = '8px';
       controls.innerHTML = `<button id="country-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="country-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`;
       container.appendChild(controls);
-    // attach change handler to all checkboxes
-  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); lastAppliedFilter = { kind: 'country', value: val }; }catch(_){} selectedComposer = ''; currentPage = 1; loadResults(); }));
-      // wire select all / clear
+  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); window.lastAppliedFilter = { kind: 'country', value: val }; }catch(_){} window.currentPage = 1; window.loadResults(); }));
       const selAll = document.getElementById('country-select-all');
       const clr = document.getElementById('country-clear');
-  if (selAll) selAll.addEventListener('click', ()=>{ lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
-  if (clr) clr.addEventListener('click', ()=>{ lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
+  if (selAll) selAll.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); window.currentPage = 1; window.loadResults(); });
+  if (clr) clr.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); window.currentPage = 1; window.loadResults(); });
     }catch(e){
-      // fallback: render simple list + controls
-  container.innerHTML = fallbackCountries.map((c,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(c)}" id="country_cb_f${i}" /> ${c}</label>`).join('');
-  const controlsWrap = document.createElement('div');
-  controlsWrap.style.marginTop = '8px';
-  controlsWrap.innerHTML = `<button id="country-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="country-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`;
-  container.appendChild(controlsWrap);
-    container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); lastAppliedFilter = { kind: 'decade', value: val }; }catch(_){} selectedComposer = ''; currentPage = 1; loadResults(); }));
-      const selAll = document.getElementById('country-select-all');
-      const clr = document.getElementById('country-clear');
-  if (selAll) selAll.addEventListener('click', ()=>{ lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
-  if (clr) clr.addEventListener('click', ()=>{ lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
+      container.innerHTML = fallbackCountries.map((c,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(c)}" id="country_cb_f${i}" /> ${c}</label>`).join('');
+      const controlsWrap = document.createElement('div');
+      controlsWrap.style.marginTop = '8px';
+      controlsWrap.innerHTML = `<button id="country-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="country-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`;
+      container.appendChild(controlsWrap);
+  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); window.lastAppliedFilter = { kind: 'decade', value: val }; }catch(_){} window.currentPage = 1; window.loadResults(); }));
     }
-  }
+  };
 
-  // populate decades checkboxes from translations
   async function populateDecadeCheckboxes(){
     const container = document.getElementById('filter-decade');
     if (!container) return;
@@ -471,9 +124,8 @@
       const canonical = en && en.decades ? en.decades : fallbackDecades;
       const locale = (function(){ try{ return localStorage.getItem('locale') || 'en'; }catch(e){ return 'en'; } })();
       const localized = (json && json[locale] && json[locale].decades) ? json[locale].decades : canonical;
-  // checkbox list; the section header is rendered server-side (maroon .section-header),
-  // so we avoid injecting a duplicate title here.
-  container.innerHTML = '';
+      container.innerHTML = '';
+      const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Decade'; container.appendChild(title);
       for (let i=0;i<canonical.length;i++){
         const val = canonical[i];
         const lab = (localized && localized[i]) ? localized[i] : val;
@@ -483,36 +135,35 @@
         container.appendChild(wrapper);
       }
       const controls = document.createElement('div'); controls.style.marginTop = '8px'; controls.innerHTML = `<button id="decade-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="decade-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controls);
-  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ selectedComposer = ''; currentPage = 1; loadResults(); }));
+      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
       const selAll = document.getElementById('decade-select-all');
       const clr = document.getElementById('decade-clear');
-      if (selAll) selAll.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
-      if (clr) clr.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
+  if (selAll) selAll.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); window.currentPage = 1; window.loadResults(); });
+  if (clr) clr.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); window.currentPage = 1; window.loadResults(); });
     }catch(e){
-  // fallback checkbox list (no duplicated title)
-  container.innerHTML = '';
+      container.innerHTML = '';
+      const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Decade'; container.appendChild(title);
       container.innerHTML += fallbackDecades.map((d,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(d)}" id="decade_cb_f${i}" /> ${d}</label>`).join('');
       const controlsWrap = document.createElement('div'); controlsWrap.style.marginTop = '8px'; controlsWrap.innerHTML = `<button id="decade-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="decade-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controlsWrap);
-      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ currentPage = 1; loadResults(); }));
+      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
     }
   }
+  window.populateDecadeCheckboxes = populateDecadeCheckboxes;
 
-  // populate type-of-piece checkboxes by deriving unique types from the sheets if translations do not provide them
   async function populateTypeCheckboxes(){
     const container = document.getElementById('filter-type');
     if (!container) return;
     container.innerHTML = '';
     try{
-      // try translations first
       const resT = await fetch('/i18n/translations.json');
       const jsonT = await resT.json();
       const en = jsonT && jsonT.en ? jsonT.en : null;
       const canonicalTypes = en && en.types ? en.types : null;
       if (canonicalTypes && canonicalTypes.length){
-        const localized = (jsonT && jsonT[(localStorage.getItem('locale')||'en')] && jsonT[(localStorage.getItem('locale')||'en')].types) ? jsonT[(localStorage.getItem('locale')||'en')].types : canonicalTypes;
-  // title + checkboxes, controls at bottom
-  // note: the visible section header is provided in the HTML as an h4.section-header
-  container.innerHTML = '';
+        const locale = (function(){ try{ return localStorage.getItem('locale') || 'en'; }catch(e){ return 'en'; } })();
+        const localized = (jsonT && jsonT[locale] && jsonT[locale].types) ? jsonT[locale].types : canonicalTypes;
+        container.innerHTML = '';
+        const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Type of piece'; container.appendChild(title);
         canonicalTypes.forEach((val,i)=>{
           const lab = localized && localized[i] ? localized[i] : val;
           const id = 'type_cb_' + i;
@@ -521,36 +172,21 @@
           container.appendChild(wrapper);
         });
         const controls = document.createElement('div'); controls.style.marginTop = '8px'; controls.innerHTML = `<button id="type-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="type-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controls);
-  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); lastAppliedFilter = { kind: 'type', value: val }; }catch(_){} currentPage = 1; loadResults(); }));
+  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); window.lastAppliedFilter = { kind: 'type', value: val }; }catch(_){} window.currentPage = 1; window.loadResults(); }));
         const selAll = document.getElementById('type-select-all');
         const clr = document.getElementById('type-clear');
-  if (selAll) selAll.addEventListener('click', ()=>{ lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
-  if (clr) clr.addEventListener('click', ()=>{ lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
+        if (selAll) selAll.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); window.currentPage = 1; window.loadResults(); });
+        if (clr) clr.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); window.currentPage = 1; window.loadResults(); });
         return;
       }
-      // otherwise derive types from the sheets
-  const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
-  const raw = await res.json().catch(()=>null);
-  const rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
+      const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
+      const raw = await res.json().catch(()=>null);
+      const rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
       const set = new Set();
-      rows.forEach(r => {
-        // Prefer explicit type fields, but also check for single-letter column P or variants
-        let t = r.Type || r.type || r['Type of piece'] || r['Type'] || '';
-        if (!t) {
-          // common single-letter header for the sheet-export
-          if (r.P !== undefined && r.P !== null && String(r.P).trim() !== '') t = r.P;
-          else if (r['P'] !== undefined && r['P'] !== null && String(r['P']).trim() !== '') t = r['P'];
-          else if (r.colP !== undefined && r.colP !== null && String(r.colP).trim() !== '') t = r.colP;
-        }
-        // fallbacks for labelled columns that may contain the type
-        if (!t) {
-          t = r['Label'] || r['label'] || r['Piece Type'] || r['Type of Piece'] || '';
-        }
-        if (t) set.add(String(t).trim());
-      });
+      (rows || []).forEach(r => { const t = r.Type || r.type || r['Type of piece'] || r['Type'] || ''; if (t) set.add(String(t).trim()); });
       const list = Array.from(set).sort();
-  // dynamically-generated type list (no duplicated title) 
-  container.innerHTML = '';
+      container.innerHTML = '';
+      const titleDyn = document.createElement('div'); titleDyn.className = 'list-title'; titleDyn.textContent = 'Type of piece'; container.appendChild(titleDyn);
       const controls = document.createElement('div'); controls.style.marginTop = '8px'; controls.innerHTML = `<button id="type-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="type-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controls);
       list.forEach((val,i)=>{
         const id = 'type_cb_dyn_' + i;
@@ -558,801 +194,277 @@
         wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" /> ${val}</label>`;
         container.appendChild(wrapper);
       });
-      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ currentPage = 1; loadResults(); }));
+      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
       const selAll = document.getElementById('type-select-all');
       const clr = document.getElementById('type-clear');
-      if (selAll) selAll.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); currentPage = 1; loadResults(); });
-      if (clr) clr.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); currentPage = 1; loadResults(); });
-    }catch(e){
-      // best-effort fallback
-      container.innerHTML = '';
-    }
+  if (selAll) selAll.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); window.currentPage = 1; window.loadResults(); });
+  if (clr) clr.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); window.currentPage = 1; window.loadResults(); });
+    }catch(e){ container.innerHTML = ''; }
   }
+  window.populateTypeCheckboxes = populateTypeCheckboxes;
 
   function renderPage(page){
     const container = document.getElementById('results-list');
+    if (!container) return;
     container.innerHTML = '';
-    const start = (page - 1) * PAGE_SIZE;
-    const pageItems = lastFiltered.slice(start, start + PAGE_SIZE);
+    const start = (page - 1) * window.PAGE_SIZE;
+    const pageItems = (window.lastFiltered || []).slice(start, start + window.PAGE_SIZE);
     if (!pageItems.length) { container.innerHTML = '<div class="result-item">No results</div>'; return; }
     pageItems.forEach(r =>{
       const div = document.createElement('div');
       div.className = 'result-item';
-      const title = (r.Title || r.Compositions || 'Untitled');
-      const author = r['Composer'] || r.Composer || 'Unknown';
-      const published = r.Year || r.Published || r.Decade || '';
-      // remove snippet/source (column J) from display per request
-      const snippet = '';
-  // title and composer name are clickable
-  const composerEsc = escapeHtml(author);
-  const composerData = encodeURIComponent(String(author || ''));
-  const globalIndex = lastFiltered.indexOf(r);
-  div.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;"><h2 style="margin:0"><a href="#" class="piece-link" data-idx="${globalIndex}">${escapeHtml(title)}</a></h2><div class="result-right" data-idx="${globalIndex}" style="color:#6b7280;font-size:0.9rem;margin-left:12px;white-space:nowrap;cursor:pointer">Details</div></div><p><strong>Composer:</strong> <a href="#" class="composer-link" data-name="${composerData}">${composerEsc}</a></p><p><strong>Published:</strong> ${escapeHtml(published)}</p>`;
+      const title = (r.Title || r.Compositions || r.title || 'Untitled');
+      const author = r['Composer'] || r.Composer || r.composer || 'Unknown';
+      const published = r.Year || r.Published || r.Decade || r.year || '';
+      const composerEsc = escapeHtml(author);
+      const composerData = encodeURIComponent(String(author || ''));
+      div.innerHTML = `<h2>${escapeHtml(title)}</h2><p><strong>Composer:</strong> <a href="#" class="composer-link" data-name="${composerData}">${composerEsc}</a></p><p><strong>Published:</strong> ${escapeHtml(published)}</p>`;
       container.appendChild(div);
-      // attach click handler for composer link
       const link = div.querySelector('.composer-link');
       if (link){
         link.addEventListener('click', (e)=>{
           e.preventDefault();
           const name = decodeURIComponent(link.dataset.name || '');
-          // populate composer box and set filter
-          // when a composer is clicked, show all results for that composer (clear any piece filter)
-          selectedPieceFilter = null;
-          selectedPieceIndex = null;
-          selectedComposer = name || '';
+          window.selectedComposer = name || '';
           populateComposerBox(name, r);
-          currentPage = 1;
-          loadResults();
+          window.currentPage = 1;
+          window.loadResults();
         });
       }
-      // enforce link styles and divider inline so client sees updates immediately
-      try{
-        // composer link style
-  if (link) { link.style.color = 'var(--accent)'; link.style.textDecoration = 'none'; link.style.fontWeight = '700'; }
-  const tlink = div.querySelector('.piece-link');
-  if (tlink) { tlink.style.color = '#000'; tlink.style.textDecoration = 'none'; tlink.style.fontWeight = '700'; }
-        // ensure the divider is visible
-        div.style.borderBottom = '1px solid #d1d5db';
-      }catch(e){ /* ignore */ }
-      // attach click handler for piece title
-      const tlink = div.querySelector('.piece-link');
-      if (tlink){
-        tlink.addEventListener('click', (e)=>{
-          e.preventDefault();
-          const idx = Number(tlink.dataset.idx);
-          if (!Number.isFinite(idx) || idx < 0 || idx >= lastFiltered.length) return;
-          const rowObj = lastFiltered[idx];
-          const comp = rowObj['Composer'] || rowObj.Composer || '';
-          selectedComposer = String(comp || '');
-          populateComposerBox(selectedComposer, rowObj);
-          // set piece filter and reload results so page shows only that piece
-          selectedPieceFilter = String(rowObj.Title || rowObj.Compositions || rowObj['Title'] || rowObj['Compositions'] || '');
-          currentPage = 1;
-          loadResults();
-        });
-      }
-        // attach same behavior to the Details label (filter by piece + open composer box)
-        const detailsEl = div.querySelector('.result-right');
-        if (detailsEl){
-          detailsEl.addEventListener('click', (e)=>{
-            try{ e.preventDefault(); }catch(_){ }
-            const idx = Number(detailsEl.dataset.idx);
-            if (!Number.isFinite(idx) || idx < 0 || idx >= lastFiltered.length) return;
-            const rowObj = lastFiltered[idx];
-            const comp = rowObj['Composer'] || rowObj.Composer || '';
-            selectedComposer = String(comp || '');
-            populateComposerBox(selectedComposer, rowObj);
-            selectedPieceFilter = String(rowObj.Title || rowObj.Compositions || rowObj['Title'] || rowObj['Compositions'] || '');
-            currentPage = 1;
-            loadResults();
-          });
-        }
-      // If this row matches the active piece filter, inject detailed columns J..R (indices 9..17)
-      try{
-        if (selectedPieceFilter && String(selectedPieceFilter).length){
-          const titleVal = String(r.Title || r.Compositions || r['Title'] || r['Compositions'] || '').trim();
-          if (titleVal && normalize(titleVal) === normalize(selectedPieceFilter)){
-            // helper: find a key in the row object that corresponds to a sheet letter (J..R)
-            const findKey = (rowObj, letter) => {
-              if (!rowObj) return null;
-              const keys = Object.keys(rowObj || {});
-              const up = String(letter || '').toUpperCase();
-              // exact header equal to letter
-              let exact = keys.find(k => String(k||'').trim() === up);
-              if (exact) return exact;
-              // colX style
-              const colForm = keys.find(k => String(k||'').toLowerCase().replace(/[^a-z0-9]/g,'') === ('col' + up.toLowerCase()).replace(/[^a-z0-9]/g,''));
-              if (colForm) return colForm;
-              // header whose trimmed uppercase equals letter (covers some cases)
-              const upperMatch = keys.find(k => String(k||'').trim().toUpperCase() === up);
-              if (upperMatch) return upperMatch;
-              // fallback by position: A->0, B->1 ... J->9
-              try{ const idx = up.charCodeAt(0) - 65; if (idx >= 0 && idx < keys.length) return keys[idx]; }catch(e){}
-              return null;
-            };
-
-            const letters = ['J','K','L','M','N','O','P','Q','R'];
-            const expanded = document.createElement('div');
-            expanded.className = 'piece-expanded';
-            expanded.style.marginTop = '10px';
-            expanded.style.padding = '10px';
-            expanded.style.background = '#fbfbfb';
-            expanded.style.borderRadius = '6px';
-            expanded.style.border = '1px solid #eee';
-            // build html rows for each letter
-            const rowsHtml = [];
-            for (const L of letters){
-              let key = null;
-              let val = '';
-              if (Array.isArray(r)){
-                // arrays: map by position (J -> index 9)
-                try{ const idx = L.charCodeAt(0) - 65; if (idx >=0 && idx < r.length) val = r[idx] == null ? '' : String(r[idx]); }catch(e){}
-              } else {
-                key = findKey(r, L);
-                if (key) val = r[key] == null ? '' : String(r[key]);
-              }
-              // if we still have no value, try to read from r["colX"]
-              if ((!val || String(val).trim() === '') && !key){
-                const fallback = Object.keys(r||{}).find(k => /col\s*?\.?\d+|col[a-z]/i.test(String(k)));
-                if (fallback) val = r[fallback] == null ? '' : String(r[fallback]);
-              }
-              // prefer actual header key/name when available, otherwise fall back to the column letter
-              let displayLabel = '';
-              if (key && String(key).trim() !== '') displayLabel = String(key).trim();
-              else displayLabel = L;
-              if (val && String(val).trim() !== '') rowsHtml.push(`<div style="margin:4px 0"><strong style="color:var(--accent);display:inline-block;width:200px">${escapeHtml(displayLabel)}</strong> ${escapeHtml(String(val))}</div>`);
-            }
-            expanded.innerHTML = rowsHtml.length ? rowsHtml.join('\n') : '<div style="color:#6b7280">No additional columns J–R present for this row.</div>';
-            div.appendChild(expanded);
-          }
-        }
-      }catch(e){ /* ignore errors in expanded render */ }
     });
-    renderPagination(Math.ceil(lastFiltered.length / PAGE_SIZE), page);
+    renderPagination(Math.ceil((window.lastFiltered || []).length / window.PAGE_SIZE), page);
   }
 
   function renderPagination(pageCount, active){
-    // remove existing pagination if any
     let pag = document.getElementById('pagination');
     if (pag) pag.remove();
-  // create pagination container inside the results header top area
-  const pagRoot = document.getElementById('results-pagination-top');
-  const resultsEl = document.getElementById('results');
-  if (!resultsEl || !pagRoot) return;
+    const pagRoot = document.getElementById('results-pagination-top');
+    const resultsEl = document.getElementById('results');
+    if (!resultsEl || !pagRoot) return;
     pag = document.createElement('div');
     pag.id = 'pagination';
     pag.className = 'pagination';
-    // if there is exactly one page, show a '1 of 1' placeholder aligned to the right
-    // helper to clear search and all filters (defined at top-level so it can be reused)
-
-    if (pageCount === 1) {
+    function clearAllFilters(){
+      try{
+        const qinput = document.getElementById('qinput'); if (qinput) qinput.value = '';
+        window.selectedComposer = '';
+        window.lastAppliedFilter = null;
+        const clearComposerBtn = document.getElementById('clear-composer'); if (clearComposerBtn) clearComposerBtn.style.display = 'none';
+        const composerContent = document.getElementById('composer-content'); if (composerContent) composerContent.innerHTML = 'Select a result to view composer details.';
+        document.querySelectorAll('#filter-country input[type=checkbox], #filter-decade input[type=checkbox], #filter-type input[type=checkbox]').forEach(cb=> cb.checked = false);
+        window.currentPage = 1;
+        window.loadResults();
+      }catch(e){ console.error('clearAllFilters failed', e); }
+    }
+    if (pageCount === 1){
       pagRoot.innerHTML = '';
-      // create container with placeholder and clear button
-      const phWrap = document.createElement('div');
-      phWrap.style.display = 'flex';
-      phWrap.style.alignItems = 'center';
-      phWrap.style.gap = '8px';
-      phWrap.style.justifyContent = 'flex-end';
-      const placeholder = document.createElement('div');
-      placeholder.style.color = '#6b7280';
-      placeholder.style.paddingRight = '6px';
-      placeholder.textContent = '1 of 1';
-  phWrap.appendChild(placeholder);
-  // Clear all filters and Clear last buttons: attempt to place into #filters-controls if present
-  // Append clear controls to the pagination placeholder (results area)
-  phWrap.appendChild(createClearAll());
-  phWrap.appendChild(createClearLast());
-      // Live toggle
-      const liveToggle = document.createElement('button');
-      liveToggle.textContent = 'Live: Off';
-      liveToggle.style.marginLeft = '8px';
-      liveToggle.style.padding = '6px 10px';
-      liveToggle.style.borderRadius = '6px';
-      liveToggle.addEventListener('click', ()=>{ if (liveTimer) { stopLiveUpdates(); liveToggle.textContent='Live: Off'; } else { startLiveUpdates(); liveToggle.textContent='Live: On'; } });
-      phWrap.appendChild(liveToggle);
-      pagRoot.appendChild(phWrap);
-      return;
+      const phWrap = document.createElement('div'); phWrap.style.display='flex'; phWrap.style.alignItems='center'; phWrap.style.gap='8px'; phWrap.style.justifyContent='flex-end';
+      const placeholder = document.createElement('div'); placeholder.style.color='#6b7280'; placeholder.style.paddingRight='6px'; placeholder.textContent='1 of 1';
+      const clearBtn = document.createElement('button'); clearBtn.textContent='Clear all filters'; clearBtn.style.padding='6px 10px'; clearBtn.style.borderRadius='6px'; clearBtn.style.border='1px solid #d1d5db'; clearBtn.style.background='#fff'; clearBtn.addEventListener('click', clearAllFilters);
+      phWrap.appendChild(placeholder); phWrap.appendChild(clearBtn);
+      const liveToggle = document.createElement('button'); liveToggle.textContent='Live: Off'; liveToggle.style.marginLeft='8px'; liveToggle.style.padding='6px 10px'; liveToggle.style.borderRadius='6px'; liveToggle.addEventListener('click', ()=>{ if (window.liveTimer){ stopLiveUpdates(); liveToggle.textContent='Live: Off'; } else { startLiveUpdates(); liveToggle.textContent='Live: On'; }});
+      phWrap.appendChild(liveToggle); pagRoot.appendChild(phWrap); return;
     }
-
-  pag = document.createElement('div');
-  pag.id = 'pagination';
-  pag.className = 'pagination';
-    // prev
-    const prev = document.createElement('button'); prev.textContent = 'Prev'; prev.disabled = active === 1; prev.addEventListener('click', ()=>{ if (currentPage>1){ currentPage--; renderPage(currentPage); window.scrollTo({top:0,behavior:'smooth'}); }});
-    pag.appendChild(prev);
-    // page numbers (limit shown if many)
-    const maxButtons = 7;
-    const half = Math.floor(maxButtons/2);
-    let start = Math.max(1, active - half);
-    let end = Math.min(pageCount, start + maxButtons -1);
-    if (end - start < maxButtons -1) start = Math.max(1, end - maxButtons +1);
-    for (let i=start;i<=end;i++){
-      const b = document.createElement('button'); b.textContent = String(i); if (i===active) b.classList.add('active'); b.addEventListener('click', ()=>{ currentPage = i; renderPage(currentPage); window.scrollTo({top:0,behavior:'smooth'}); }); pag.appendChild(b);
-    }
-    // next
-    const next = document.createElement('button'); next.textContent = 'Next'; next.disabled = active >= pageCount; next.addEventListener('click', ()=>{ if (currentPage<pageCount){ currentPage++; renderPage(currentPage); window.scrollTo({top:0,behavior:'smooth'}); }});
-    pag.appendChild(next);
-    // place pagination inside the results element and align to the right edge of the results box
-    // clear any existing pagination top content and insert the new pagination & Clear button
+    const prev = document.createElement('button'); prev.textContent='Prev'; prev.disabled = active === 1; prev.addEventListener('click', ()=>{ if (window.currentPage>1){ window.currentPage--; renderPage(window.currentPage); window.scrollTo({top:0,behavior:'smooth'}); }}); pag.appendChild(prev);
+    const maxButtons = 7; const half = Math.floor(maxButtons/2); let start = Math.max(1, active - half); let end = Math.min(pageCount, start + maxButtons -1); if (end - start < maxButtons -1) start = Math.max(1, end - maxButtons +1);
+    for (let i=start;i<=end;i++){ const b = document.createElement('button'); b.textContent = String(i); if (i===active) b.classList.add('active'); b.addEventListener('click', ()=>{ window.currentPage = i; renderPage(window.currentPage); window.scrollTo({top:0,behavior:'smooth'}); }); pag.appendChild(b); }
+    const next = document.createElement('button'); next.textContent = 'Next'; next.disabled = active >= pageCount; next.addEventListener('click', ()=>{ if (window.currentPage<pageCount){ window.currentPage++; renderPage(window.currentPage); window.scrollTo({top:0,behavior:'smooth'}); }}); pag.appendChild(next);
     pagRoot.innerHTML = '';
-    const topWrap = document.createElement('div');
-    topWrap.style.display = 'flex';
-    topWrap.style.alignItems = 'center';
-    topWrap.style.gap = '8px';
-    topWrap.style.justifyContent = 'flex-end';
-  // (Clear button moved to the Filters box at left)
-  // Clear all filters button placed next to pagination controls
-  // attempt to place Clear buttons into #filters-controls if present
-  // Always render Clear controls next to pagination in the results header
-  topWrap.appendChild(createClearAll());
-  topWrap.appendChild(createClearLast());
-    // Live toggle button
-    const liveToggle2 = document.createElement('button');
-    liveToggle2.textContent = liveTimer ? 'Live: On' : 'Live: Off';
-    liveToggle2.style.marginRight = '8px';
-    liveToggle2.style.padding = '6px 10px';
-    liveToggle2.style.borderRadius = '6px';
-    liveToggle2.addEventListener('click', ()=>{ if (liveTimer) { stopLiveUpdates(); liveToggle2.textContent='Live: Off'; } else { startLiveUpdates(); liveToggle2.textContent='Live: On'; } });
-    topWrap.appendChild(liveToggle2);
-    topWrap.appendChild(pag);
-    pagRoot.appendChild(topWrap);
+    const topWrap = document.createElement('div'); topWrap.style.display='flex'; topWrap.style.alignItems='center'; topWrap.style.gap='8px'; topWrap.style.justifyContent='flex-end';
+    const clearBtn2 = document.createElement('button'); clearBtn2.textContent='Clear all filters'; clearBtn2.style.padding='6px 10px'; clearBtn2.style.borderRadius='6px'; clearBtn2.style.border='1px solid #d1d5db'; clearBtn2.style.background='#fff'; clearBtn2.addEventListener('click', clearAllFilters);
+    topWrap.appendChild(clearBtn2);
+    const liveToggle2 = document.createElement('button'); liveToggle2.textContent = window.liveTimer ? 'Live: On' : 'Live: Off'; liveToggle2.style.marginRight='8px'; liveToggle2.style.padding='6px 10px'; liveToggle2.style.borderRadius='6px'; liveToggle2.addEventListener('click', ()=>{ if (window.liveTimer) { stopLiveUpdates(); liveToggle2.textContent='Live: Off'; } else { startLiveUpdates(); liveToggle2.textContent='Live: On'; } }); topWrap.appendChild(liveToggle2);
+    topWrap.appendChild(pag); pagRoot.appendChild(topWrap);
   }
 
   async function pollOnce(){
     try{
-  const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
-  const raw = await res.json().catch(()=>null);
-  const rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
+      const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
+      const raw = await res.json().catch(()=>null);
+      const rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
       const rowsJson = JSON.stringify(rows);
-      if (lastRowsJson !== rowsJson){
-        lastRowsJson = rowsJson;
-        // refresh results without resetting page
-        loadResults(rows, { resetPage: false });
-      }
+      if (window.lastRowsJson !== rowsJson){ window.lastRowsJson = rowsJson; window.loadResults(rows, { resetPage: false }); }
     }catch(e){ console.error('poll failed', e); }
   }
+  function startLiveUpdates(){ if (window.liveTimer) return; window.liveTimer = setInterval(pollOnce, window.POLL_INTERVAL); pollOnce(); }
+  function stopLiveUpdates(){ if (!window.liveTimer) return; clearInterval(window.liveTimer); window.liveTimer = null; }
 
-  function startLiveUpdates(){
-    if (liveTimer) return;
-    liveTimer = setInterval(pollOnce, POLL_INTERVAL);
-    // run once immediately
-    pollOnce();
-  }
-
-  function stopLiveUpdates(){ if (!liveTimer) return; clearInterval(liveTimer); liveTimer = null; }
-
-  // loadResults optionally accepts rows (pre-fetched) and an options object { resetPage: true }
   async function loadResults(rowsParam, options = { resetPage: true }){
     try{
-  let rows = rowsParam;
-  if (!rows){
-    const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
-    const raw = await res.json().catch(()=>null);
-    rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
-  }
-      // Defensive: ensure we have an array of rows. If the API returned an error object, try GViz fallback
+      let rows = rowsParam;
+      if (!rows){
+        const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
+        const raw = await res.json().catch(()=>null);
+        rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
+      }
       if (!Array.isArray(rows)){
         try{
           const g = await gvizFetch('MusicList');
           if (g && g.rows && g.rows.length){
-            // build objects from headers
             const headers = g.cols.map((h,i) => h && String(h).trim() ? String(h).trim() : `col_${i}`);
             rows = g.rows.map(r => { const o={}; for(let i=0;i<headers.length;i++){ o[headers[i]] = r[i] !== undefined && r[i] !== null ? r[i] : ''; } return o; });
           } else {
             const errText = typeof rows === 'object' ? JSON.stringify(rows) : String(rows);
-            document.getElementById('results').innerText = 'Load failed: unexpected /api/sheets response: ' + errText;
-            return;
+            const resultsEl = document.getElementById('results'); if (resultsEl) resultsEl.innerText = 'Load failed: unexpected /api/sheets response: ' + errText; return;
           }
-        }catch(e){ const errText = typeof rows === 'object' ? JSON.stringify(rows) : String(rows); document.getElementById('results').innerText = 'Load failed: unexpected /api/sheets response: ' + errText; return; }
+        }catch(e){ const errText = typeof rows === 'object' ? JSON.stringify(rows) : String(rows); const resultsEl = document.getElementById('results'); if (resultsEl) resultsEl.innerText = 'Load failed: unexpected /api/sheets response: ' + errText; return; }
       }
-      const qv = normalize(qinput.value || '');
-  // read selected countries
-  const checked = Array.from(document.querySelectorAll('#filter-country input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
-  // read selected decades
-  const checkedDecades = Array.from(document.querySelectorAll('#filter-decade input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
-  // read selected types
-  const checkedTypes = Array.from(document.querySelectorAll('#filter-type input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
-  lastFiltered = rows.filter(r => {
+      const qinputEl = document.getElementById('qinput');
+      const qv = normalize(qinputEl ? qinputEl.value || '' : '');
+      const checked = Array.from(document.querySelectorAll('#filter-country input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
+      const checkedDecades = Array.from(document.querySelectorAll('#filter-decade input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
+      const checkedTypes = Array.from(document.querySelectorAll('#filter-type input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
+      window.lastFiltered = (rows || []).filter(r => {
         if (qv && !normalize(Object.values(r||{}).join(' ')).includes(qv)) return false;
-        // if a piece filter is set (user clicked a title), only include exact matching titles
-        if (selectedPieceFilter && selectedPieceFilter.length){
-          const titleVal = String(r.Title || r.Compositions || r['Title'] || r['Compositions'] || '').trim();
-          if (!titleVal || normalize(titleVal) !== normalize(selectedPieceFilter)) return false;
-        }
-        if (selectedComposer){
-          const comp = (r['Composer'] || r.Composer || '').toString();
-          if (!normalize(comp).includes(normalize(selectedComposer))) return false;
-        }
-        if (checked.length){
-          const countryVal = normalize(r.Country || r.Nationality || '');
-          // match if any selected country appears in the country field
-          const matches = checked.some(sel => normalize(sel) && countryVal.includes(normalize(sel)));
-          if (!matches) return false;
-        }
-        if (checkedDecades.length){
-          const decadeVal = normalize(r.Decade || r.Year || '');
-          const matches = checkedDecades.some(sel => normalize(sel) && decadeVal.includes(normalize(sel)));
-          if (!matches) return false;
-        }
-        if (checkedTypes.length){
-          const typeVal = normalize(r.Type || r.type || r['Type of piece'] || r['Type'] || '');
-          const matches = checkedTypes.some(sel => normalize(sel) && typeVal.includes(normalize(sel)));
-          if (!matches) return false;
-        }
+        if (window.selectedComposer){ const comp = (r['Composer'] || r.Composer || '').toString(); if (!normalize(comp).includes(normalize(window.selectedComposer))) return false; }
+        if (checked.length){ const countryVal = normalize(r.Country || r.Nationality || ''); const matches = checked.some(sel => normalize(sel) && countryVal.includes(normalize(sel))); if (!matches) return false; }
+        if (checkedDecades.length){ const decadeVal = normalize(r.Decade || r.Year || ''); const matches = checkedDecades.some(sel => normalize(sel) && decadeVal.includes(normalize(sel))); if (!matches) return false; }
+        if (checkedTypes.length){ const typeVal = normalize(r.Type || r.type || r['Type of piece'] || r['Type'] || ''); const matches = checkedTypes.some(sel => normalize(sel) && typeVal.includes(normalize(sel))); if (!matches) return false; }
         return true;
       });
-      if (options && options.resetPage) currentPage = 1;
-      renderPage(currentPage);
-      // If the user searched (qv) and it looks like a composer name, try to open the composer box for the first composer match.
       try{
-        if (qv && qv.length){
-          let composerMatch = null;
-          // Prefer scanning the full rows (if available) to find a composer column match
-          const scanSource = Array.isArray(rows) && rows.length ? rows : (Array.isArray(lastFiltered) ? lastFiltered : []);
-          for (const rr of scanSource){
-            const cand = String(rr['Composer'] || rr.Composer || rr['composer'] || '').trim();
-            if (!cand) continue;
-            const nc = normalize(cand || '');
-            if (nc === qv || nc.includes(qv) || qv.includes(nc)){
-              composerMatch = { name: cand, row: rr };
-              break;
-            }
-          }
-          // Fallback: if no explicit composer match found but the first filtered row contains a composer that loosely matches, use it
-          if (!composerMatch && Array.isArray(lastFiltered) && lastFiltered.length){
-            const first = lastFiltered[0];
-            const cand = String(first['Composer'] || first.Composer || first['composer'] || '').trim();
-            if (cand){ const nc = normalize(cand||''); if (nc.includes(qv) || qv.includes(nc)) composerMatch = { name: cand, row: first }; }
-          }
-          if (composerMatch){
-            selectedComposer = String(composerMatch.name || '');
-            populateComposerBox(selectedComposer, composerMatch.row);
-          }
-        }
-      }catch(e){ /* ignore composer auto-open failures */ }
-      // If caller requested a randomized open (via URL), open composer box for the first matching result
+        const bd = document.getElementById('cr-debug');
+        if (bd) bd.textContent = `client: ${ (window.lastFiltered || []).length } results`;
+      }catch(_){ }
+      if (options && options.resetPage) window.currentPage = 1;
+      renderPage(window.currentPage);
       try{
         const params = new URLSearchParams(window.location.search || '');
-        if (params.get('random') === '1' && lastFiltered && lastFiltered.length){
-          // pick the first visible result on the current page
-          const start = (currentPage - 1) * PAGE_SIZE;
-          const first = lastFiltered[start];
+        if (params.get('random') === '1' && window.lastFiltered && window.lastFiltered.length){
+          const start = (window.currentPage - 1) * window.PAGE_SIZE;
+          const first = window.lastFiltered[start];
           if (first){
             const composerName = first['Composer'] || first.Composer || first['composer'] || Object.values(first)[0] || '';
-            selectedComposer = String(composerName || '');
-            populateComposerBox(selectedComposer, first);
+            window.selectedComposer = String(composerName || '');
+            populateComposerBox(window.selectedComposer, first);
           }
         }
-      }catch(e){ /* ignore */ }
-    }catch(e){ document.getElementById('results').innerText = 'Load failed: ' + String(e); }
+      }catch(e){ }
+    }catch(e){ const resultsEl = document.getElementById('results'); if (resultsEl) resultsEl.innerText = 'Load failed: ' + String(e); }
   }
+  window.loadResults = loadResults;
 
- async function populateComposerBox(name, row){
-  const content = document.getElementById('composer-content');
-  const clearBtn = document.getElementById('clear-composer');
-  if (!content) return;
-  if (!name){
-    content.innerHTML = 'Select a result to view composer details.';
-    if (clearBtn) clearBtn.style.display = 'none';
-    return;
-  }
-
-  // small helpers (prefer global normalize if present)
-  const normalizeKey = k => String(k || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').trim();
-  const normVal = v => (typeof normalize === 'function') ? normalize(String(v || '')) : String(v || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').trim();
-
-  // heuristics to decide whether a sheet looks like the CompDet sheet
-  const looksLikeCompDet = (sampleObj) => {
-    if (!sampleObj || typeof sampleObj !== 'object') return false;
-    const keys = Object.keys(sampleObj).map(k => normalizeKey(k));
-    const hasComposer = keys.some(k => k.includes('composer') || k.includes('композитор'));
-    const hasLife = keys.some(k => k.includes('lifespan') || k.includes('life') || k.includes('born') || k.includes('died') || k.includes('years'));
-    const hasCountry = keys.some(k => k.includes('country') || k.includes('republic') || k.includes('nationality') || k.includes('soviet'));
-    // indicators of MusicList/main music table (avoid these)
-    const looksLikeMusicList = keys.includes('title') || keys.includes('compositions') || keys.includes('snippet') || keys.includes('published');
-    // Require composer AND (life OR country) and explicitly exclude music-list-looking sheets
-    return hasComposer && (hasLife || hasCountry) && !looksLikeMusicList;
-  };
-
-  const candidates = ['CompDet','Sheet2','ComposersAggregated','Composers','Aggregated'];
-
-  let rows = [];
-  let sourceSheet = null;
-
-  // QUICK PATH: prefer aggregating from the 'MusicList' sheet (client wants immediate behavior)
-  try {
-    const mres = await fetch('/api/sheets?sheet=MusicList', { headers: { 'Accept': 'application/json' } });
-    const mj = await mres.json().catch(()=>null);
-    const mjRows = (mj && Array.isArray(mj)) ? mj : (mj && mj.rows && Array.isArray(mj.rows) ? mj.rows : null);
-      if (mjRows && mjRows.length) {
-      rows = mjRows;
-      sourceSheet = 'MusicList';
-      // debug: console.debug('COMPOSER_DEBUG using MusicList aggregation (client-side)');
-    }
-  } catch (e) { /* ignore */ }
-
-  // 1) Try server API for each candidate sheet, but validate contents strictly
-  for (const sname of candidates){
-    try{
-      const res = await fetch('/api/sheets?sheet=' + encodeURIComponent(sname), { headers: { 'Accept': 'application/json' } });
-      const jrRaw = await res.json().catch(()=>null);
-      // handle server-side wrapper { __sheet, rows }
-      const jr = Array.isArray(jrRaw) ? jrRaw : (jrRaw && Array.isArray(jrRaw.rows) ? jrRaw.rows : jrRaw);
-      if (Array.isArray(jr) && jr.length){
-        const sample = jr[0];
-          if (looksLikeCompDet(sample)){
-          rows = jr;
-          sourceSheet = sname;
-          // debug: console.debug('COMPOSER_DEBUG selected sheet (api):', sname, 'headers:', Object.keys(sample));
-          break;
-        } else {
-          // debug: console.debug('COMPOSER_DEBUG rejected sheet (api):', sname, 'headers:', Object.keys(sample));
-        }
-      } else {
-        // debug: console.debug('COMPOSER_DEBUG no-array or empty from API for', sname, jr);
-      }
-    }catch(e){
-      // debug: console.debug('COMPOSER_DEBUG api fetch failed for', sname, e);
-    }
-  }
-
-  // 2) If not found via API, try GViz client-side fetch (same strict checks)
-  if (!rows || rows.length === 0){
+  async function populateComposerBox(name, row){
+    const content = document.getElementById('composer-content');
+    const clearBtn = document.getElementById('clear-composer');
+    if (!content) return;
+    if (!name){ content.innerHTML = 'Select a result to view composer details.'; if (clearBtn) clearBtn.style.display = 'none'; return; }
+    const normalizeKey = k => String(k || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').trim();
+    const normVal = v => (typeof normalize === 'function') ? normalize(String(v || '')) : String(v || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').trim();
+    const looksLikeCompDet = (sampleObj) => {
+      if (!sampleObj || typeof sampleObj !== 'object') return false;
+      const keys = Object.keys(sampleObj).map(k => normalizeKey(k));
+      const hasComposer = keys.some(k => k.includes('composer') || k.includes('композитор'));
+      const hasLife = keys.some(k => k.includes('lifespan') || k.includes('life') || k.includes('born') || k.includes('died') || k.includes('years'));
+      const hasCountry = keys.some(k => k.includes('country') || k.includes('republic') || k.includes('nationality') || k.includes('soviet'));
+      const looksLikeMusicList = keys.includes('title') || keys.includes('compositions') || keys.includes('snippet') || keys.includes('published');
+      return hasComposer && (hasLife || hasCountry) && !looksLikeMusicList;
+    };
+    const candidates = ['CompDet','Sheet2','ComposersAggregated','Composers','Aggregated'];
+    let rows = [];
+    let sourceSheet = null;
+    try {
+      const mres = await fetch('/api/sheets?sheet=MusicList', { headers: { 'Accept': 'application/json' } });
+      const mj = await mres.json().catch(()=>null);
+      const mjRows = (mj && Array.isArray(mj)) ? mj : (mj && mj.rows && Array.isArray(mj.rows) ? mj.rows : null);
+      if (mjRows && mjRows.length) { rows = mjRows; sourceSheet = 'MusicList'; console.debug('COMPOSER_DEBUG using MusicList aggregation (client-side)'); }
+    } catch (e) { }
     for (const sname of candidates){
-      try {
-        const g = await gvizFetch(sname);
-        if (!g || !g.rows || !g.rows.length) continue;
-        const headers = g.cols.map(h => String(h).trim() || '');
-        // build a sample object mapping header->value for the first row
-        const sampleObj = {};
-        for (let i = 0; i < headers.length; i++){
-          const hk = headers[i] || `col${i+1}`;
-          sampleObj[hk] = g.rows[0][i];
-        }
-        if (!looksLikeCompDet(sampleObj)) continue;
-        // assemble rows as objects (header -> value)
-        rows = g.rows.map(r => {
-          const obj = {};
-          for (let i = 0; i < headers.length; i++){
-            const hk = headers[i] || `col${i+1}`;
-            obj[hk] = (r[i] !== undefined && r[i] !== null) ? r[i] : '';
+      try{
+        const res = await fetch('/api/sheets?sheet=' + encodeURIComponent(sname), { headers: { 'Accept': 'application/json' } });
+        const jrRaw = await res.json().catch(()=>null);
+        const jr = Array.isArray(jrRaw) ? jrRaw : (jrRaw && Array.isArray(jrRaw.rows) ? jrRaw.rows : jrRaw);
+        if (Array.isArray(jr) && jr.length){ const sample = jr[0]; if (looksLikeCompDet(sample)){ rows = jr; sourceSheet = sname; console.debug('COMPOSER_DEBUG selected sheet (api):', sname, 'headers:', Object.keys(sample)); break; } else { console.debug('COMPOSER_DEBUG rejected sheet (api):', sname, 'headers:', Object.keys(sample)); } }
+        else { console.debug('COMPOSER_DEBUG no-array or empty from API for', sname, jr); }
+      }catch(e){ console.debug('COMPOSER_DEBUG api fetch failed for', sname, e); }
+    }
+    if ((!rows || rows.length === 0)){
+      for (const sname of candidates){
+        try{
+          const g = await gvizFetch(sname);
+          if (g && g.rows && g.rows.length){
+            const headers = g.cols.map(h => String(h).trim() || '');
+            const sampleObj = {};
+            for (let i=0;i<headers.length;i++){ const hk = headers[i] || `col${i+1}`; sampleObj[hk] = g.rows[0][i]; }
+            if (looksLikeCompDet(sampleObj)){
+              rows = g.rows.map(r => { const obj = {}; for (let i = 0; i < headers.length; i++) { const hk = headers[i] || `col${i+1}`; obj[hk] = r[i] !== undefined && r[i] !== null ? r[i] : ''; } return obj; });
+              sourceSheet = sname; break;
+            }
           }
-          return obj;
-        });
-        sourceSheet = sname;
-        // we've found a suitable CompDet-like sheet via GViz; stop searching
-        break;
-      } catch (e) {
-        // debug: console.debug('COMPOSER_DEBUG gviz fetch failed for', sname, e);
+        }catch(e){ console.debug('COMPOSER_DEBUG gviz fetch failed for', sname, e); }
       }
     }
-  }
-
-  // If still nothing, explain and show a tiny debug hint
-  if (!rows || rows.length === 0){
-    content.innerHTML = `<div>No composer detail sheet (CompDet) could be located. I tried: ${candidates.join(', ')}.</div>`;
-    if (clearBtn) clearBtn.style.display = 'none';
-    return;
-  }
-
-  // Now find a matching row inside the selected rows
-  let matchRow = null;
-  let foundVal = null;
-  const target = String(name || '').trim();
-  const normTarget = normVal(target);
-
-  // Preferred: check 'composer'-like column if present
-  const sampleKeys = Object.keys(rows[0] || {});
-  const composerKey = sampleKeys.find(k => normalizeKey(k).includes('composer') || normalizeKey(k).includes('композитор'));
-
-  if (composerKey){
-    // search for composerKey matches first (more reliable)
-    for (const r of rows){
-      const val = String(r[composerKey] || '').trim();
-      if (!val) continue;
-      const nv = normVal(val);
-      if (nv === normTarget || nv.includes(normTarget) || normTarget.includes(nv)){
-        matchRow = r;
-        foundVal = val;
-        break;
-      }
-    }
-  }
-
-  // fallback: full-row scan
-  if (!matchRow){
-    for (const r of rows){
-      for (const v of Object.values(r)){
-        if (!v) continue;
-        const str = String(v || '').trim();
-        const nv = normVal(str);
-        if (nv === normTarget || nv.includes(normTarget) || normTarget.includes(nv)){
-          matchRow = r;
-          foundVal = str;
-          break;
-        }
-      }
-      if (matchRow) break;
-    }
-  }
-
-  // If still not found, surface a helpful message + a small sample for debugging
-  if (!matchRow){
-    content.innerHTML = `<div>No composer match was found in the detected detail sheet for <strong>${escapeHtml(name)}</strong>. Try adjusting the search or check the spelling.</div>`;
-    if (clearBtn) clearBtn.style.display = 'inline-block';
-    return;
-  }
-
-  // Build rowObj (robust conversion)
-  let rowObj = {};
-  if (Array.isArray(matchRow)){
-    // if row is an array, map by sample keys if possible
-    const sampleObj = (rows && rows.length && typeof rows[0] === 'object') ? rows[0] : null;
-    if (sampleObj){
-      const sampleKeys = Object.keys(sampleObj);
-      for (let i=0;i<matchRow.length;i++){
-        rowObj[sampleKeys[i] || `col${i+1}`] = matchRow[i];
-      }
-    } else {
-      for (let i=0;i<matchRow.length;i++) rowObj[`col${i+1}`] = matchRow[i];
-    }
-  } else if (typeof matchRow === 'object' && matchRow){
-    rowObj = matchRow;
-  }
-
-  // QUICK RENDER: if the caller provided the original result row, show a fast lightweight
-  // composer view immediately so the user sees details on first click. The rest of this
-  // function will continue and may replace the content with a richer CompDet lookup.
-  if (row && typeof row === 'object' && Object.keys(row).length){
-    const pick = (keys) => { for (const k of keys){ if (row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') return String(row[k]); } return ''; };
-    const pickPos = (idx) => { try{ if (Array.isArray(row) && row.length>idx) return String(row[idx]); }catch(_){ } return ''; };
-
-    const A_quick = pick(['A','colA','Composer','composer','Name','name']) || pickPos(0) || '';
-    const B_quick = pick(['B','colB','Lifespan','lifespan']) || pickPos(1) || '';
-  const C_quick = pick(['C','colC','Russian','russian']) || pickPos(2) || '';
-  const C_quick_label = (Object.keys(row).find(k=>String(k).trim().toUpperCase()==='C') || 'Russian');
-  const D_quick_key = (Object.keys(row).find(k=>String(k).trim().toUpperCase()==='D') || 'D');
-    // Use the cell value in column D as the label when present (user requested)
-    let D_quick_label = '';
-    try{
-      if (sampleKeys && sampleKeys[3] && rowObj && rowObj.hasOwnProperty(sampleKeys[3])) D_quick_label = String(rowObj[sampleKeys[3]] || '');
-      if (!D_quick_label) D_quick_label = (pick([D_quick_key, 'D', 'colD', 'Label', 'label']) || D_quick_key || 'D');
-    }catch(e){ D_quick_label = (pick([D_quick_key, 'D', 'colD', 'Label', 'label']) || D_quick_key || 'D'); }
-    const E_quick = pick(['E','colE','Value','value']) || pickPos(4) || '';
-    const F_quick = pick(['F','colF','Country','country','Nationality']) || pickPos(5) || '';
-    const G_quick = pick(['G','colG','Soviet republic','republic']) || pickPos(6) || '';
-    const H_quick = pick(['H','colH','Gender','gender']) || pickPos(7) || '';
-    const I_quick = pick(['I','colI','Notes','notes']) || pickPos(8) || '';
-
-    content.innerHTML = `
-      <div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><h1 style="margin:0 0 6px 0; font-size:1.25rem">${escapeHtml(A_quick)}</h1><span class="spinner" aria-hidden="true" title="Loading more details"></span></div>
-        ${B_quick ? `<p style="margin:0 0 8px 0"><i>${escapeHtml(B_quick)}</i></p>` : ''}
-        <br/>
-      // Removed temporary blocker mitigation script to avoid runtime hacks; overlay
-      // is now non-interactive via CSS (#bg-overlay { pointer-events: none }).
-        <p style="margin:6px 0"><b>${escapeHtml(C_quick_label)}:</b> ${escapeHtml(C_quick)}</p>
-        <p style="margin:6px 0"><b>${escapeHtml(D_quick_label)}:</b> ${escapeHtml(E_quick)}</p>
-        <br/>
-        <p style="margin:6px 0"><b>${escapeHtml(Object.keys(row).find(k=>String(k).trim().toUpperCase()==='F') || 'Country')}:</b> ${escapeHtml(F_quick)}</p>
-        <p style="margin:6px 0"><b>${escapeHtml(Object.keys(row).find(k=>String(k).trim().toUpperCase()==='G') || 'Soviet Republic')}:</b> ${escapeHtml(G_quick)}</p>
-        <br/>
-        <p style="margin:6px 0"><b>${escapeHtml(Object.keys(row).find(k=>String(k).trim().toUpperCase()==='H') || 'Gender')}:</b> ${escapeHtml(H_quick)}</p>
-        <p style="margin:6px 0"><b>${escapeHtml(Object.keys(row).find(k=>String(k).trim().toUpperCase()==='I') || 'Notes')}:</b> ${escapeHtml(I_quick)}</p>
-      </div>
-    `;
-    if (clearBtn) clearBtn.style.display = 'inline-block';
-    // continue on to richer lookup below
-  }
-
-  
-  
-  
-
-  // labels we want to show (adjust as you like)
-  const desired = ['Composer','Lifespan','Country','Soviet republic','Nationality','Language','Notes','Learn more'];
-
-  // normalize keys map
-  const normMap = {};
-  Object.keys(rowObj || {}).forEach(k => {
-    try { normMap[normalizeKey(k)] = rowObj[k]; }
-    catch { normMap[String(k||'')] = rowObj[k]; }
-  });
-
-  // Special handling when the source is the MusicList aggregation sheet.
-  // Some MusicList exports use single-letter column headers (A,B,C...) or moved
-  // columns; support the common mapping provided by the spreadsheet owner.
-  if (sourceSheet === 'MusicList'){
-    const getByLetters = (letters, fallbacks=[]) => {
-      for (const L of letters){ if (rowObj.hasOwnProperty(L) && rowObj[L] !== undefined && rowObj[L] !== null && String(rowObj[L]).trim() !== '') return String(rowObj[L]); }
-      for (const fb of fallbacks){ for (const k of Object.keys(rowObj)){ if (String(k||'').toLowerCase().trim() === fb.toLowerCase().trim() && rowObj[k]) return String(rowObj[k]); } }
+    if (!rows || rows.length === 0){ content.innerHTML = `<div>No composer detail sheet (CompDet) could be located. I tried: ${candidates.join(', ')}.</div>`; if (clearBtn) clearBtn.style.display = 'none'; return; }
+    let matchRow = null; let foundVal = null; const target = String(name || '').trim(); const normTarget = normVal(target);
+    const sampleKeys = Object.keys(rows[0] || {});
+    const composerKey = sampleKeys.find(k => normalizeKey(k).includes('composer') || normalizeKey(k).includes('композитор'));
+    if (composerKey){ for (const r of rows){ const val = String(r[composerKey] || '').trim(); if (!val) continue; const nv = normVal(val); if (nv === normTarget || nv.includes(normTarget) || normTarget.includes(nv)){ matchRow = r; foundVal = val; break; } } }
+    if (!matchRow){ for (const r of rows){ for (const v of Object.values(r)){ if (!v) continue; const str = String(v || '').trim(); const nv = normVal(str); if (nv === normTarget || nv.includes(normTarget) || normTarget.includes(nv)){ matchRow = r; foundVal = str; break; } } if (matchRow) break; } }
+    if (!matchRow){ const samplePreview = escapeHtml(JSON.stringify(rows[0] || {}, null, 2)); content.innerHTML = `<div>No composer match in ${escapeHtml(sourceSheet || 'CompDet')} for <strong>${escapeHtml(name)}</strong>.</div><div style="margin-top:8px;color:#6b7280;font-size:0.9rem">Sample headers from detected sheet (for debugging):</div><pre style="max-height:220px;overflow:auto;background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;font-size:0.85rem">${samplePreview}</pre>`; if (clearBtn) clearBtn.style.display = 'inline-block'; return; }
+    let rowObj = {};
+    if (Array.isArray(matchRow)){
+      const sampleObj = (rows && rows.length && typeof rows[0] === 'object') ? rows[0] : null;
+      if (sampleObj){ const sampleKeys = Object.keys(sampleObj); for (let i=0;i<matchRow.length;i++){ rowObj[sampleKeys[i] || `col${i+1}`] = matchRow[i]; } } else { for (let i=0;i<matchRow.length;i++) rowObj[`col${i+1}`] = matchRow[i]; }
+    } else if (typeof matchRow === 'object' && matchRow){ rowObj = matchRow; }
+    const desired = ['Composer','Lifespan','Country','Soviet republic','Nationality','Language','Notes','Learn more'];
+    const normMap = {};
+    Object.keys(rowObj || {}).forEach(k => { try { normMap[normalizeKey(k)] = rowObj[k]; } catch { normMap[String(k||'')] = rowObj[k]; } });
+    const getValForLabels = (labels) => {
+      for (const lab of labels){ const nk = normalizeKey(lab); if (nk && (nk in normMap) && normMap[nk] !== undefined && normMap[nk] !== null && String(normMap[nk]).trim() !== '') { return String(normMap[nk]); } }
+      const allValues = Object.values(normMap||{}).map(v => v==null? '': String(v));
+      const lifeHintRegex = /\b\d{3,4}\s*[–—-]\s*\d{2,4}\b|\b\d{3,4}\b/;
+      for (const v of allValues){ if (v && lifeHintRegex.test(String(v))) return v; }
+      for (const v of allValues){ if (v && String(v).trim() !== '') return v; }
       return '';
     };
-
-    const colA = getByLetters(['A','colA','Composer','composer','name']);
-    const colN = getByLetters(['B','colN','Lifespan','lifespan','Years']);
-    const colB = getByLetters(['C','colB','Russian','russian']);
-    const labelFromP = getByLetters(['D','P','Label','label']);
-    const valueFromC = getByLetters(['E','C','Value','native']);
-    const colK = getByLetters(['F','K','Country','country']);
-    const colO = getByLetters(['G','O','Soviet republic','republic']);
-    const colQ = getByLetters(['I','Q','Notes','notes']);
-
-    if (colA) normMap['composer'] = colA;
-    if (colN) normMap['lifespan'] = colN;
-    if (colB) normMap['russian'] = colB;
-    if (labelFromP && valueFromC) normMap[normalizeKey(labelFromP)] = valueFromC;
-    if (colK) normMap['country'] = colK;
-    if (colO) normMap['soviet republic'] = colO;
-    if (colQ) normMap['notes'] = colQ;
-  }
-
-  // helper to find candidate data by a list of label fragments
-  const getValForLabels = (labels) => {
-    for (const lab of labels){
-      const nk = normalizeKey(lab);
-      if (nk && (nk in normMap) && normMap[nk] !== undefined && normMap[nk] !== null && String(normMap[nk]).trim() !== '') {
-        return String(normMap[nk]);
-      }
-    }
-    // heuristics: return first lifespan-like value if present
-    const allValues = Object.values(normMap||{}).map(v => v==null? '': String(v));
-    const lifeHintRegex = /\b\d{3,4}\s*[–—-]\s*\d{2,4}\b|\b\d{3,4}\b/;
-    for (const v of allValues){
-      if (v && lifeHintRegex.test(String(v))) return v;
-    }
-    // last resort: first non-empty
-    for (const v of allValues){ if (v && String(v).trim() !== '') return v; }
-    return '';
-  };
-
-  const headerAliases = {
-    'Composer': ['Composer','Композитор','composer','Name','name'],
-    'Lifespan': ['Lifespan','Life span','Born','Died','Years'],
-    'Country': ['Country','country','Страна','Country of birth','Nationality'],
-    'Soviet republic': ['Soviet republic','Republic','Soviet'],
-    'Nationality': ['Nationality','Nationality (EN)'],
-    'Language': ['Language','language','Язык'],
-    'Notes': ['Notes','notes','Примечания'],
-    'Learn more': ['Learn more','Link','URL']
-  };
-
-  const values = desired.map(h => {
-    const aliases = headerAliases[h] || [h];
-    const v = getValForLabels(aliases);
-    return v == null ? '' : String(v);
-  });
-
-  // prefer Lifespan for the small italic line shown under the composer name
-  const lifespanIndex = desired.indexOf('Lifespan');
-  const lifespanRaw = (lifespanIndex >= 0 ? (values[lifespanIndex] || '') : '') || '';
-  const cleanDisplay = s => String(s || '').replace(/[\r\n\t]+/g,' ').replace(/\s+/g,' ').trim();
-  const dispFound = cleanDisplay(foundVal);
-  const dispLifespan = cleanDisplay(lifespanRaw);
-  const sourceHtml = sourceSheet ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Source: ${escapeHtml(sourceSheet)}</div>` : '';
-
-  // prefer Lifespan for the small italic line shown under the composer name
-  const colEHtml = dispLifespan ? `<div style="margin-top:4px;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(dispLifespan)}</div>` : '';
-
-  // Helper: find the actual key in rowObj that corresponds to a single-letter column (A..Z)
-  const findKeyForLetter = (L) => {
-    if (!L) return null;
-    const plain = String(L).trim().toLowerCase();
-    // exact match
-    const exact = Object.keys(rowObj).find(k => String(k||'').trim().toLowerCase() === plain);
-    if (exact) return exact;
-    // common "colX" style
-    const colForms = Object.keys(rowObj).find(k => String(k||'').toLowerCase().replace(/[^a-z0-9]/g,'') === ('col' + plain).replace(/[^a-z0-9]/g,''));
-    if (colForms) return colForms;
-    // try uppercase single-letter header
-    const upper = Object.keys(rowObj).find(k => String(k||'').trim() === String(L).toUpperCase());
-    if (upper) return upper;
-    // fallback by position using sampleKeys (A->0, B->1...)
-    try{
-      const idx = String(L).toUpperCase().charCodeAt(0) - 65;
-      if (typeof sampleKeys !== 'undefined' && Array.isArray(sampleKeys) && idx >= 0 && idx < sampleKeys.length) return sampleKeys[idx];
-    }catch(_){ }
-    return null;
-  };
-
-  const getValForKey = (k) => { if (!k) return ''; const v = rowObj[k]; return v == null ? '' : String(v); };
-
-  // Pull the requested columns A..I
-  const A = getValForKey(findKeyForLetter('A'));
-  const B = getValForKey(findKeyForLetter('B'));
-  const C = getValForKey(findKeyForLetter('C'));
-  const D_key = findKeyForLetter('D');
-  const D_label = D_key ? String(D_key) : 'D';
-  const E = getValForKey(findKeyForLetter('E'));
-  const F = getValForKey(findKeyForLetter('F'));
-  const G = getValForKey(findKeyForLetter('G'));
-  const H = getValForKey(findKeyForLetter('H'));
-  const I = getValForKey(findKeyForLetter('I'));
-
-  // Determine human-friendly labels using the actual header keys if available
-  const C_label = findKeyForLetter('C') || 'Russian';
-  // Prefer the cell value in column D as the label if available
-  let D_label_final = D_label;
-  try{ if (rowObj && Object.keys(rowObj)[3] && rowObj[Object.keys(rowObj)[3]]) D_label_final = String(rowObj[Object.keys(rowObj)[3]]); }catch(e){}
-  const F_label = findKeyForLetter('F') || 'Country';
-  const G_label = findKeyForLetter('G') || 'Soviet Republic';
-  const H_label = findKeyForLetter('H') || 'Gender';
-  const I_label = findKeyForLetter('I') || 'Notes';
-
-  // Render only the composer heading and the requested formatted block
-  content.innerHTML = `
-    <div>
-      <h1 style="margin:0 0 6px 0; font-size:1.25rem">${escapeHtml(A)}</h1>
-      ${B ? `<p style="margin:0 0 8px 0"><i>${escapeHtml(B)}</i></p>` : ''}
-  <br/>
-  <p style="margin:6px 0"><b>${escapeHtml(C_label)}:</b> ${escapeHtml(C)}</p>
-  <p style="margin:6px 0"><b>${escapeHtml(D_label_final)}:</b> ${escapeHtml(E)}</p>
-  <br/>
-  <p style="margin:6px 0"><b>${escapeHtml(F_label)}:</b> ${escapeHtml(F)}</p>
-  <p style="margin:6px 0"><b>${escapeHtml(G_label)}:</b> ${escapeHtml(G)}</p>
-  <br/>
-  <p style="margin:6px 0"><b>${escapeHtml(H_label)}:</b> ${escapeHtml(H)}</p>
-  <p style="margin:6px 0"><b>${escapeHtml(I_label)}:</b> ${escapeHtml(I)}</p>
-    </div>
-    `;
-
-  if (clearBtn) {
-    clearBtn.style.display = 'inline-block';
-    clearBtn.onclick = () => {
-      selectedComposer = '';
-      if (clearBtn) clearBtn.style.display = 'none';
-      populateComposerBox('', null);
-      currentPage = 1;
-      loadResults();
+    const headerAliases = {
+      'Composer': ['Composer','Композитор','composer','Name','name'],
+      'Lifespan': ['Lifespan','Life span','Born','Died','Years'],
+      'Country': ['Country','country','Страна','Country of birth','Nationality'],
+      'Soviet republic': ['Soviet republic','Republic','Soviet'],
+      'Nationality': ['Nationality','Nationality (EN)'],
+      'Language': ['Language','language','Язык'],
+      'Notes': ['Notes','notes','Примечания'],
+      'Learn more': ['Learn more','Link','URL']
     };
+    const values = desired.map(h => { const aliases = headerAliases[h] || [h]; const v = getValForLabels(aliases); return v == null ? '' : String(v); });
+    const lifespanIndex = desired.indexOf('Lifespan');
+    const lifespanRaw = (lifespanIndex >= 0 ? (values[lifespanIndex] || '') : '') || '';
+    const cleanDisplay = s => String(s || '').replace(/[\r\n\t]+/g,' ').replace(/\s+/g,' ').trim();
+    const dispFound = cleanDisplay(foundVal);
+    const dispLifespan = cleanDisplay(lifespanRaw);
+    const sourceHtml = sourceSheet ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Source: ${escapeHtml(sourceSheet)}</div>` : '';
+    const preStyle = 'background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;margin-top:8px;font-size:0.95rem;white-space:pre-wrap';
+    const colEHtml = dispLifespan ? `<div style="margin-top:4px;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(dispLifespan)}</div>` : '';
+    content.innerHTML = `<div><strong style="color:var(--accent)">${escapeHtml(dispFound)}</strong>${colEHtml}${sourceHtml}<pre style="${preStyle}">${escapeHtml(desired.join('\t'))}\n${escapeHtml(values.join('\t'))}</pre></div>`;
+    if (clearBtn) { clearBtn.style.display = 'inline-block'; clearBtn.onclick = () => { window.selectedComposer = ''; if (clearBtn) clearBtn.style.display = 'none'; populateComposerBox('', null); window.currentPage = 1; window.loadResults(); }; }
   }
-}
+  window.populateComposerBox = populateComposerBox;
 
-// Initialization: populate filters and load initial results
-(async function init(){
+  (async function init(){
+    try{
+      const resultsList = document.getElementById('results-list'); if (resultsList) resultsList.innerHTML = '<div class="result-item"><em>Loading results…</em></div>';
+      const fc = document.getElementById('filter-country'); if (fc) fc.innerHTML = '<div style="color:#6b7280">Loading…</div>';
+      const fd = document.getElementById('filter-decade'); if (fd) fd.innerHTML = '<div style="color:#6b7280">Loading…</div>';
+      const ft = document.getElementById('filter-type'); if (ft) ft.innerHTML = '<div style="color:#6b7280">Loading…</div>';
+      await Promise.allSettled([window.populateCountryCheckboxes(), window.populateDecadeCheckboxes(), window.populateTypeCheckboxes()]);
+      const sbtn = document.getElementById('qbtn'); if (sbtn) sbtn.addEventListener('click', ()=>{ window.currentPage = 1; window.loadResults(); });
+      const qinputEl = document.getElementById('qinput'); if (qinputEl) qinputEl.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { window.currentPage = 1; window.loadResults(); } });
+      try{ window.populateComposerBox('', null); }catch(_){ }
+      await window.loadResults();
+    }catch(e){ const resultsEl = document.getElementById('results'); if (resultsEl) resultsEl.innerText = 'Initialization failed: ' + String(e); console.error('Initialization failed', e); }
+  })();
+
+  // expose helpers
+  window.gvizFetch = gvizFetch;
+  window.normalize = normalize;
+  window.escapeHtml = escapeHtml;
+
+  // basic wiring
   try{
-    const resultsList = document.getElementById('results-list'); if (resultsList) resultsList.innerHTML = '<div class="result-item"><em>Loading results…</em></div>';
-    const fc = document.getElementById('filter-country'); if (fc) fc.innerHTML = '<div style="color:#6b7280">Loading…</div>';
-    const fd = document.getElementById('filter-decade'); if (fd) fd.innerHTML = '<div style="color:#6b7280">Loading…</div>';
-    const ft = document.getElementById('filter-type'); if (ft) ft.innerHTML = '<div style="color:#6b7280">Loading…</div>';
+    window.populateCountryCheckboxes().catch(()=>{});
+    const sbtn = document.getElementById('qbtn'); if (sbtn) sbtn.addEventListener('click', ()=>{ window.currentPage = 1; window.loadResults(); });
+    const qinputEl = document.getElementById('qinput'); if (qinputEl) qinputEl.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { window.currentPage = 1; window.loadResults(); } });
+  }catch(e){ console.error('client init failed', e); }
 
-    // run population in parallel but don't fail the whole init if one fails
-    await Promise.allSettled([populateCountryCheckboxes(), populateDecadeCheckboxes(), populateTypeCheckboxes()]);
-
-    // wire search button and Enter key
-    const sbtn = document.getElementById('qbtn'); if (sbtn) sbtn.addEventListener('click', ()=>{ currentPage = 1; loadResults(); });
-    if (qinput) qinput.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { currentPage = 1; loadResults(); } });
-
-    // wire clear-all-filters button in the left Filters box
-    try{
-      const caf = document.getElementById('clear-all-filters-btn'); if (caf) caf.addEventListener('click', ()=>{ clearAllFilters(); });
-    }catch(e){}
-
-    // Ensure Show All / Clear controls live in the filters-controls area
-    try{
-      const fc = document.getElementById('filters-controls');
-      if (fc && !fc.dataset.init) {
-        // Show All (navigate to full results without query)
-        const showAllBtn = document.createElement('button');
-        showAllBtn.textContent = 'Show all';
-        showAllBtn.style.padding = '6px 10px';
-        showAllBtn.style.borderRadius = '6px';
-        showAllBtn.style.border = '1px solid #d1d5db';
-        showAllBtn.style.background = '#fff';
-        showAllBtn.addEventListener('click', ()=>{ try{ qinput.value=''; selectedComposer=''; lastAppliedFilter=null; document.querySelectorAll('#filter-country input, #filter-decade input, #filter-type input').forEach(cb=> cb.checked=false); currentPage=1; loadResults(); }catch(e){} });
-        fc.appendChild(showAllBtn);
-        // leave Clear buttons addition to renderPagination which will append them if needed
-        fc.dataset.init = '1';
-      }
-    }catch(e){}
-
-    // ensure composer box starts empty
-    try{ populateComposerBox('', null); }catch(_){}
-
-    // finally load results
-    await loadResults();
-  }catch(e){
-    const resultsEl = document.getElementById('results'); if (resultsEl) resultsEl.innerText = 'Initialization failed: ' + String(e);
-    console.error('Initialization failed', e);
-  }
 })();

@@ -1,0 +1,75 @@
+﻿
+> soviet-archive@0.0.1 build
+> astro build
+
+19:02:56 [content] Syncing content
+19:02:56 [content] Synced content
+19:02:56 [types] Generated 81ms
+19:02:56 [build] output: "static"
+19:02:56 [build] mode: "static"
+19:02:56 [build] directory: C:\Users\emily\Downloads\astro-latest\soviet-archive\dist\
+19:02:56 [build] adapter: @astrojs/vercel
+19:02:56 [build] Collecting build info...
+19:02:56 [build] Γ£ô Completed in 116ms.
+19:02:56 [build] Building static entrypoints...
+19:02:57 [vite] [32mΓ£ô built in 1.00s[39m
+19:02:57 [build] Γ£ô Completed in 1.04s.
+
+ building client (vite) 
+19:02:57 [vite] transforming...
+19:02:57 [vite] [32mΓ£ô[39m 4 modules transformed.
+node.exe : 19:02:57 
+[ERROR] [vite] 
+[31mΓ£ù[39m Build 
+failed in 66ms
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo      
+        : NotSpecified  
+  : (19:02:57 [ERROR.   
+ .. failed in 66ms:S    
+tring) [], RemoteEx    
+ception
+    + FullyQualifiedErr 
+   orId : NativeComman  
+  dError
+ 
+Unexpected "catch"
+  Location:
+    C:/Users/emily/Downl
+oads/astro-latest/soviet
+-archive/src/pages/compo
+sers-results.astro?astro
+&type=script&index=0&lan
+g.ts:416:13
+  Stack trace:
+    at 
+failureErrorWithLog (C:\
+Users\emily\Downloads\as
+tro-latest\soviet-archiv
+e\node_modules\esbuild\l
+ib\main.js:1467:15)
+    at responseCallbacks
+.<computed> (C:\Users\em
+ily\Downloads\astro-late
+st\soviet-archive\node_m
+odules\esbuild\lib\main.
+js:603:9)
+    at 
+Socket.readFromStdout (C
+:\Users\emily\Downloads\
+astro-latest\soviet-arch
+ive\node_modules\esbuild
+\lib\main.js:581:7)
+    at addChunk (node:in
+ternal/streams/readable:
+561:12)
+    at Readable.push (no
+de:internal/streams/read
+able:392:5)

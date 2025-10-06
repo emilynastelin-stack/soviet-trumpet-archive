@@ -42,7 +42,7 @@ function normalizeRow(raw){
 }
 export default function ComposersPage({ initialComposers = [], initialGender = 'Any' }){
   const [lang, setLang] = useState('en');
-  useEffect(() => { try { const v = window.localStorage.getItem('lang'); if (v) setLang(v); } catch {} }, []);
+  useEffect(() => { try { const v = window.localStorage.getItem('lang'); if (v) setLang(v); } catch (e) {} }, []);
   const translations = {
     en: { searchPlaceholder: 'Search (ignore diacritics)', showAll: 'Show all', compositions: 'Compositions', details: 'Details', all: 'All', unknown: 'Unknown' },
     ru: { searchPlaceholder: 'Поиск (игнорировать диакритику)', showAll: 'Показать все', compositions: 'Произведения', details: 'Подробнее', all: 'Все', unknown: 'Неизвестно' },
@@ -53,8 +53,8 @@ export default function ComposersPage({ initialComposers = [], initialGender = '
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
   const [tempSearch, setTempSearch] = useState('');
-  const [selectedCountry, setSelectedCountry] = useState(() => { try { return (new URL(window.location.href)).searchParams.get('country') || 'All' } catch { return 'All' } });
-  const [selectedComposer, setSelectedComposer] = useState(() => { try { return (new URL(window.location.href)).searchParams.get('composer') || '' } catch { return '' } });
+  const [selectedCountry, setSelectedCountry] = useState(() => { try { return (new URL(window.location.href)).searchParams.get('country') || 'All' } catch (e) { return 'All' } });
+  const [selectedComposer, setSelectedComposer] = useState(() => { try { return (new URL(window.location.href)).searchParams.get('composer') || '' } catch (e) { return '' } });
   const [showAllTriggered, setShowAllTriggered] = useState(false);
   const [genderFilter, setGenderFilter] = useState(initialGender || 'Any');
   const [decadeFilter, setDecadeFilter] = useState('All');
