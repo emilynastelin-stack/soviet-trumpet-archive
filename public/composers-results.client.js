@@ -269,7 +269,8 @@
     const start = (page - 1) * window.PAGE_SIZE;
     const pageItems = (window.lastFiltered || []).slice(start, start + window.PAGE_SIZE);
     if (!pageItems.length) { container.innerHTML = '<div class="result-item">No results</div>'; return; }
-    pageItems.forEach(r =>{
+    pageItems.forEach((r, idx) =>{
+      const globalIndex = start + idx;
       const div = document.createElement('div');
       div.className = 'result-item';
       const title = (r.Title || r.Compositions || r.title || 'Untitled');
@@ -277,20 +278,70 @@
       const published = r.Year || r.Published || r.Decade || r.year || '';
       const composerEsc = escapeHtml(author);
       const composerData = encodeURIComponent(String(author || ''));
-      div.innerHTML = `<h2>${escapeHtml(title)}</h2><p><strong>Composer:</strong> <a href="#" class="composer-link" data-name="${composerData}">${composerEsc}</a></p><p><strong>Published:</strong> ${escapeHtml(published)}</p>`;
+      div.innerHTML = `
+        <div class="result-main">
+          <h2>${escapeHtml(title)}</h2>
+          <p><strong>Composer:</strong> <a href="#" class="composer-link" data-index="${globalIndex}" data-name="${composerData}">${composerEsc}</a></p>
+          <p><strong>Published:</strong> ${escapeHtml(published)}</p>
+        </div>
+        <div class="result-right">
+          <a href="#" class="details-link" data-index="${globalIndex}">Details</a>
+        </div>
+      `;
       container.appendChild(div);
-      const link = div.querySelector('.composer-link');
-      if (link){
-        link.addEventListener('click', (e)=>{
-          e.preventDefault();
-          const name = decodeURIComponent(link.dataset.name || '');
-          window.selectedComposer = name || '';
-          populateComposerBox(name, r);
-          window.currentPage = 1;
-          window.loadResults();
-        });
-      }
+      // apply inline styles so runtime-inserted nodes match the intended layout
+      try{
+        div.style.padding = '12px 0';
+        div.style.borderBottom = '1px solid #e6e9ef';
+        div.style.display = 'flex';
+        div.style.justifyContent = 'space-between';
+        div.style.alignItems = 'center';
+        div.style.gap = '12px';
+        const main = div.querySelector('.result-main');
+        if (main) main.style.flex = '1 1 auto';
+        const right = div.querySelector('.result-right');
+        if (right){
+          right.style.width = '160px';
+          right.style.flex = '0 0 160px';
+          right.style.textAlign = 'right';
+          right.style.color = '#6b7280';
+          right.style.fontSize = '0.95rem';
+          right.style.display = 'flex';
+          right.style.alignItems = 'center';
+          right.style.justifyContent = 'flex-end';
+        }
+      }catch(_){ /* ignore styling failures */ }
     });
+
+    // wire up composer link and details link click handlers (delegated from current container)
+    Array.from(container.querySelectorAll('.composer-link')).forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const name = decodeURIComponent(link.dataset.name || '');
+        window.selectedComposer = name || '';
+        // find the corresponding row by index if available or pass name
+        const idx = Number(link.dataset.index);
+        const row = Array.isArray(window.lastFiltered) ? window.lastFiltered[idx] : null;
+        populateComposerBox(name, row || {});
+      });
+    });
+    Array.from(container.querySelectorAll('.details-link')).forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const idx = Number(link.dataset.index);
+        const row = Array.isArray(window.lastFiltered) ? window.lastFiltered[idx] : null;
+        const name = row && (row['Composer'] || row.Composer || row.composer) ? (row['Composer'] || row.Composer || row.composer) : '';
+        window.selectedComposer = name || '';
+        populateComposerBox(name, row || {});
+      });
+    });
+
+    // remove bottom border on last item
+    try{
+      const items = Array.from(container.children).filter(n => n.classList && n.classList.contains('result-item'));
+      if (items.length){ items[items.length-1].style.borderBottom = 'none'; }
+    }catch(_){ }
+
     renderPagination(Math.ceil((window.lastFiltered || []).length / window.PAGE_SIZE), page);
   }
 

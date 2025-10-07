@@ -56,9 +56,9 @@
     .search-input, #qinput { flex:1; padding:10px 12px; border-radius:8px; border:1px solid #e5e7eb; }
     .search-cta, #qbtn { padding:10px 12px; border-radius:8px; background:var(--accent); color:white; border:none; font-weight:700; cursor:pointer; }
 
-    .filters { width:260px; }
-    .results { flex:1; }
-    .composer-box { width:300px; }
+  .filters { width:305px; }
+  .results { flex:1; }
+  .composer-box { width:345px; }
     .section-divider { height:1px; background:#e6e9ef; margin:8px 0; }
 
   /* Fixed translucent search strip under the navbar */
@@ -73,12 +73,18 @@
     use fixed widths; center panel is fluid. */
   .three-panels { display:flex; gap:16px; width:100%; margin:45px 0 0 0; padding:0 20px; box-sizing:border-box; }
   /* left filter panel (anchored 20px from left) */
-  .three-panels .panel:first-child { width:260px; flex:0 0 260px; }
+  .three-panels .panel:first-child { width:305px; flex:0 0 305px; }
   /* center results panel (flexible) */
   .three-panels .panel:nth-child(2) { flex:1 1 auto; min-width:0; }
   /* right composer panel (anchored 20px from right) */
-  .three-panels .panel:last-child { width:300px; flex:0 0 300px; }
+  .three-panels .panel:last-child { width:345px; flex:0 0 345px; }
   .three-panels .panel { background:white; border-radius:8px; padding:16px; box-shadow:0 6px 12px rgba(15,23,42,0.06); min-height:140px; box-sizing:border-box; position:relative; z-index:1; }
+  /* Results item styling: separator line between entries and right-side details column */
+  .result-item { padding:12px 0; border-bottom:1px solid #e6e9ef; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .result-item:last-child { border-bottom: none; }
+  .result-item .result-main { flex:1 1 auto; }
+  .result-item .result-right { width:160px; flex:0 0 160px; text-align:right; color:#6b7280; font-size:0.95rem; display:flex; align-items:center; justify-content:flex-end; }
+  .result-item .details-link { color:var(--accent); text-decoration:none; font-weight:700; }
   /* panel title + divider */
   .panel-title { margin:0 0 8px; font-weight:700; color:var(--accent); font-size:16px; }
   .panel-divider { height:1px; background:#e6e9ef; margin:8px 0 12px 0; }
