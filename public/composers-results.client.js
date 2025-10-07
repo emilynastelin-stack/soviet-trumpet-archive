@@ -364,10 +364,9 @@
         const idx = Number(link.dataset.index);
         const row = Array.isArray(window.lastFiltered) ? window.lastFiltered[idx] : null;
         const name = row && (row['Composer'] || row.Composer || row.composer) ? (row['Composer'] || row.Composer || row.composer) : '';
-        window.selectedComposer = name || '';
         // toggle inline details beneath this result (columns L..R)
         const resultItem = link.closest('.result-item');
-        if (!resultItem) { populateComposerBox(name, row || {}); try{ window.currentPage = 1; window.loadResults(); }catch(_){ } return; }
+        if (!resultItem) { populateComposerBox(name, row || {}); return; }
         const existing = resultItem.nextElementSibling;
         if (existing && existing.classList && existing.classList.contains('inline-details') && existing.dataset.forIndex == String(idx)){
           // already open -> close
@@ -378,8 +377,7 @@
         Array.from(document.querySelectorAll('.inline-details')).forEach(n => n.remove());
         const detailsEl = renderInlineDetails(row || {}, idx);
         if (detailsEl) resultItem.parentNode.insertBefore(detailsEl, resultItem.nextSibling);
-        // after opening details, filter results to this composer
-        try{ window.currentPage = 1; window.loadResults(); }catch(_){ }
+        // Note: do NOT call loadResults here — keeping details open requires avoiding a full re-render
       });
     });
 
