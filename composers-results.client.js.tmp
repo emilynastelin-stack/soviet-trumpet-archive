@@ -373,7 +373,7 @@
     if (!name){ content.innerHTML = 'Select a result to view composer details.'; if (clearBtn) clearBtn.style.display = 'none'; return; }
     const normalizeKey = k => String(k || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').trim();
     const normVal = v => (typeof normalize === 'function') ? normalize(String(v || '')) : String(v || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').trim();
-    const looksLikeCompDet = (sampleObj) => {
+    const looksLikeComposerDetails = (sampleObj) => {
       if (!sampleObj || typeof sampleObj !== 'object') return false;
       const keys = Object.keys(sampleObj).map(k => normalizeKey(k));
       const hasComposer = keys.some(k => k.includes('composer') || k.includes('композитор'));
@@ -382,7 +382,7 @@
       const looksLikeMusicList = keys.includes('title') || keys.includes('compositions') || keys.includes('snippet') || keys.includes('published');
       return hasComposer && (hasLife || hasCountry) && !looksLikeMusicList;
     };
-    const candidates = ['CompDet','Sheet2','ComposersAggregated','Composers','Aggregated'];
+    const candidates = ['MusicList','Sheet2','ComposersAggregated','Composers','Aggregated'];
     let rows = [];
     let sourceSheet = null;
     try {
@@ -396,7 +396,7 @@
         const res = await fetch('/api/sheets?sheet=' + encodeURIComponent(sname), { headers: { 'Accept': 'application/json' } });
         const jrRaw = await res.json().catch(()=>null);
         const jr = Array.isArray(jrRaw) ? jrRaw : (jrRaw && Array.isArray(jrRaw.rows) ? jrRaw.rows : jrRaw);
-        if (Array.isArray(jr) && jr.length){ const sample = jr[0]; if (looksLikeCompDet(sample)){ rows = jr; sourceSheet = sname; console.debug('COMPOSER_DEBUG selected sheet (api):', sname, 'headers:', Object.keys(sample)); break; } else { console.debug('COMPOSER_DEBUG rejected sheet (api):', sname, 'headers:', Object.keys(sample)); } }
+  if (Array.isArray(jr) && jr.length){ const sample = jr[0]; if (looksLikeComposerDetails(sample)){ rows = jr; sourceSheet = sname; console.debug('COMPOSER_DEBUG selected sheet (api):', sname, 'headers:', Object.keys(sample)); break; } else { console.debug('COMPOSER_DEBUG rejected sheet (api):', sname, 'headers:', Object.keys(sample)); } }
         else { console.debug('COMPOSER_DEBUG no-array or empty from API for', sname, jr); }
       }catch(e){ console.debug('COMPOSER_DEBUG api fetch failed for', sname, e); }
     }
@@ -408,7 +408,7 @@
             const headers = g.cols.map(h => String(h).trim() || '');
             const sampleObj = {};
             for (let i=0;i<headers.length;i++){ const hk = headers[i] || `col${i+1}`; sampleObj[hk] = g.rows[0][i]; }
-            if (looksLikeCompDet(sampleObj)){
+            if (looksLikeComposerDetails(sampleObj)){
               rows = g.rows.map(r => { const obj = {}; for (let i = 0; i < headers.length; i++) { const hk = headers[i] || `col${i+1}`; obj[hk] = r[i] !== undefined && r[i] !== null ? r[i] : ''; } return obj; });
               sourceSheet = sname; break;
             }
@@ -416,13 +416,13 @@
         }catch(e){ console.debug('COMPOSER_DEBUG gviz fetch failed for', sname, e); }
       }
     }
-    if (!rows || rows.length === 0){ content.innerHTML = `<div>No composer detail sheet (CompDet) could be located. I tried: ${candidates.join(', ')}.</div>`; if (clearBtn) clearBtn.style.display = 'none'; return; }
+  if (!rows || rows.length === 0){ content.innerHTML = `<div>No composer detail sheet (MusicList) could be located. I tried: ${candidates.join(', ')}.</div>`; if (clearBtn) clearBtn.style.display = 'none'; return; }
     let matchRow = null; let foundVal = null; const target = String(name || '').trim(); const normTarget = normVal(target);
     const sampleKeys = Object.keys(rows[0] || {});
     const composerKey = sampleKeys.find(k => normalizeKey(k).includes('composer') || normalizeKey(k).includes('композитор'));
     if (composerKey){ for (const r of rows){ const val = String(r[composerKey] || '').trim(); if (!val) continue; const nv = normVal(val); if (nv === normTarget || nv.includes(normTarget) || normTarget.includes(nv)){ matchRow = r; foundVal = val; break; } } }
     if (!matchRow){ for (const r of rows){ for (const v of Object.values(r)){ if (!v) continue; const str = String(v || '').trim(); const nv = normVal(str); if (nv === normTarget || nv.includes(normTarget) || normTarget.includes(nv)){ matchRow = r; foundVal = str; break; } } if (matchRow) break; } }
-    if (!matchRow){ const samplePreview = escapeHtml(JSON.stringify(rows[0] || {}, null, 2)); content.innerHTML = `<div>No composer match in ${escapeHtml(sourceSheet || 'CompDet')} for <strong>${escapeHtml(name)}</strong>.</div><div style="margin-top:8px;color:#6b7280;font-size:0.9rem">Sample headers from detected sheet (for debugging):</div><pre style="max-height:220px;overflow:auto;background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;font-size:0.85rem">${samplePreview}</pre>`; if (clearBtn) clearBtn.style.display = 'inline-block'; return; }
+  if (!matchRow){ const samplePreview = escapeHtml(JSON.stringify(rows[0] || {}, null, 2)); content.innerHTML = `<div>No composer match in ${escapeHtml(sourceSheet || 'MusicList')} for <strong>${escapeHtml(name)}</strong>.</div><div style="margin-top:8px;color:#6b7280;font-size:0.9rem">Sample headers from detected sheet (for debugging):</div><pre style="max-height:220px;overflow:auto;background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;font-size:0.85rem">${samplePreview}</pre>`; if (clearBtn) clearBtn.style.display = 'inline-block'; return; }
     let rowObj = {};
     if (Array.isArray(matchRow)){
       const sampleObj = (rows && rows.length && typeof rows[0] === 'object') ? rows[0] : null;

@@ -17,8 +17,8 @@
       color: #0f172a;
       background-color: var(--bg);
       background-image: none;
-      /* increase bottom padding so content isn't hidden under the fixed footer */
-      padding-bottom: 96px; /* reserve space for fixed footer */
+      /* ensure there's room for the fixed footer and device safe-area inset */
+      padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)); /* reserve space for fixed footer */
       padding-top: 112px; /* reserve space for fixed header + search strip */
     }
 
@@ -321,7 +321,10 @@
   /* Fixed footer: bring in the same styling used on the main composers page */
   footer { margin-top:40px; padding:36px 0; background:transparent; }
   /* Fixed footer bar locked to viewport (shared with main site) */
-  #fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#8b0000; color:white; /* slightly higher z so footer sits above content overlays */ z-index:1400; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
+  /* Fixed footer: always visible and above other overlays */
+  #fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#8b0000; color:white; z-index:99999; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 calc(8px + env(safe-area-inset-bottom, 0px)) 0; }
+  /* Force-hide the mobile toolbar so it doesn't cover the fixed footer on small screens */
+  .mobile-footer-toolbar { display: none !important; }
   .fixed-footer-inner { width:100%; max-width:none; margin:0; padding:0 20px; display:flex; gap:12px; justify-content:space-between; align-items:center; }
   .footer-grid { display:flex; gap:24px; flex-wrap:wrap; }
   .footer-left { display:flex; flex-direction:column; transform: translateY(-5px); }
@@ -337,8 +340,7 @@
       body { padding-bottom: calc(64px + 56px); }
     }
 
-    /* hide fixed footer on mobile to avoid duplicate chrome */
-    @media (max-width:600px) { #fixed-footer { display: none !important; } }
+  /* keep fixed footer visible on small screens (always in viewport) */
 
     /* Make header and search strip adapt to small screens */
     @media (max-width:600px) {
@@ -605,8 +607,8 @@
 
     <!-- main content is now presented inside the three panels above -->
 
-    <div id="fixed-footer" aria-hidden="false" role="contentinfo">
-    <div class="fixed-footer-inner">
+    <div id="fixed-footer" aria-hidden="false" role="contentinfo" tabindex="0">
+      <div class="fixed-footer-inner">
       <div class="footer-left">
         <div class="title">Archive of Soviet Trumpet Music</div>
         <div class="subtitle">Архив советской трубной музыки</div>
