@@ -211,16 +211,17 @@
         align-items:center;
         justify-content:space-between;
         gap:12px;
-        padding:12px 16px;
-        border-radius:10px;
-        box-shadow:0 2px 8px rgba(15,23,42,0.06);
+        padding:14px 18px;
+        border-radius:12px;
+        box-shadow:0 4px 10px rgba(15,23,42,0.06);
         background:#fff;
         border:1px solid #eef2f6;
-        transition: transform 0.12s ease, box-shadow 0.12s ease;
+        transition: transform 0.18s cubic-bezier(.2,.9,.2,1), box-shadow 0.18s cubic-bezier(.2,.9,.2,1);
+        will-change: transform, box-shadow;
       }
       #panel-center .result-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 18px rgba(11,15,30,0.08);
+        transform: translateY(-6px);
+        box-shadow: 0 18px 40px rgba(11,15,30,0.14);
       }
       #panel-center .result-main { flex:1 1 auto; margin-right:12px; color:#0f172a }
       #panel-center .result-main b { display:block; margin-bottom:6px; color:var(--accent); }
@@ -235,10 +236,11 @@
       #panel-center .more-composer-btn {
         -webkit-appearance: none; appearance: none; display:inline-flex; align-items:center; justify-content:center;
         background:#8b0000; color:#fff; border:0; border-radius:999px; padding:6px 12px; font-size:0.85rem; font-weight:700; cursor:pointer; line-height:1;
-        box-shadow: none; text-shadow: none;
+        box-shadow: none; text-shadow: none; transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
       }
       #panel-center button.more-composer-btn:hover,
-      #panel-center .more-composer-btn:hover { background:#5c0000; }
+      #panel-center .more-composer-btn:hover { background:#5c0000; box-shadow: 0 6px 14px rgba(11,15,30,0.12); transform: translateY(-1px); }
+      #panel-center .result-card:hover .more-composer-btn { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(11,15,30,0.14); }
       #panel-center .pagination { justify-content:center; margin-top:18px; display:flex; gap:8px; }
       /* Pagination button active state */
       .pagination .page-btn[aria-current="true"] { background:var(--accent); color:#fff; border-color:var(--accent); }
