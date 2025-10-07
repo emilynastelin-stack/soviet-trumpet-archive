@@ -127,6 +127,9 @@
     @media (max-width:600px) { .grid{grid-template-columns:1fr;} .search-row{flex-direction:column;} .container{padding:14px;} }
 
   /* background overlay removed for now */
+  /* background overlay: ensure it sits behind content and doesn't intercept clicks */
+  #bg-overlay { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+  #bg-overlay img { position:absolute; left:0; top:0; width:100vw; height:100vh; object-fit:cover; will-change:left,top,width,height; pointer-events:none; }
   .search-panel, .search-panel.fixed, .search-cta, .search-input, .cta-row a, .lang-btn, .lang-dropdown, .filters select, .small-btn, .reset-btn { position:relative; z-index:2000; pointer-events:auto; }
     </style>
   </head>
@@ -264,5 +267,8 @@
 
     <script src="/composers-results.client.js" defer></script>
     <!-- Inline loader and fallback pagination removed; external client script will render pagination controls -->
-  </body>
-</html>
+  <body>
+    <!-- background overlay (behind everything) -->
+    <div id="bg-overlay" aria-hidden="true">
+      <img id="bg-img" src="https://i.imgur.com/o8mycA8.png" alt="" />
+    </div>
