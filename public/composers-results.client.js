@@ -319,44 +319,27 @@
     pageItems.forEach((r, idx) =>{
       const globalIndex = start + idx;
       const div = document.createElement('div');
-      div.className = 'result-item';
+      div.className = 'result-card';
       const title = (r.Title || r.Compositions || r.title || 'Untitled');
       const author = r['Composer'] || r.Composer || r.composer || 'Unknown';
       const published = r.Year || r.Published || r.Decade || r.year || '';
+      const pieceType = r['Type'] || r.Type || r['Type of piece'] || '';
       const composerEsc = escapeHtml(author);
       const composerData = encodeURIComponent(String(author || ''));
       div.innerHTML = `
         <div class="result-main">
-          <h2>${escapeHtml(title)}</h2>
-          <p><strong>Composer:</strong> <a href="#" class="composer-link" data-index="${globalIndex}" data-name="${composerData}">${composerEsc}</a></p>
-          <p><strong>Published:</strong> ${escapeHtml(published)}</p>
+          <b>${escapeHtml(title)}</b>
+          <div class="meta">${escapeHtml(pieceType || '')}${(pieceType && published) ? ' · ' : ''}${escapeHtml(published || '')}</div>
+          <div style="margin-top:8px"><strong>Composer:</strong> <a href="#" class="composer-link" data-index="${globalIndex}" data-name="${composerData}">${composerEsc}</a></div>
         </div>
         <div class="result-right">
           <a href="#" class="details-link" data-index="${globalIndex}">Details</a>
+          <button class="more-composer-btn" data-index="${globalIndex}" data-name="${composerData}">More from this composer</button>
         </div>
       `;
       container.appendChild(div);
-      // apply inline styles so runtime-inserted nodes match the intended layout
-      try{
-        div.style.position = 'relative';
-        div.style.padding = '16px 0 20px 0';
-        div.style.borderBottom = '1px solid #e6e9ef';
-        const main = div.querySelector('.result-main');
-        if (main) main.style.marginRight = '180px';
-        const right = div.querySelector('.result-right');
-        if (right){
-          right.style.position = 'absolute';
-          right.style.right = '16px';
-          right.style.top = '12px';
-          right.style.width = 'auto';
-          right.style.textAlign = 'right';
-          right.style.color = '#6b7280';
-          right.style.fontSize = '0.95rem';
-          right.style.display = 'flex';
-          right.style.alignItems = 'center';
-          right.style.justifyContent = 'flex-end';
-        }
-      }catch(_){ /* ignore styling failures */ }
+      // prefer CSS for layout; ensure a consistent border-bottom for list separation
+      try{ div.style.borderBottom = '1px solid #eef2f6'; }catch(_){ }
     });
 
     // wire up composer link and details link click handlers (delegated from current container)
@@ -395,10 +378,20 @@
         // Note: do NOT call loadResults here — keeping details open requires avoiding a full re-render
       });
     });
+    Array.from(container.querySelectorAll('.more-composer-btn')).forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const name = decodeURIComponent(btn.dataset.name || '');
+        const idx = Number(btn.dataset.index);
+        const row = Array.isArray(window.lastFiltered) ? window.lastFiltered[idx] : null;
+        window.selectedComposer = name || '';
+        populateComposerBox(name, row || {});
+      });
+    });
 
-    // remove bottom border on last item
+    // remove bottom border on last item (support both result-card and legacy result-item)
     try{
-      const items = Array.from(container.children).filter(n => n.classList && n.classList.contains('result-item'));
+      const items = Array.from(container.children).filter(n => n.classList && (n.classList.contains('result-card') || n.classList.contains('result-item')));
       if (items.length){ items[items.length-1].style.borderBottom = 'none'; }
     }catch(_){ }
 
