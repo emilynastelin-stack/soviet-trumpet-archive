@@ -78,7 +78,7 @@
   .three-panels .panel:nth-child(2) { flex:1 1 auto; min-width:0; }
   /* right composer panel (anchored 20px from right) */
   .three-panels .panel:last-child { width:300px; flex:0 0 300px; }
-  .three-panels .panel { background:white; border-radius:8px; padding:16px; box-shadow:0 6px 12px rgba(15,23,42,0.06); min-height:140px; box-sizing:border-box; }
+  .three-panels .panel { background:white; border-radius:8px; padding:16px; box-shadow:0 6px 12px rgba(15,23,42,0.06); min-height:140px; box-sizing:border-box; position:relative; z-index:1; }
   /* panel title + divider */
   .panel-title { margin:0 0 8px; font-weight:700; color:var(--accent); font-size:16px; }
   .panel-divider { height:1px; background:#e6e9ef; margin:8px 0 12px 0; }
@@ -128,7 +128,7 @@
 
   /* background overlay removed for now */
   /* background overlay: ensure it sits behind content and doesn't intercept clicks */
-  #bg-overlay { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+  #bg-overlay { position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
   #bg-overlay img { position:absolute; left:0; top:0; width:100vw; height:100vh; object-fit:cover; will-change:left,top,width,height; pointer-events:none; }
   .search-panel, .search-panel.fixed, .search-cta, .search-input, .cta-row a, .lang-btn, .lang-dropdown, .filters select, .small-btn, .reset-btn { position:relative; z-index:2000; pointer-events:auto; }
     </style>
