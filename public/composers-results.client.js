@@ -824,7 +824,15 @@
   try{ content.style.textAlign = 'left'; content.style.fontFamily = "'Segoe UI', 'Noto Sans', Arial, sans-serif"; content.style.whiteSpace = 'normal'; }catch(_){ }
   // Only render the composer heading, the lifespan (italic gray) and then the requested custom block.
   content.innerHTML = `<div style="padding-top:0;margin-top:0"><strong style="color:var(--accent)">${escapeHtml(dispFound)}</strong>${colEHtml}${customBlock}</div>`;
-    if (clearBtn) { clearBtn.style.display = 'inline-block'; clearBtn.onclick = () => { window.selectedComposer = ''; if (clearBtn) clearBtn.style.display = 'none'; populateComposerBox('', null); window.currentPage = 1; window.loadResults(); }; }
+  // Populate the dedicated "More from this composer" area so it won't be overwritten when composer-content is replaced
+  try{
+    const moreEl = document.getElementById('more-from-composer');
+    if (moreEl){
+      moreEl.style.display = 'block';
+      moreEl.innerHTML = `<div style="background:#fff;padding:10px;border-radius:8px;border:1px solid #eef2f6;"><strong>More from ${escapeHtml(dispFound)}</strong><div style="margin-top:8px;color:#6b7280;font-size:0.95rem">Loading more works…</div></div>`;
+    }
+  }catch(_){ }
+    if (clearBtn) { clearBtn.style.display = 'inline-block'; clearBtn.onclick = () => { window.selectedComposer = ''; if (clearBtn) clearBtn.style.display = 'none'; try{ const moreEl = document.getElementById('more-from-composer'); if (moreEl) { moreEl.style.display = 'none'; moreEl.innerHTML = ''; } }catch(_){ } populateComposerBox('', null); window.currentPage = 1; window.loadResults(); }; }
   }
   window.populateComposerBox = populateComposerBox;
 

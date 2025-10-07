@@ -50,6 +50,44 @@
   function normalize(s){ if(!s) return ''; try{ return s.toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase(); }catch(e){ return s.toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); } }
   function escapeHtml(str){ if (str == null) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
+  // Debug panel: visible runtime diagnostics
+  function ensureDebugPanel(){
+    try{
+      let p = document.getElementById('cr-debug-panel');
+      if (!p){
+        p = document.createElement('div');
+        p.id = 'cr-debug-panel';
+        p.style.position = 'fixed';
+        p.style.left = '12px';
+        p.style.bottom = '72px';
+        p.style.zIndex = 99999;
+        p.style.background = 'rgba(255,255,255,0.95)';
+        p.style.border = '1px solid #eee';
+        p.style.padding = '8px 10px';
+        p.style.borderRadius = '8px';
+        p.style.maxWidth = '360px';
+        p.style.fontSize = '13px';
+        p.style.color = '#111';
+        p.style.boxShadow = '0 6px 18px rgba(0,0,0,0.06)';
+        p.innerHTML = '<strong>client debug</strong><div id="cr-debug-body" style="margin-top:6px;font-size:12px;color:#333">initializing…</div>';
+        document.body.appendChild(p);
+      }
+      return document.getElementById('cr-debug-body');
+    }catch(e){ return null; }
+  }
+  function updateDebugPanel(info){
+    try{
+      const el = ensureDebugPanel(); if (!el) return;
+      const lines = [];
+      if (info.apiRows !== undefined) lines.push('apiRows: ' + info.apiRows);
+      if (info.filtered !== undefined) lines.push('filtered: ' + info.filtered);
+      if (info.page !== undefined) lines.push('page: ' + info.page);
+      if (info.error) lines.push('error: ' + info.error);
+      if (info.note) lines.push(info.note);
+      el.innerText = lines.join('\n');
+    }catch(e){ /* ignore */ }
+  }
+
   async function gvizFetch(sheetName, range = 'A1:Z1000'){
     try{
       const id = '1UiK8QDq98C-9wCpQjdQAVpSdH8mZkpxYgMMEHM3uaGk';
@@ -57,8 +95,12 @@
       const txt = await (await fetch(url)).text();
       const m = txt.match(/google\.visualization\.Query\.setResponse\((.*)\);?/s);
       if (!m || !m[1]) return null;
-      const json = JSON.parse(m[1]);
-      if (!json || !json.table) return null;
+      if (!content) return;
+      if (!name){ 
+        content.innerHTML = 'Select a result to view composer details.'; 
+        if (clearBtn) clearBtn.style.display = 'none'; 
+        return; 
+      }
       const cols = (json.table.cols || []).map(c => (c && (c.label || c.id)) ? String(c.label || c.id) : '');
       const rows = (json.table.rows || []).map(r => (r.c || []).map(cell => (cell && cell.v !== undefined && cell.v !== null) ? cell.v : ''));
       return { cols, rows };
@@ -354,6 +396,7 @@
         const raw = await res.json().catch(()=>null);
         rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
       }
+      try{ window.lastApiRowsCount = Array.isArray(rows) ? rows.length : 0; }catch(_){ window.lastApiRowsCount = 0; }
       if (!Array.isArray(rows)){
         try{
           const g = await gvizFetch('MusicList');
@@ -396,6 +439,7 @@
         const bd = document.getElementById('cr-debug');
         if (bd) bd.textContent = `client: ${ (window.lastFiltered || []).length } results`;
       }catch(_){ }
+      try{ updateDebugPanel({ apiRows: window.lastApiRowsCount || 0, filtered: (window.lastFiltered||[]).length, page: window.currentPage }); }catch(_){ }
       if (options && options.resetPage) window.currentPage = 1;
       renderPage(window.currentPage);
       try{

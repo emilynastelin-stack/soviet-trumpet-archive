@@ -486,6 +486,9 @@
         <h3 class="panel-title">Composer information</h3>
         <div class="panel-divider"></div>
         <div id="composer-content" style="margin-top:8px">Select a result to view composer details.</div>
+        <!-- Dedicated container for "More from this composer" so the client can toggle it
+             without being overwritten when #composer-content is replaced. -->
+        <div id="more-from-composer" style="margin-top:16px; display:none;"></div>
         <div style="margin-top:12px;">
           <button id="clear-composer" style="display:none;padding:6px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear composer</button>
         </div>
