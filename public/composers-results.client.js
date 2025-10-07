@@ -309,6 +309,17 @@
     }
   };
 
+  /* ---------------------------------------------------------------------------
+    CENTER PANEL RENDERER: renderPage
+    -----------------------------------------------------------
+    This function controls the rendering of the center results panel. It
+    receives the page number and reads `window.lastFiltered` to build the
+    DOM nodes that appear inside `#results-list`. If you want to change the
+    structure of individual result cards, modify the markup produced here.
+    The function creates nodes that match the server-side CSS selectors
+    (.result-card, .result-main, .result-right, .details-link,
+    .more-composer-btn) so style rules in the page apply consistently.
+  --------------------------------------------------------------------------- */
   function renderPage(page){
     const container = document.getElementById('results-list');
     if (!container) return;
@@ -316,7 +327,7 @@
     const start = (page - 1) * window.PAGE_SIZE;
     const pageItems = (window.lastFiltered || []).slice(start, start + window.PAGE_SIZE);
     if (!pageItems.length) { container.innerHTML = '<div class="result-item">No results</div>'; return; }
-    pageItems.forEach((r, idx) =>{
+  pageItems.forEach((r, idx) =>{
       const globalIndex = start + idx;
       const div = document.createElement('div');
       div.className = 'result-card';
@@ -342,7 +353,14 @@
       try{ div.style.borderBottom = '1px solid #eef2f6'; }catch(_){ }
     });
 
-    // wire up composer link and details link click handlers (delegated from current container)
+  // ------------------------------------------------------------------
+  // Wiring: composer links, Details link and "More from this composer" btn
+  // ------------------------------------------------------------------
+  // The handlers below control interactive behavior for items in the
+  // center panel. populateComposerBox is used to fill the right-hand
+  // composer panel; renderInlineDetails will render additional per-item
+  // detail blocks if invoked.
+  // wire up composer link and details link click handlers (delegated from current container)
     Array.from(container.querySelectorAll('.composer-link')).forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
@@ -351,7 +369,7 @@
         // find the corresponding row by index if available or pass name
         const idx = Number(link.dataset.index);
         const row = Array.isArray(window.lastFiltered) ? window.lastFiltered[idx] : null;
-        populateComposerBox(name, row || {});
+  populateComposerBox(name, row || {});
         // filter results to this composer
         try{ window.currentPage = 1; window.loadResults(); }catch(_){ }
       });
@@ -373,7 +391,7 @@
         }
         // remove any other inline details blocks
         Array.from(document.querySelectorAll('.inline-details')).forEach(n => n.remove());
-        const detailsEl = renderInlineDetails(row || {}, idx);
+  const detailsEl = renderInlineDetails(row || {}, idx);
         if (detailsEl) resultItem.parentNode.insertBefore(detailsEl, resultItem.nextSibling);
         // Note: do NOT call loadResults here — keeping details open requires avoiding a full re-render
       });
@@ -397,6 +415,16 @@
 
     renderPagination(Math.ceil((window.lastFiltered || []).length / window.PAGE_SIZE), page);
   }
+
+
+  /* ---------------------------------------------------------------------------
+     Composer panel rendering helpers
+     -----------------------------------------------------------
+     Below are the functions that populate the composer details panel and
+     render inline details for a specific result. If you'd like the right
+     panel to show different fields or richer HTML (e.g., images, links,
+     downloads), update populateComposerBox and renderInlineDetails.
+  --------------------------------------------------------------------------- */
 
     // Render an inline details block showing columns L..R beneath a result item
     function renderInlineDetails(row, index){
@@ -652,6 +680,16 @@
   }
   window.loadResults = loadResults;
 
+  /* ---------------------------------------------------------------------------
+    RIGHT PANEL: populateComposerBox
+    -----------------------------------------------------------
+    This function populates the right-hand composer information panel
+    (`#composer-content`) when a user clicks a composer link or the
+    "More from this composer" button. It performs best-effort sheet
+    selection, lookups and renders a detailed view. If you want to change
+    the content, formatting, or which fields are shown for a composer,
+    update this function.
+  --------------------------------------------------------------------------- */
   async function populateComposerBox(name, row){
     const content = document.getElementById('composer-content');
     const clearBtn = document.getElementById('clear-composer');

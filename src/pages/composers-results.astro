@@ -195,63 +195,115 @@
   .pagination .pager-controls { display:flex; gap:8px; align-items:center; }
 
   /* Result card styles for center panel */
-  .result-card { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:12px 14px; border-bottom:1px solid #eef2f6; }
-  .result-card .result-main { flex:1 1 auto; color:#0f172a; }
-  .result-card .result-main b { display:block; color:var(--accent); font-weight:700; margin-bottom:6px; }
-  .result-card .result-right { flex:0 0 auto; text-align:right; align-self:center; }
-  .result-card .result-right a { color:var(--accent); font-weight:700; text-decoration:none; }
-  /* Simplified Results Panel / Card styles (from provided template) */
-  #panel-center { display:block; background:#fff; border-left:0; box-shadow:0 6px 18px rgba(11,15,30,0.06); border-radius:10px; padding:14px; max-width:800px; margin:0 auto; }
-  #panel-center .panel-title { font-size:18px; margin-bottom:12px; color:var(--accent); }
-  #panel-center .panel-divider { margin-bottom:16px; height:1px; background:#e6e9ef; }
-  #panel-center #results-list { display:flex; flex-direction:column; gap:12px; }
-  .result-card {
-    background: #ffffff;
-    border-radius: 10px;
-    padding: 14px 16px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  <div class="panel">
+  <h3 class="panel-title">Results</h3>
+  <div class="panel-divider"></div>
+
+  <div id="results-list"></div>
+
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<script>
+  // Example data
+  const results = [
+    { title: "Concert scherzo", composer: "Abramyan, Eduard Aslanovich", published: 1957 },
+    { title: "Sonata", composer: "Asafiev, Boris Vladimirovich", published: 1950 },
+    { title: "Scherzo", composer: "Tchaikovsky, Pyotr", published: 1880 },
+    { title: "Symphony No.1", composer: "Shostakovich, Dmitri", published: 1926 },
+    // ...add more results
+  ];
+
+  const resultsPerPage = 2;
+  let currentPage = 1;
+
+  const resultsList = document.getElementById("results-list");
+  const pagination = document.getElementById("pagination");
+
+  function renderResults() {
+    resultsList.innerHTML = "";
+
+    const start = (currentPage - 1) * resultsPerPage;
+    const end = start + resultsPerPage;
+    const pageResults = results.slice(start, end);
+
+    pageResults.forEach(item => {
+      const card = document.createElement("div");
+      card.className = "result-card";
+
+      const main = document.createElement("div");
+      main.className = "result-main";
+      main.innerHTML = `
+        Results<br>
+        ${item.title}<br>
+        Composer: ${item.composer}<br>
+        Published: ${item.published}
+      `;
+
+      const right = document.createElement("div");
+      right.className = "result-right";
+
+      const viewLink = document.createElement("a");
+      viewLink.href = "#";
+      viewLink.textContent = "View";
+
+      const moreBtn = document.createElement("button");
+      moreBtn.className = "more-composer-btn";
+      moreBtn.textContent = "More from this composer";
+      moreBtn.onclick = () => filterByComposer(item.composer);
+
+      right.appendChild(viewLink);
+      right.appendChild(moreBtn);
+
+      card.appendChild(main);
+      card.appendChild(right);
+
+      resultsList.appendChild(card);
+    });
   }
-  .result-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+
+  function renderPagination() {
+    pagination.innerHTML = "";
+
+    const totalPages = Math.ceil(results.length / resultsPerPage);
+
+    const prevBtn = document.createElement("button");
+    prevBtn.className = "page-btn page-arrow";
+    prevBtn.innerHTML = "&lt;";
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.onclick = () => { currentPage--; update(); };
+    pagination.appendChild(prevBtn);
+
+    for (let i = 1; i <= totalPages; i++) {
+      const pageBtn = document.createElement("button");
+      pageBtn.className = "page-btn";
+      pageBtn.textContent = i;
+      if (i === currentPage) pageBtn.setAttribute("aria-current", "true");
+      pageBtn.onclick = () => { currentPage = i; update(); };
+      pagination.appendChild(pageBtn);
+    }
+
+    const nextBtn = document.createElement("button");
+    nextBtn.className = "page-btn page-arrow";
+    nextBtn.innerHTML = "&gt;";
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.onclick = () => { currentPage++; update(); };
+    pagination.appendChild(nextBtn);
   }
-  .result-main { flex: 1 1 auto; margin-right: 12px; }
-  .result-main b { display: block; margin-bottom: 4px; color: var(--accent); }
-  .result-right { display: flex; align-items: center; gap: 6px; }
-  .result-right a { color: var(--accent); text-decoration: none; font-weight: 600; font-size: 0.95rem; }
-  .more-composer-btn {
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 4px 8px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
+
+  function update() {
+    renderResults();
+    renderPagination();
   }
-  .more-composer-btn:hover { background: #5c0000; }
-  .pagination { display:flex; align-items:center; justify-content:center; gap:8px; margin-top:20px; flex-wrap:wrap; }
-  .page-btn { padding:6px 12px; border-radius:8px; border:1px solid #e6e9ef; background:#fff; color:#111827; cursor:pointer; font-weight:600; transition: background 0.2s; }
-  .page-btn:hover { background:#f3f4f6; }
-  .page-btn[aria-current="true"] { background:var(--accent); color:#fff; border-color:var(--accent); }
-  .page-ellipsis { padding:6px 10px; color:var(--muted); font-weight:600; }
-  .page-arrow { font-weight:700; font-size:14px; }
-    /* Fixed footer bar locked to viewport (shared with main site) */
-    #fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#8b0000; color:white; z-index:1200; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
-    .fixed-footer-inner { width:100%; max-width:none; margin:0; padding:0 20px; display:flex; gap:12px; justify-content:space-between; align-items:center; }
-    .footer-left { display:flex; flex-direction:column; transform: translateY(-5px); }
-    .footer-left .title { font-weight:700; color:white; font-size:16px; line-height:1.1; padding:12px 0 0 0; margin-left:0; }
-    .footer-left .subtitle { color:rgba(255,255,255,0.8); font-size:13px; margin-top:0; margin-left:0; padding-left:0; }
-    .fixed-footer-center { flex:1; display:flex; align-items:center; justify-content:center; transform: translateY(-3px); }
-    .fixed-footer-center .links { color:white; font-size:13px; text-align:center; }
-    .fixed-footer-center .links a { color:inherit; text-decoration:none; margin:0 8px; }
-    .fixed-footer-right { display:flex; align-items:center; justify-content:flex-end; min-width:220px; transform: translateY(-3px); }
-    .fixed-footer-right .copyright { color:rgba(255,255,255,0.9); font-size:13px; }
+
+  function filterByComposer(composerName) {
+    console.log("Filter by composer:", composerName);
+    // implement filter logic if desired
+  }
+
+  // Initial render
+  update();
+</script>
 
     @media (max-width:900px) { .grid { grid-template-columns:repeat(2,1fr); } }
     @media (max-width:600px) { .grid{grid-template-columns:1fr;} .search-row{flex-direction:column;} .container{padding:14px;} }
@@ -569,8 +621,18 @@
       </div>
     </div>
 
+  <!--
+    Client runtime (heavy): /public/composers-results.client.js
+    - This external script performs data fetching (/api/sheets), normalization,
+      filtering, pagination, and renders the center panel items dynamically.
+    - If you need to change client-side rendering logic for the center panel
+      or the card layout, edit the client script (public/composers-results.client.js)
+      NOT the server page. The client script will insert nodes matching the
+      .result-card/.result-main/.result-right structure defined above.
+  -->
   <script src="/composers-results.client.js?v=3" defer></script>
-    <!-- Inline loader and fallback pagination removed; external client script will render pagination controls -->
+  <!-- Bridge script (below) provides a small shim for static buttons to call
+       client-side filter functions. See the "filterByComposer" function. -->
   <script>
     // Bridge for static template buttons: call client runtime's filter or emulate a filter change
     function filterByComposer(name){
