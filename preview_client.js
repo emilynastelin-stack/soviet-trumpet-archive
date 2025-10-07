@@ -209,13 +209,7 @@
     container.innerHTML = '';
     const start = (page - 1) * window.PAGE_SIZE;
     const pageItems = (window.lastFiltered || []).slice(start, start + window.PAGE_SIZE);
-    if (!pageItems.length) {
-      container.innerHTML = '<div class="result-item">No results</div>';
-      // still render pagination so users can navigate (handles case where currentPage is out of range)
-      const totalPages = Math.max(1, Math.ceil(((window.lastFiltered || []).length || 0) / window.PAGE_SIZE));
-      renderPagination(totalPages, page);
-      return;
-    }
+    if (!pageItems.length) { container.innerHTML = '<div class="result-item">No results</div>'; return; }
     pageItems.forEach(r =>{
       const div = document.createElement('div');
       div.className = 'result-item';
@@ -244,15 +238,12 @@
   function renderPagination(pageCount, active){
     let pag = document.getElementById('pagination');
     if (pag) pag.remove();
-  const pagRoot = document.getElementById('results-pagination-top');
-      const pagBottom = document.getElementById('results-pagination-bottom');
-  // support both #results (older markup) and #results-list (current markup)
-  const resultsEl = document.getElementById('results') || document.getElementById('results-list');
-  if (!resultsEl || !pagRoot) return;
-  pag = document.createElement('div');
+    const pagRoot = document.getElementById('results-pagination-top');
+    const resultsEl = document.getElementById('results');
+    if (!resultsEl || !pagRoot) return;
+    pag = document.createElement('div');
     pag.id = 'pagination';
     pag.className = 'pagination';
-  try{ const bd = document.getElementById('cr-debug'); if (bd) bd.textContent = `client: ${ (window.lastFiltered || []).length } results · pages: ${pageCount} · page: ${active}`; }catch(_){ }
     function clearAllFilters(){
       try{
         const qinput = document.getElementById('qinput'); if (qinput) qinput.value = '';
@@ -269,27 +260,21 @@
       pagRoot.innerHTML = '';
       const phWrap = document.createElement('div'); phWrap.style.display='flex'; phWrap.style.alignItems='center'; phWrap.style.gap='8px'; phWrap.style.justifyContent='flex-end';
       const placeholder = document.createElement('div'); placeholder.style.color='#6b7280'; placeholder.style.paddingRight='6px'; placeholder.textContent='1 of 1';
-      const clearBtn = document.createElement('button'); clearBtn.textContent='Clear all filters'; clearBtn.className = 'page-btn'; clearBtn.style.padding='6px 10px'; clearBtn.style.borderRadius='6px'; clearBtn.style.border='1px solid #d1d5db'; clearBtn.style.background='#fff'; clearBtn.addEventListener('click', clearAllFilters);
+      const clearBtn = document.createElement('button'); clearBtn.textContent='Clear all filters'; clearBtn.style.padding='6px 10px'; clearBtn.style.borderRadius='6px'; clearBtn.style.border='1px solid #d1d5db'; clearBtn.style.background='#fff'; clearBtn.addEventListener('click', clearAllFilters);
       phWrap.appendChild(placeholder); phWrap.appendChild(clearBtn);
       const liveToggle = document.createElement('button'); liveToggle.textContent='Live: Off'; liveToggle.style.marginLeft='8px'; liveToggle.style.padding='6px 10px'; liveToggle.style.borderRadius='6px'; liveToggle.addEventListener('click', ()=>{ if (window.liveTimer){ stopLiveUpdates(); liveToggle.textContent='Live: Off'; } else { startLiveUpdates(); liveToggle.textContent='Live: On'; }});
       phWrap.appendChild(liveToggle); pagRoot.appendChild(phWrap); return;
     }
-    const prev = document.createElement('button'); prev.textContent='Prev'; prev.className = 'page-btn'; prev.disabled = active === 1; prev.addEventListener('click', ()=>{ if (window.currentPage>1){ window.currentPage--; renderPage(window.currentPage); window.scrollTo({top:0,behavior:'smooth'}); }}); pag.appendChild(prev);
+    const prev = document.createElement('button'); prev.textContent='Prev'; prev.disabled = active === 1; prev.addEventListener('click', ()=>{ if (window.currentPage>1){ window.currentPage--; renderPage(window.currentPage); window.scrollTo({top:0,behavior:'smooth'}); }}); pag.appendChild(prev);
     const maxButtons = 7; const half = Math.floor(maxButtons/2); let start = Math.max(1, active - half); let end = Math.min(pageCount, start + maxButtons -1); if (end - start < maxButtons -1) start = Math.max(1, end - maxButtons +1);
-    for (let i=start;i<=end;i++){ const b = document.createElement('button'); b.textContent = String(i); b.className = 'page-btn'; if (i===active) { b.setAttribute('aria-current','true'); } b.addEventListener('click', ()=>{ window.currentPage = i; renderPage(window.currentPage); window.scrollTo({top:0,behavior:'smooth'}); }); pag.appendChild(b); }
-    const next = document.createElement('button'); next.textContent = 'Next'; next.className = 'page-btn'; next.disabled = active >= pageCount; next.addEventListener('click', ()=>{ if (window.currentPage<pageCount){ window.currentPage++; renderPage(window.currentPage); window.scrollTo({top:0,behavior:'smooth'}); }}); pag.appendChild(next);
+    for (let i=start;i<=end;i++){ const b = document.createElement('button'); b.textContent = String(i); if (i===active) b.classList.add('active'); b.addEventListener('click', ()=>{ window.currentPage = i; renderPage(window.currentPage); window.scrollTo({top:0,behavior:'smooth'}); }); pag.appendChild(b); }
+    const next = document.createElement('button'); next.textContent = 'Next'; next.disabled = active >= pageCount; next.addEventListener('click', ()=>{ if (window.currentPage<pageCount){ window.currentPage++; renderPage(window.currentPage); window.scrollTo({top:0,behavior:'smooth'}); }}); pag.appendChild(next);
     pagRoot.innerHTML = '';
     const topWrap = document.createElement('div'); topWrap.style.display='flex'; topWrap.style.alignItems='center'; topWrap.style.gap='8px'; topWrap.style.justifyContent='flex-end';
     const clearBtn2 = document.createElement('button'); clearBtn2.textContent='Clear all filters'; clearBtn2.style.padding='6px 10px'; clearBtn2.style.borderRadius='6px'; clearBtn2.style.border='1px solid #d1d5db'; clearBtn2.style.background='#fff'; clearBtn2.addEventListener('click', clearAllFilters);
     topWrap.appendChild(clearBtn2);
     const liveToggle2 = document.createElement('button'); liveToggle2.textContent = window.liveTimer ? 'Live: On' : 'Live: Off'; liveToggle2.style.marginRight='8px'; liveToggle2.style.padding='6px 10px'; liveToggle2.style.borderRadius='6px'; liveToggle2.addEventListener('click', ()=>{ if (window.liveTimer) { stopLiveUpdates(); liveToggle2.textContent='Live: Off'; } else { startLiveUpdates(); liveToggle2.textContent='Live: On'; } }); topWrap.appendChild(liveToggle2);
     topWrap.appendChild(pag); pagRoot.appendChild(topWrap);
-      if (pagBottom) {
-          pagBottom.innerHTML = '';
-          const bottomWrap = document.createElement('div'); bottomWrap.style.display='flex'; bottomWrap.style.alignItems='center'; bottomWrap.style.gap='8px'; bottomWrap.style.justifyContent='flex-end';
-          bottomWrap.appendChild(pag.cloneNode(true)); // Clone the pagination for the bottom
-          pagBottom.appendChild(bottomWrap);
-      }
   }
 
   async function pollOnce(){

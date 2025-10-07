@@ -12,23 +12,7 @@
         const cc = document.getElementById('composer-content'); if (cc) cc.innerText = 'Client error: see console';
       }catch(_){ /* ignore */ }
     });
-    // visible debug badge so users can see client status without DevTools
-    try{
-      const badge = document.createElement('div');
-      badge.id = 'cr-debug';
-      badge.style.position = 'fixed';
-      badge.style.right = '12px';
-      badge.style.top = '72px';
-      badge.style.zIndex = '9999';
-      badge.style.background = 'rgba(0,0,0,0.6)';
-      badge.style.color = '#fff';
-      badge.style.padding = '6px 8px';
-      badge.style.borderRadius = '6px';
-      badge.style.fontSize = '12px';
-      badge.style.fontFamily = 'system-ui,Segoe UI,Roboto,Arial';
-      badge.textContent = 'client: loaded';
-      document.body.appendChild(badge);
-    }catch(_){ }
+    // debug badge removed for cleaner UI
   }catch(_){ /* ignore */ }
   const params = new URLSearchParams(window.location.search);
   const q = params.get('q') || '';
@@ -47,6 +31,15 @@
   }
 
   function normalize(s){ if(!s) return ''; try{ return s.toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase(); }catch(e){ return s.toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); } }
+  function canonicalGender(s){
+    const n = normalize(s || '');
+    if (!n) return '';
+    if (n === 'f' || n === 'female') return 'female';
+    if (n === 'm' || n === 'male') return 'male';
+    if (/\bfemale\b/.test(n)) return 'female';
+    if (/\bmale\b/.test(n)) return 'male';
+    return n;
+  }
   function escapeHtml(str){ if (str == null) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
   async function gvizFetch(sheetName, range = 'A1:Z1000'){
@@ -116,6 +109,7 @@
   async function populateDecadeCheckboxes(){
     const container = document.getElementById('filter-decade');
     if (!container) return;
+    const hasDecadeHeading = container.closest && container.closest('.filter-group') && container.closest('.filter-group').querySelector('h4');
     const fallbackDecades = ['1920s','1930s','1940s','1950s','1960s','1970s','1980s'];
     try{
       const res = await fetch('/i18n/translations.json');
@@ -125,7 +119,9 @@
       const locale = (function(){ try{ return localStorage.getItem('locale') || 'en'; }catch(e){ return 'en'; } })();
       const localized = (json && json[locale] && json[locale].decades) ? json[locale].decades : canonical;
       container.innerHTML = '';
-      const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Decade'; container.appendChild(title);
+      if (!hasDecadeHeading) {
+        const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Decade'; container.appendChild(title);
+      }
       for (let i=0;i<canonical.length;i++){
         const val = canonical[i];
         const lab = (localized && localized[i]) ? localized[i] : val;
@@ -142,7 +138,9 @@
   if (clr) clr.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); window.currentPage = 1; window.loadResults(); });
     }catch(e){
       container.innerHTML = '';
-      const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Decade'; container.appendChild(title);
+      if (!hasDecadeHeading) {
+        const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Decade'; container.appendChild(title);
+      }
       container.innerHTML += fallbackDecades.map((d,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(d)}" id="decade_cb_f${i}" /> ${d}</label>`).join('');
       const controlsWrap = document.createElement('div'); controlsWrap.style.marginTop = '8px'; controlsWrap.innerHTML = `<button id="decade-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="decade-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controlsWrap);
       container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
@@ -160,10 +158,13 @@
       const en = jsonT && jsonT.en ? jsonT.en : null;
       const canonicalTypes = en && en.types ? en.types : null;
       if (canonicalTypes && canonicalTypes.length){
+        const hasTypeHeading = container.closest && container.closest('.filter-group') && container.closest('.filter-group').querySelector('h4');
         const locale = (function(){ try{ return localStorage.getItem('locale') || 'en'; }catch(e){ return 'en'; } })();
         const localized = (jsonT && jsonT[locale] && jsonT[locale].types) ? jsonT[locale].types : canonicalTypes;
         container.innerHTML = '';
-        const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Type of piece'; container.appendChild(title);
+        if (!hasTypeHeading) {
+          const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Type of piece'; container.appendChild(title);
+        }
         canonicalTypes.forEach((val,i)=>{
           const lab = localized && localized[i] ? localized[i] : val;
           const id = 'type_cb_' + i;
@@ -186,7 +187,10 @@
       (rows || []).forEach(r => { const t = r.Type || r.type || r['Type of piece'] || r['Type'] || ''; if (t) set.add(String(t).trim()); });
       const list = Array.from(set).sort();
       container.innerHTML = '';
-      const titleDyn = document.createElement('div'); titleDyn.className = 'list-title'; titleDyn.textContent = 'Type of piece'; container.appendChild(titleDyn);
+      const hasTypeHeading = container.closest && container.closest('.filter-group') && container.closest('.filter-group').querySelector('h4');
+      if (!hasTypeHeading) {
+        const titleDyn = document.createElement('div'); titleDyn.className = 'list-title'; titleDyn.textContent = 'Type of piece'; container.appendChild(titleDyn);
+      }
       const controls = document.createElement('div'); controls.style.marginTop = '8px'; controls.innerHTML = `<button id="type-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="type-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controls);
       list.forEach((val,i)=>{
         const id = 'type_cb_dyn_' + i;
@@ -202,6 +206,61 @@
     }catch(e){ container.innerHTML = ''; }
   }
   window.populateTypeCheckboxes = populateTypeCheckboxes;
+
+  window.populateGenderCheckboxes = async function(){
+    const container = document.getElementById('filter-gender');
+    if (!container) return;
+    try{
+      // Try to fetch distinct gender values from the API (MusicList)
+      const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
+      const raw = await res.json().catch(()=>null);
+      const rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
+      const set = new Set();
+      // Column H is index 7 (A=0). If API returns array rows, read index 7. Otherwise look for object keys.
+      (rows || []).forEach((r, idx) => {
+        let vals = [];
+        if (Array.isArray(r)){
+          // skip header row if it looks like a header
+          const candidate = r[7];
+          if (idx === 0 && typeof candidate === 'string' && /gender/i.test(candidate)) return;
+          if (candidate != null) vals.push(candidate);
+        } else if (r && typeof r === 'object'){
+          const candidate = r.Gender || r.gender || r['Gender'] || r['gender'] || r['Column H'] || r['H'] || r['Col H'] || null;
+          if (candidate != null) vals.push(candidate);
+        }
+        // split multi-valued cells like "Male, Female" or "Male / Female"
+        vals.forEach(v => {
+          if (v == null) return;
+          const parts = String(v).split(/[;,\/|]+/).map(s => s.trim()).filter(Boolean);
+          parts.forEach(p => set.add(p));
+        });
+      });
+      let list = Array.from(set).map(s => String(s).trim()).filter(Boolean).sort();
+      if (!list.length) list = ['Male','Female','Other'];
+      container.innerHTML = '';
+      list.forEach((val,i)=>{
+        const id = 'gender_cb_dyn_' + i;
+        const label = document.createElement('label');
+        label.innerHTML = `<input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" value="${escapeHtml(val)}"> ${escapeHtml(val)}`;
+        container.appendChild(label);
+      });
+      // wire handlers
+      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
+      const selAll = document.getElementById('gender-select-all');
+      const clr = document.getElementById('gender-clear');
+      if (selAll) selAll.addEventListener('click', (e)=>{ e.preventDefault(); container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); window.currentPage = 1; window.loadResults(); });
+      if (clr) clr.addEventListener('click', (e)=>{ e.preventDefault(); container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); window.currentPage = 1; window.loadResults(); });
+    }catch(e){
+      // On any failure, fall back to wiring existing static inputs if present
+      try{
+        container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
+        const selAll = document.getElementById('gender-select-all');
+        const clr = document.getElementById('gender-clear');
+        if (selAll) selAll.addEventListener('click', (ev)=>{ ev.preventDefault(); container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); window.currentPage = 1; window.loadResults(); });
+        if (clr) clr.addEventListener('click', (ev)=>{ ev.preventDefault(); container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); window.currentPage = 1; window.loadResults(); });
+      }catch(_){ }
+    }
+  };
 
   function renderPage(page){
     const container = document.getElementById('results-list');
@@ -236,14 +295,21 @@
   }
 
   function renderPagination(pageCount, active){
+    // render pagination into both top and bottom roots
     let pag = document.getElementById('pagination');
     if (pag) pag.remove();
-    const pagRoot = document.getElementById('results-pagination-top');
-    const resultsEl = document.getElementById('results');
-    if (!resultsEl || !pagRoot) return;
-    pag = document.createElement('div');
-    pag.id = 'pagination';
-    pag.className = 'pagination';
+    const topRoot = document.getElementById('results-pagination-top');
+    const bottomRoot = document.getElementById('results-pagination-bottom');
+    // the results container may be `results-list` in the page markup; accept either
+    const resultsEl = document.getElementById('results') || document.getElementById('results-list');
+    if (!resultsEl || (!topRoot && !bottomRoot)) return;
+
+    function buildWrapper(){
+      const wrapper = document.createElement('div');
+      wrapper.id = 'pagination';
+      wrapper.className = 'pagination';
+      return wrapper;
+    }
     function clearAllFilters(){
       try{
         const qinput = document.getElementById('qinput'); if (qinput) qinput.value = '';
@@ -256,25 +322,50 @@
         window.loadResults();
       }catch(e){ console.error('clearAllFilters failed', e); }
     }
-    if (pageCount === 1){
-      pagRoot.innerHTML = '';
-      const phWrap = document.createElement('div'); phWrap.style.display='flex'; phWrap.style.alignItems='center'; phWrap.style.gap='8px'; phWrap.style.justifyContent='flex-end';
-      const placeholder = document.createElement('div'); placeholder.style.color='#6b7280'; placeholder.style.paddingRight='6px'; placeholder.textContent='1 of 1';
-      const clearBtn = document.createElement('button'); clearBtn.textContent='Clear all filters'; clearBtn.style.padding='6px 10px'; clearBtn.style.borderRadius='6px'; clearBtn.style.border='1px solid #d1d5db'; clearBtn.style.background='#fff'; clearBtn.addEventListener('click', clearAllFilters);
-      phWrap.appendChild(placeholder); phWrap.appendChild(clearBtn);
-      const liveToggle = document.createElement('button'); liveToggle.textContent='Live: Off'; liveToggle.style.marginLeft='8px'; liveToggle.style.padding='6px 10px'; liveToggle.style.borderRadius='6px'; liveToggle.addEventListener('click', ()=>{ if (window.liveTimer){ stopLiveUpdates(); liveToggle.textContent='Live: Off'; } else { startLiveUpdates(); liveToggle.textContent='Live: On'; }});
-      phWrap.appendChild(liveToggle); pagRoot.appendChild(phWrap); return;
+    // helper to build the controls (creates fresh elements so event listeners work on both roots)
+    function buildControls(){
+      const rootWrap = document.createElement('div');
+      rootWrap.style.display='flex';
+      rootWrap.style.alignItems='center';
+      rootWrap.style.gap='8px';
+      rootWrap.style.justifyContent='flex-end';
+
+      if (pageCount === 1){
+        const placeholder = document.createElement('div'); placeholder.style.color='#6b7280'; placeholder.style.paddingRight='6px'; placeholder.textContent='1 of 1';
+        const clearBtn = document.createElement('button'); clearBtn.textContent='Clear all filters'; clearBtn.style.padding='6px 10px'; clearBtn.style.borderRadius='6px'; clearBtn.style.border='1px solid #d1d5db'; clearBtn.style.background='#fff'; clearBtn.addEventListener('click', clearAllFilters);
+        rootWrap.appendChild(placeholder); rootWrap.appendChild(clearBtn);
+        const liveToggle = document.createElement('button'); liveToggle.textContent= window.liveTimer ? 'Live: On' : 'Live: Off'; liveToggle.style.marginLeft='8px'; liveToggle.style.padding='6px 10px'; liveToggle.style.borderRadius='6px'; liveToggle.addEventListener('click', ()=>{ if (window.liveTimer){ stopLiveUpdates(); liveToggle.textContent='Live: Off'; } else { startLiveUpdates(); liveToggle.textContent='Live: On'; }});
+        rootWrap.appendChild(liveToggle);
+        return rootWrap;
+      }
+
+      const prev = document.createElement('button'); prev.textContent='Prev'; prev.disabled = active === 1; prev.className = 'page-btn'; prev.setAttribute('aria-label','Previous page'); prev.addEventListener('click', ()=>{ if (window.currentPage>1){ window.currentPage--; renderPage(window.currentPage); window.scrollTo({top:0,behavior:'smooth'}); }});
+      rootWrap.appendChild(prev);
+
+      const maxButtons = 7; const half = Math.floor(maxButtons/2); let start = Math.max(1, active - half); let end = Math.min(pageCount, start + maxButtons -1); if (end - start < maxButtons -1) start = Math.max(1, end - maxButtons +1);
+      for (let i=start;i<=end;i++){
+        const b = document.createElement('button'); b.textContent = String(i); b.className = 'page-btn'; if (i===active){ b.setAttribute('aria-current','true'); } else { b.removeAttribute('aria-current'); }
+        b.addEventListener('click', ()=>{ window.currentPage = i; renderPage(window.currentPage); window.scrollTo({top:0,behavior:'smooth'}); });
+        rootWrap.appendChild(b);
+      }
+
+      const next = document.createElement('button'); next.textContent = 'Next'; next.disabled = active >= pageCount; next.className = 'page-btn'; next.setAttribute('aria-label','Next page'); next.addEventListener('click', ()=>{ if (window.currentPage<pageCount){ window.currentPage++; renderPage(window.currentPage); window.scrollTo({top:0,behavior:'smooth'}); }});
+      rootWrap.appendChild(next);
+
+      const clearBtn2 = document.createElement('button'); clearBtn2.textContent='Clear all filters'; clearBtn2.style.padding='6px 10px'; clearBtn2.style.borderRadius='6px'; clearBtn2.style.border='1px solid #d1d5db'; clearBtn2.style.background='#fff'; clearBtn2.addEventListener('click', clearAllFilters);
+      const liveToggle2 = document.createElement('button'); liveToggle2.textContent = window.liveTimer ? 'Live: On' : 'Live: Off'; liveToggle2.style.marginRight='8px'; liveToggle2.style.padding='6px 10px'; liveToggle2.style.borderRadius='6px'; liveToggle2.addEventListener('click', ()=>{ if (window.liveTimer) { stopLiveUpdates(); liveToggle2.textContent='Live: Off'; } else { startLiveUpdates(); liveToggle2.textContent='Live: On'; } });
+      // order: clear + live + pager
+      const leftControls = document.createElement('div'); leftControls.style.display='flex'; leftControls.style.alignItems='center'; leftControls.style.gap='8px';
+      leftControls.appendChild(clearBtn2); leftControls.appendChild(liveToggle2);
+      // We'll place leftControls before the pager buttons visually by prepending
+      rootWrap.insertBefore(leftControls, rootWrap.firstChild);
+
+      return rootWrap;
     }
-    const prev = document.createElement('button'); prev.textContent='Prev'; prev.disabled = active === 1; prev.addEventListener('click', ()=>{ if (window.currentPage>1){ window.currentPage--; renderPage(window.currentPage); window.scrollTo({top:0,behavior:'smooth'}); }}); pag.appendChild(prev);
-    const maxButtons = 7; const half = Math.floor(maxButtons/2); let start = Math.max(1, active - half); let end = Math.min(pageCount, start + maxButtons -1); if (end - start < maxButtons -1) start = Math.max(1, end - maxButtons +1);
-    for (let i=start;i<=end;i++){ const b = document.createElement('button'); b.textContent = String(i); if (i===active) b.classList.add('active'); b.addEventListener('click', ()=>{ window.currentPage = i; renderPage(window.currentPage); window.scrollTo({top:0,behavior:'smooth'}); }); pag.appendChild(b); }
-    const next = document.createElement('button'); next.textContent = 'Next'; next.disabled = active >= pageCount; next.addEventListener('click', ()=>{ if (window.currentPage<pageCount){ window.currentPage++; renderPage(window.currentPage); window.scrollTo({top:0,behavior:'smooth'}); }}); pag.appendChild(next);
-    pagRoot.innerHTML = '';
-    const topWrap = document.createElement('div'); topWrap.style.display='flex'; topWrap.style.alignItems='center'; topWrap.style.gap='8px'; topWrap.style.justifyContent='flex-end';
-    const clearBtn2 = document.createElement('button'); clearBtn2.textContent='Clear all filters'; clearBtn2.style.padding='6px 10px'; clearBtn2.style.borderRadius='6px'; clearBtn2.style.border='1px solid #d1d5db'; clearBtn2.style.background='#fff'; clearBtn2.addEventListener('click', clearAllFilters);
-    topWrap.appendChild(clearBtn2);
-    const liveToggle2 = document.createElement('button'); liveToggle2.textContent = window.liveTimer ? 'Live: On' : 'Live: Off'; liveToggle2.style.marginRight='8px'; liveToggle2.style.padding='6px 10px'; liveToggle2.style.borderRadius='6px'; liveToggle2.addEventListener('click', ()=>{ if (window.liveTimer) { stopLiveUpdates(); liveToggle2.textContent='Live: Off'; } else { startLiveUpdates(); liveToggle2.textContent='Live: On'; } }); topWrap.appendChild(liveToggle2);
-    topWrap.appendChild(pag); pagRoot.appendChild(topWrap);
+
+    // attach to top and bottom roots (fresh elements for each)
+    if (topRoot){ topRoot.innerHTML = ''; topRoot.appendChild(buildControls()); }
+    if (bottomRoot){ bottomRoot.innerHTML = ''; bottomRoot.appendChild(buildControls()); }
   }
 
   async function pollOnce(){
@@ -313,13 +404,30 @@
       const qv = normalize(qinputEl ? qinputEl.value || '' : '');
       const checked = Array.from(document.querySelectorAll('#filter-country input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
       const checkedDecades = Array.from(document.querySelectorAll('#filter-decade input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
-      const checkedTypes = Array.from(document.querySelectorAll('#filter-type input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
+  const checkedTypes = Array.from(document.querySelectorAll('#filter-type input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
+  const checkedGenders = Array.from(document.querySelectorAll('#filter-gender input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
+  // selected genders will be reflected in the UI status
       window.lastFiltered = (rows || []).filter(r => {
         if (qv && !normalize(Object.values(r||{}).join(' ')).includes(qv)) return false;
         if (window.selectedComposer){ const comp = (r['Composer'] || r.Composer || '').toString(); if (!normalize(comp).includes(normalize(window.selectedComposer))) return false; }
         if (checked.length){ const countryVal = normalize(r.Country || r.Nationality || ''); const matches = checked.some(sel => normalize(sel) && countryVal.includes(normalize(sel))); if (!matches) return false; }
         if (checkedDecades.length){ const decadeVal = normalize(r.Decade || r.Year || ''); const matches = checkedDecades.some(sel => normalize(sel) && decadeVal.includes(normalize(sel))); if (!matches) return false; }
         if (checkedTypes.length){ const typeVal = normalize(r.Type || r.type || r['Type of piece'] || r['Type'] || ''); const matches = checkedTypes.some(sel => normalize(sel) && typeVal.includes(normalize(sel))); if (!matches) return false; }
+        if (checkedGenders.length){
+          // extract gender value: handle array-form rows (column H -> index 7) or object keys
+          let rawG = '';
+          try{
+            if (Array.isArray(r)){
+              rawG = r[7] != null ? String(r[7]) : '';
+            } else if (r && typeof r === 'object'){
+              rawG = (r.Gender || r.gender || r['Gender'] || r['gender'] || r['Column H'] || r['H'] || r['col_8'] || '');
+            }
+          }catch(_){ rawG = '' }
+          const parts = String(rawG || '').split(/[;,\/|]+/).map(s=> canonicalGender(s)).filter(Boolean);
+          const checkedNorm = checkedGenders.map(canonicalGender).filter(Boolean);
+          const matchesG = parts.some(p => checkedNorm.includes(p));
+          if (!matchesG) return false;
+        }
         return true;
       });
       try{
@@ -328,6 +436,7 @@
       }catch(_){ }
       if (options && options.resetPage) window.currentPage = 1;
       renderPage(window.currentPage);
+      // gender-status removed; no visual indicator updated here
       try{
         const params = new URLSearchParams(window.location.search || '');
         if (params.get('random') === '1' && window.lastFiltered && window.lastFiltered.length){
@@ -444,14 +553,16 @@
   (async function init(){
     try{
       const resultsList = document.getElementById('results-list'); if (resultsList) resultsList.innerHTML = '<div class="result-item"><em>Loading results…</em></div>';
-      const fc = document.getElementById('filter-country'); if (fc) fc.innerHTML = '<div style="color:#6b7280">Loading…</div>';
-      const fd = document.getElementById('filter-decade'); if (fd) fd.innerHTML = '<div style="color:#6b7280">Loading…</div>';
-      const ft = document.getElementById('filter-type'); if (ft) ft.innerHTML = '<div style="color:#6b7280">Loading…</div>';
-      await Promise.allSettled([window.populateCountryCheckboxes(), window.populateDecadeCheckboxes(), window.populateTypeCheckboxes()]);
+  const fc = document.getElementById('filter-country'); if (fc) fc.innerHTML = '<div style="color:#6b7280">Loading…</div>';
+  const fd = document.getElementById('filter-decade'); if (fd) fd.innerHTML = '<div style="color:#6b7280">Loading…</div>';
+  const ft = document.getElementById('filter-type'); if (ft) ft.innerHTML = '<div style="color:#6b7280">Loading…</div>';
+  const fg = document.getElementById('filter-gender'); if (fg) fg.innerHTML = '<div style="color:#6b7280">Loading…</div>';
+  await Promise.allSettled([window.populateCountryCheckboxes(), window.populateDecadeCheckboxes(), window.populateTypeCheckboxes(), window.populateGenderCheckboxes()]);
       const sbtn = document.getElementById('qbtn'); if (sbtn) sbtn.addEventListener('click', ()=>{ window.currentPage = 1; window.loadResults(); });
       const qinputEl = document.getElementById('qinput'); if (qinputEl) qinputEl.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { window.currentPage = 1; window.loadResults(); } });
       try{ window.populateComposerBox('', null); }catch(_){ }
       await window.loadResults();
+      // no autotest/debug behavior in production
     }catch(e){ const resultsEl = document.getElementById('results'); if (resultsEl) resultsEl.innerText = 'Initialization failed: ' + String(e); console.error('Initialization failed', e); }
   })();
 
@@ -462,7 +573,8 @@
 
   // basic wiring
   try{
-    window.populateCountryCheckboxes().catch(()=>{});
+  window.populateCountryCheckboxes().catch(()=>{});
+  window.populateGenderCheckboxes && window.populateGenderCheckboxes().catch(()=>{});
     const sbtn = document.getElementById('qbtn'); if (sbtn) sbtn.addEventListener('click', ()=>{ window.currentPage = 1; window.loadResults(); });
     const qinputEl = document.getElementById('qinput'); if (qinputEl) qinputEl.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { window.currentPage = 1; window.loadResults(); } });
   }catch(e){ console.error('client init failed', e); }

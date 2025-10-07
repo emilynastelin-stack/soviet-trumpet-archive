@@ -1,1 +1,16 @@
-{"projectId":"prj_SBP7YOfUa8J1rLg4VXmh1kLrmtbX","orgId":"team_MZZh8sMR6NqptoPfj8wugYsF","projectName":"soviet-trumpet-archive"}
+{
+  "projectId": "prj_SBP7YOfUa8J1rLg4VXmh1kLrmtbX",
+  "orgId": "team_MZZh8sMR6NqptoPfj8wugYsF",
+  "projectName": "soviet-trumpet-archive",
+  "settings": {
+    "createdAt": 1759551182891,
+    "framework": "astro",
+    "devCommand": null,
+    "installCommand": null,
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist",
+    "rootDirectory": null,
+    "directoryListing": false,
+    "nodeVersion": "22.x"
+  }
+}

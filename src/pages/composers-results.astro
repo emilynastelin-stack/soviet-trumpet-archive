@@ -20,10 +20,13 @@
       position:sticky; 
       top:0; 
       z-index:1000; /* ensure header sits above overlays */
+      height:64px; /* explicit height so search strip can sit flush below */
+      display:flex; align-items:center;
     }
 
   /* Header: span full width so title can be flush left; language selector sits flush right via flex */
-  header .container { width:100%; max-width:none; margin:0; padding:12px 20px; }
+  /* header container: remove vertical padding so search strip sits flush */
+  header .container { width:100%; max-width:none; margin:0; padding:0 20px; }
   /* top title absolutely flush left (no left padding) */
   #navEnglish { display:inline-block; padding-left:0; }
     .container { max-width:1100px; margin:0 auto; padding:20px; }
@@ -57,9 +60,50 @@
   .search-center { max-width:1100px; margin:0 auto; padding:0 20px; display:flex; align-items:center; gap:8px; }
   .search-center #qinput { flex:1; padding:12px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.12); background:white; }
   .search-center #qbtn { padding:12px 16px; border-radius:10px; background:var(--accent); color:white; border:none; font-weight:700; cursor:pointer; }
-  /* three horizontal panels below the search strip */
-  .three-panels { display:flex; gap:16px; max-width:1100px; margin:20px auto 0; padding:0 20px; }
-  .three-panels .panel { flex:1; background:white; border-radius:8px; padding:16px; box-shadow:0 6px 12px rgba(15,23,42,0.06); min-height:140px; }
+  /* three horizontal panels below the search strip
+    Layout: full-width container with 20px side padding so
+    the left panel sits 20px from the left edge and the right
+    panel sits 20px from the right edge. Left/right panels
+    use fixed widths; center panel is fluid. */
+  .three-panels { display:flex; gap:16px; width:100%; margin:45px 0 0 0; padding:0 20px; box-sizing:border-box; }
+  /* left filter panel (anchored 20px from left) */
+  .three-panels .panel:first-child { width:260px; flex:0 0 260px; }
+  /* center results panel (flexible) */
+  .three-panels .panel:nth-child(2) { flex:1 1 auto; min-width:0; }
+  /* right composer panel (anchored 20px from right) */
+  .three-panels .panel:last-child { width:300px; flex:0 0 300px; }
+  .three-panels .panel { background:white; border-radius:8px; padding:16px; box-shadow:0 6px 12px rgba(15,23,42,0.06); min-height:140px; box-sizing:border-box; }
+  /* panel title + divider */
+  .panel-title { margin:0 0 8px; font-weight:700; color:var(--accent); font-size:16px; }
+  .panel-divider { height:1px; background:#e6e9ef; margin:8px 0 12px 0; }
+  /* pagination styles */
+  .pagination { display:flex; gap:8px; align-items:center; }
+  .pagination { background: #fff; padding:6px; border-radius:6px; color: #0f172a; }
+  /* redesigned filter box */
+  .filter-box {
+    background: #fff;
+    padding: 16px;
+    border-radius: 10px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+    font-family: Inter, system-ui, sans-serif;
+  }
+  .filter-group {
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+  }
+  .filter-group:last-child { border-bottom: none; margin-bottom: 0; }
+  .filter-group h4 { margin: 0 0 8px; font-size: 15px; font-weight: 600; color: #1f2937; }
+  .filter-options { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: #374151; }
+  .filter-options label { cursor: pointer; }
+  .filter-actions { margin-top: 6px; font-size: 13px; color: #6b7280; }
+  .filter-actions a { color: #8b0000; text-decoration: none; cursor: pointer; }
+  .filter-actions a:hover { text-decoration: underline; }
+  .pagination .page-btn { display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:36px; padding:0 10px; border-radius:8px; border:1px solid #e6e9ef; background:#fff; color:#0f172a; cursor:pointer; font-weight:600; }
+  .pagination .page-btn:hover { background:#f3f4f6; }
+  .pagination .page-btn[aria-current="true"] { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .pagination .page-ellipsis { padding:0 6px; color:var(--muted); }
+  .pagination .pager-controls { display:flex; gap:8px; align-items:center; }
 
     /* Fixed footer bar locked to viewport (shared with main site) */
     #fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#8b0000; color:white; z-index:1200; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
@@ -76,18 +120,12 @@
     @media (max-width:900px) { .grid { grid-template-columns:repeat(2,1fr); } }
     @media (max-width:600px) { .grid{grid-template-columns:1fr;} .search-row{flex-direction:column;} .container{padding:14px;} }
 
-    /* background overlay: ensure it sits behind content and doesn't intercept clicks */
-    #bg-overlay { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
-    #bg-overlay img { position:absolute; left:0; top:0; width:100vw; height:100vh; object-fit:cover; will-change:left,top,width,height; pointer-events:none; }
-    /* Make sure interactive UI elements are clickable above the overlay */
-    .search-panel, .search-panel.fixed, .search-cta, .search-input, .cta-row a, .lang-btn, .lang-dropdown, .filters select, .small-btn, .reset-btn { position:relative; z-index:2000; pointer-events:auto; }
+  /* background overlay removed for now */
+  .search-panel, .search-panel.fixed, .search-cta, .search-input, .cta-row a, .lang-btn, .lang-dropdown, .filters select, .small-btn, .reset-btn { position:relative; z-index:2000; pointer-events:auto; }
     </style>
   </head>
   <body>
-    <!-- background overlay placed first so it stays behind all page UI -->
-    <div id="bg-overlay" aria-hidden="true">
-      <img id="bg-img" src="/assets/bg-K13qQAs.png" alt="" />
-    </div>
+    <!-- background overlay removed -->
     <header style="position:fixed;left:0;right:0;top:0;z-index:1500;background:white;">
       <div class="container nav" style="display:flex;justify-content:space-between;align-items:center">
         <div class="logo">
@@ -114,40 +152,90 @@
     <!-- three horizontal panels, 20px below the search strip -->
     <div class="three-panels" role="region" aria-label="Quick panels">
       <div class="panel" id="panel-left">
-        <h4 style="margin-top:0;margin-bottom:8px;font-weight:700">Filters</h4>
-        <div id="filter-country" style="margin-bottom:12px">&nbsp;</div>
-        <div id="filter-decade" style="margin-bottom:12px">&nbsp;</div>
-        <div id="filter-type" style="margin-bottom:12px">&nbsp;</div>
+        <h3 class="panel-title">Filter</h3>
+        <div class="panel-divider"></div>
+        <!-- redesigned filter box -->
+  <div class="filter-box">
+          <div class="filter-group">
+            <h4>Country/Republic</h4>
+            <div class="filter-options" id="filter-country">
+              <label><input type="checkbox" data-val="Russia" value="Russia"> Russia</label>
+              <label><input type="checkbox" data-val="Ukraine" value="Ukraine"> Ukraine</label>
+              <label><input type="checkbox" data-val="Belarus" value="Belarus"> Belarus</label>
+              <label><input type="checkbox" data-val="Armenia" value="Armenia"> Armenia</label>
+              <label><input type="checkbox" data-val="Georgia" value="Georgia"> Georgia</label>
+              <label><input type="checkbox" data-val="Latvia" value="Latvia"> Latvia</label>
+              <label><input type="checkbox" data-val="Estonia" value="Estonia"> Estonia</label>
+              <label><input type="checkbox" data-val="Lithuania" value="Lithuania"> Lithuania</label>
+              <label><input type="checkbox" data-val="Kazakhstan" value="Kazakhstan"> Kazakhstan</label>
+              <label><input type="checkbox" data-val="Uzbekistan" value="Uzbekistan"> Uzbekistan</label>
+              <label><input type="checkbox" data-val="Other" value="Other"> Other</label>
+            </div>
+            <div class="filter-actions"><a href="#" id="country-select-all" class="select-all">Select All</a> · <a href="#" id="country-clear" class="clear">Clear</a></div>
+          </div>
+
+          <div class="filter-group">
+            <h4>Decade</h4>
+            <div class="filter-options" id="filter-decade">
+              <label><input type="checkbox" data-val="1920s" value="1920s"> 1920s</label>
+              <label><input type="checkbox" data-val="1930s" value="1930s"> 1930s</label>
+              <label><input type="checkbox" data-val="1940s" value="1940s"> 1940s</label>
+              <label><input type="checkbox" data-val="1950s" value="1950s"> 1950s</label>
+              <label><input type="checkbox" data-val="1960s" value="1960s"> 1960s</label>
+              <label><input type="checkbox" data-val="1970s" value="1970s"> 1970s</label>
+              <label><input type="checkbox" data-val="1980s" value="1980s"> 1980s</label>
+            </div>
+            <div class="filter-actions"><a href="#" id="decade-select-all" class="select-all">Select All</a> · <a href="#" id="decade-clear" class="clear">Clear</a></div>
+          </div>
+
+          <div class="filter-group">
+            <h4>Gender</h4>
+              <div class="filter-options" id="filter-gender">
+                <label><input type="checkbox" data-val="Male" value="Male"> Male</label>
+                <label><input type="checkbox" data-val="Female" value="Female"> Female</label>
+                <label><input type="checkbox" data-val="Other" value="Other"> Other</label>
+              </div>
+              <div class="filter-actions"><a href="#" id="gender-select-all" class="select-all">Select All</a> · <a href="#" id="gender-clear" class="clear">Clear</a></div>
+          </div>
+
+          <div class="filter-group">
+            <h4>Type of Piece</h4>
+            <div class="filter-options" id="filter-type">
+              <label><input type="checkbox" data-val="Concert Piece" value="Concert Piece"> Concert Piece</label>
+              <label><input type="checkbox" data-val="Concerto/Concertino" value="Concerto/Concertino"> Concerto/Concertino</label>
+              <label><input type="checkbox" data-val="Fantasy/variations" value="Fantasy/variations"> Fantasy/Variations</label>
+              <label><input type="checkbox" data-val="Poem" value="Poem"> Poem</label>
+              <label><input type="checkbox" data-val="Scherzo" value="Scherzo"> Scherzo</label>
+              <label><input type="checkbox" data-val="Sonata/Sonatina" value="Sonata/Sonatina"> Sonata/Sonatina</label>
+            </div>
+            <div class="filter-actions"><a href="#" id="type-select-all" class="select-all">Select All</a> · <a href="#" id="type-clear" class="clear">Clear</a></div>
+          </div>
+        </div>
       </div>
       <div class="panel" id="panel-center">
-        <div id="results-pagination-top" style="display:flex;align-items:center;justify-content:flex-end;margin-bottom:8px"></div>
+        <div class="panel-header-row" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <h3 class="panel-title" style="margin:0;">Results</h3>
+          <div id="results-pagination-top" class="pagination" aria-label="Results pagination" role="navigation" data-debug-placeholder="true">Pagination (debug placeholder) — will be replaced by client script</div>
+        </div>
+        <div class="panel-divider"></div>
         <div id="results-list"><div class="result-item"><em>Loading results…</em></div></div>
+  <div id="results-pagination-bottom" class="pagination" aria-label="Results pagination bottom" role="navigation" style="margin-top:12px" data-debug-placeholder="true">Pagination (debug placeholder) — will be replaced by client script</div>
       </div>
       <div class="panel" id="panel-right">
+        <h3 class="panel-title">Composer information</h3>
+        <div class="panel-divider"></div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <h4 style="margin:0;font-weight:700">Composer</h4>
+          <div></div>
           <div style="margin-left:auto;"><button id="clear-composer" style="display:none;padding:6px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear composer</button></div>
         </div>
-        <div class="section-divider"></div>
         <div id="composer-content" style="margin-top:8px">Select a result to view composer details.</div>
       </div>
     </div>
     <!-- background overlay (moved to page top) -->
 
-    <!-- Background adjustment control (quick tweaks) -->
-    <div id="bg-adjust-control" aria-hidden="false">
-      <button id="bg-up" title="Move background up">▲</button>
-      <div id="bg-value">18</div>
-      <button id="bg-down" title="Move background down">▼</button>
-      <button id="bg-reset" title="Reset background">Reset</button>
-    </div>
+    <!-- Background adjustment control removed -->
 
-    <!-- duplicate header removed (fixed header at top is kept) -->
-
-    <div class="search-bar">
-      <input id="qinput" type="text" placeholder="Search ProQuest..." />
-      <button id="qbtn">Search</button>
-    </div>
+    <!-- duplicate bottom search bar removed -->
 
     <!-- main content is now presented inside the three panels above -->
 
@@ -165,5 +253,6 @@
     </div>
 
     <script src="/composers-results.client.js" defer></script>
+    <!-- Inline loader and fallback pagination removed; external client script will render pagination controls -->
   </body>
 </html>
