@@ -1,5 +1,11 @@
 ---
 ---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Composers results - Archive of Soviet Trumpet Music</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <style>
     :root { --accent:#8b0000; --muted:#6b7280; --bg:#f7f9fc; }
@@ -126,22 +132,26 @@
   </head>
   <body>
     <!-- background overlay removed -->
-    <header style="position:fixed;left:0;right:0;top:0;z-index:1500;background:white;">
-      <div class="container nav" style="display:flex;justify-content:space-between;align-items:center">
-        <div class="logo">
-          <span class="nav-english" id="navEnglish">Archive of Soviet Trumpet Music</span>
-          <span class="nav-pipe">|</span>
-          <span class="nav-russian" id="navRussian">Архив советской трубной музыки</span>
-        </div>
-        <div class="lang-toggle" id="langToggle">
-          <button class="lang-btn" id="langBtn">EN ▾</button>
-          <div class="lang-dropdown" id="langDropdown" style="display:none">
-            <div class="lang-option" data-locale="en">English</div>
-            <div class="lang-option" data-locale="de">Deutsch</div>
-          </div>
+  <header style="position:fixed;left:0;right:0;top:0;z-index:1500;background:white;">
+    <div class="container nav" style="display:flex;justify-content:space-between;align-items:center">
+      <div class="logo">
+        <span class="nav-english" id="navEnglish">Archive of Soviet Trumpet Music</span>
+        <span class="nav-pipe">|</span>
+        <span class="nav-russian" id="navRussian" lang="ru" style="font-family: 'Segoe UI', 'Noto Sans', Arial, sans-serif;">Архив советской трубной музыки</span>
+      </div>
+      <div class="lang-toggle" id="langToggle">
+        <button class="lang-btn" id="langBtn">EN ▾</button>
+        <div class="lang-dropdown" id="langDropdown">
+          <div class="lang-option" data-locale="en">English</div>
+          <div class="lang-option" data-locale="de">Deutsch</div>
         </div>
       </div>
-    </header>
+    </div>
+  </header>
+  <script>
+    // Force English locale on this results page to keep filter labels consistent
+    try{ localStorage.setItem('locale','en'); }catch(e){}
+  </script>
     <!-- fixed translucent search strip centered under the navbar (flush with nav) -->
     <div class="search-strip" aria-hidden="false">
       <div class="search-center">

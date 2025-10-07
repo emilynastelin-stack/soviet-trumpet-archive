@@ -542,10 +542,53 @@
     const cleanDisplay = s => String(s || '').replace(/[\r\n\t]+/g,' ').replace(/\s+/g,' ').trim();
     const dispFound = cleanDisplay(foundVal);
     const dispLifespan = cleanDisplay(lifespanRaw);
-    const sourceHtml = sourceSheet ? `<div style="margin-top:6px;color:#6b7280;font-size:0.85rem">Source: ${escapeHtml(sourceSheet)}</div>` : '';
-    const preStyle = 'background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;margin-top:8px;font-size:0.95rem;white-space:pre-wrap';
-    const colEHtml = dispLifespan ? `<div style="margin-top:4px;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(dispLifespan)}</div>` : '';
-    content.innerHTML = `<div><strong style="color:var(--accent)">${escapeHtml(dispFound)}</strong>${colEHtml}${sourceHtml}<pre style="${preStyle}">${escapeHtml(desired.join('\t'))}\n${escapeHtml(values.join('\t'))}</pre></div>`;
+  const colEHtml = dispLifespan ? `<div style="margin-top:4px;color:#6b7280;font-style:italic;font-size:0.95rem">${escapeHtml(dispLifespan)}</div>` : '';
+  // Helper: get value for a spreadsheet column letter (A..Z) from rowObj using header order if available
+  function getByLetter(letter){
+    if (!letter) return '';
+    const up = String(letter).toUpperCase();
+    const idx = up.charCodeAt(0) - 65; // A=0
+    // if we have sampleKeys (header order) use it
+    if (Array.isArray(sampleKeys) && sampleKeys[idx]){
+      return rowObj[sampleKeys[idx]] != null ? rowObj[sampleKeys[idx]] : '';
+    }
+    // fallback to colN naming used earlier
+    const colName = 'col' + (idx + 1);
+    if (rowObj[colName] != null) return rowObj[colName];
+    // fallback to nth key in object
+    const keys = Object.keys(rowObj || {});
+    if (keys[idx]) return rowObj[keys[idx]];
+    return '';
+  }
+  function headerLabelFor(letter){ const up = String(letter).toUpperCase(); const idx = up.charCodeAt(0) - 65; if (Array.isArray(sampleKeys) && sampleKeys[idx]) return sampleKeys[idx]; return 'Column ' + up; }
+
+  // Build the requested custom block (placed before the lifespan / italic text)
+  const cC = getByLetter('C');
+  // Use the actual value in column D as the header label, per request
+  const dLabel = String(getByLetter('D') || '').trim() || headerLabelFor('D');
+  const eVal = getByLetter('E');
+  const fVal = getByLetter('F');
+  const gVal = getByLetter('G');
+  const hVal = getByLetter('H');
+  const iVal = getByLetter('I');
+
+  const customBlock = `
+    <div style="margin-top:8px">
+      <p lang="ru" style="margin:0 0 6px 0; font-family: 'Segoe UI', 'Noto Sans', Arial, sans-serif;"><strong>Russian:</strong> ${escapeHtml(cC || '')}</p>
+      <p style="margin:0 0 6px 0"><strong>${escapeHtml(dLabel)}:</strong> ${escapeHtml(eVal || '')}</p>
+      <div style="height:8px"></div>
+      <p style="margin:0 0 6px 0"><strong>Country:</strong> ${escapeHtml(fVal || '')}</p>
+      <p style="margin:0 0 6px 0"><strong>Soviet Republic:</strong> ${escapeHtml(gVal || '')}</p>
+      <div style="height:8px"></div>
+      <p style="margin:0 0 6px 0"><strong>Gender:</strong> ${escapeHtml(hVal || '')}</p>
+      <p style="margin:0 0 6px 0"><strong>Notes:</strong> ${escapeHtml(iVal || '')}</p>
+    </div>
+  `;
+
+  // Ensure composer content is top-aligned and can render Cyrillic fonts
+  try{ content.style.textAlign = 'left'; content.style.fontFamily = "'Segoe UI', 'Noto Sans', Arial, sans-serif"; content.style.whiteSpace = 'normal'; }catch(_){ }
+  // Only render the composer heading, the lifespan (italic gray) and then the requested custom block.
+  content.innerHTML = `<div style="padding-top:0;margin-top:0"><strong style="color:var(--accent)">${escapeHtml(dispFound)}</strong>${colEHtml}${customBlock}</div>`;
     if (clearBtn) { clearBtn.style.display = 'inline-block'; clearBtn.onclick = () => { window.selectedComposer = ''; if (clearBtn) clearBtn.style.display = 'none'; populateComposerBox('', null); window.currentPage = 1; window.loadResults(); }; }
   }
   window.populateComposerBox = populateComposerBox;
