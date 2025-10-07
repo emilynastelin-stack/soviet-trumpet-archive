@@ -448,8 +448,15 @@
       rootWrap.style.gap='8px';
       rootWrap.style.justifyContent='flex-end';
 
-      // If a composer is selected, show a pill with Clear option
-      if (window.selectedComposer){
+      // Build active-filter pills (composer, search, country, decade, type, gender)
+      const pillsWrap = document.createElement('div');
+      pillsWrap.style.display = 'flex';
+      pillsWrap.style.flexWrap = 'wrap';
+      pillsWrap.style.gap = '8px';
+      pillsWrap.style.alignItems = 'center';
+      pillsWrap.style.marginRight = '8px';
+
+      const makePill = (label, onClear) => {
         const pill = document.createElement('div');
         pill.style.display = 'inline-flex';
         pill.style.alignItems = 'center';
@@ -459,10 +466,38 @@
         pill.style.borderRadius = '999px';
         pill.style.background = '#fff';
         pill.style.color = '#0f172a';
-        const txt = document.createElement('span'); txt.textContent = window.selectedComposer; txt.style.fontWeight = '600'; txt.style.maxWidth = '220px'; txt.style.overflow = 'hidden'; txt.style.textOverflow = 'ellipsis'; txt.style.whiteSpace = 'nowrap';
-        const clr = document.createElement('button'); clr.textContent = 'Clear'; clr.style.marginLeft = '8px'; clr.style.padding = '6px 8px'; clr.style.border = '1px solid #d1d5db'; clr.style.borderRadius = '6px'; clr.style.background='#fff'; clr.addEventListener('click', (e)=>{ e.preventDefault(); window.selectedComposer = ''; const cb = document.getElementById('clear-composer'); if (cb) cb.style.display='none'; try{ window.currentPage = 1; window.loadResults(); }catch(_){ } });
-        pill.appendChild(txt); pill.appendChild(clr); rootWrap.appendChild(pill);
+        const txt = document.createElement('span'); txt.textContent = label; txt.style.fontWeight = '600'; txt.style.maxWidth = '240px'; txt.style.overflow = 'hidden'; txt.style.textOverflow = 'ellipsis'; txt.style.whiteSpace = 'nowrap';
+        const clr = document.createElement('button'); clr.textContent = 'Clear'; clr.style.marginLeft = '8px'; clr.style.padding = '4px 8px'; clr.style.border = '1px solid #d1d5db'; clr.style.borderRadius = '6px'; clr.style.background='#fff';
+        clr.addEventListener('click', (e)=>{ e.preventDefault(); try{ onClear(); window.currentPage = 1; window.loadResults(); }catch(_){ } });
+        pill.appendChild(txt); pill.appendChild(clr);
+        return pill;
+      };
+
+      // Composer
+      if (window.selectedComposer){
+        pillsWrap.appendChild(makePill(window.selectedComposer, ()=>{ window.selectedComposer = ''; const cb = document.getElementById('clear-composer'); if (cb) cb.style.display='none'; }));
       }
+      // Search query
+      try{
+        const qel = document.getElementById('qinput');
+        const qv = qel && qel.value ? String(qel.value).trim() : '';
+        if (qv) pillsWrap.appendChild(makePill('Search: "' + qv + '"', ()=>{ if (qel) qel.value = ''; }));
+      }catch(_){ }
+      // Selected checkboxes: country, decade, type, gender
+      const addCheckedPills = (selector, labelPrefix='') => {
+        try{
+          Array.from(document.querySelectorAll(selector + ' input[type=checkbox]:checked')).forEach(cb => {
+            const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || cb.value || '');
+            if (val) pillsWrap.appendChild(makePill((labelPrefix ? labelPrefix + ': ' : '') + val, ()=>{ cb.checked = false; }));
+          });
+        }catch(_){ }
+      };
+      addCheckedPills('#filter-country');
+      addCheckedPills('#filter-decade');
+      addCheckedPills('#filter-type');
+      addCheckedPills('#filter-gender');
+
+      if (pillsWrap.children && pillsWrap.children.length) rootWrap.appendChild(pillsWrap);
 
       if (pageCount === 1){
         const placeholder = document.createElement('div'); placeholder.style.color='#6b7280'; placeholder.style.paddingRight='6px'; placeholder.textContent='1 of 1';
