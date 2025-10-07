@@ -12,7 +12,24 @@
         const cc = document.getElementById('composer-content'); if (cc) cc.innerText = 'Client error: see console';
       }catch(_){ /* ignore */ }
     });
-    // debug badge removed for cleaner UI
+    // visible debug badge so users can see client status without DevTools
+    try{
+      const badge = document.createElement('div');
+      badge.id = 'cr-debug';
+      badge.dataset.clientVersion = 'v2';
+      badge.style.position = 'fixed';
+      badge.style.right = '12px';
+      badge.style.top = '72px';
+      badge.style.zIndex = '9999';
+      badge.style.background = 'rgba(0,0,0,0.6)';
+      badge.style.color = '#fff';
+      badge.style.padding = '6px 8px';
+      badge.style.borderRadius = '6px';
+      badge.style.fontSize = '12px';
+      badge.style.fontFamily = 'system-ui,Segoe UI,Roboto,Arial';
+      badge.textContent = 'client: loaded (v2)';
+      document.body.appendChild(badge);
+    }catch(_){ }
   }catch(_){ /* ignore */ }
   const params = new URLSearchParams(window.location.search);
   const q = params.get('q') || '';
@@ -88,6 +105,13 @@
     }catch(_){ return null; }
   }
 
+  // Ensure a single pair of Select All / Clear controls exist inside a filter container
+  function ensureControls(container, selectId, clearId){
+    // Intentionally no-op: Select All / Clear All controls were removed from the UI.
+    // The client will rely on individual checkbox interactions only.
+    return;
+  }
+
   // state
   window.PAGE_SIZE = 25;
   window.currentPage = 1;
@@ -118,15 +142,8 @@
         wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" /> ${lab}</label>`;
         container.appendChild(wrapper);
       }
-      const controls = document.createElement('div');
-      controls.style.marginTop = '8px';
-      controls.innerHTML = `<button id="country-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="country-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`;
-      container.appendChild(controls);
+  // wire up change handlers for checkboxes; no Select/Clear controls are created
   container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); window.lastAppliedFilter = { kind: 'country', value: val }; }catch(_){} window.currentPage = 1; window.loadResults(); }));
-      const selAll = document.getElementById('country-select-all');
-      const clr = document.getElementById('country-clear');
-  if (selAll) selAll.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); window.currentPage = 1; window.loadResults(); });
-  if (clr) clr.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); window.currentPage = 1; window.loadResults(); });
     }catch(e){
       container.innerHTML = fallbackCountries.map((c,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(c)}" id="country_cb_f${i}" /> ${c}</label>`).join('');
       const controlsWrap = document.createElement('div');
@@ -161,12 +178,8 @@
         wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" /> ${lab}</label>`;
         container.appendChild(wrapper);
       }
-      const controls = document.createElement('div'); controls.style.marginTop = '8px'; controls.innerHTML = `<button id="decade-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="decade-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controls);
-      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
-      const selAll = document.getElementById('decade-select-all');
-      const clr = document.getElementById('decade-clear');
-  if (selAll) selAll.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); window.currentPage = 1; window.loadResults(); });
-  if (clr) clr.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); window.currentPage = 1; window.loadResults(); });
+  // wire up change handlers for checkboxes; no Select/Clear controls are created
+  container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
     }catch(e){
       container.innerHTML = '';
       if (!hasDecadeHeading) {
@@ -203,12 +216,8 @@
           wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" /> ${lab}</label>`;
           container.appendChild(wrapper);
         });
-        const controls = document.createElement('div'); controls.style.marginTop = '8px'; controls.innerHTML = `<button id="type-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="type-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controls);
+  // wire up change handlers for checkboxes; no Select/Clear controls are created
   container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); window.lastAppliedFilter = { kind: 'type', value: val }; }catch(_){} window.currentPage = 1; window.loadResults(); }));
-        const selAll = document.getElementById('type-select-all');
-        const clr = document.getElementById('type-clear');
-        if (selAll) selAll.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); window.currentPage = 1; window.loadResults(); });
-        if (clr) clr.addEventListener('click', ()=>{ container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); window.currentPage = 1; window.loadResults(); });
         return;
       }
       const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
@@ -222,18 +231,14 @@
       if (!hasTypeHeading) {
         const titleDyn = document.createElement('div'); titleDyn.className = 'list-title'; titleDyn.textContent = 'Type of piece'; container.appendChild(titleDyn);
       }
-      const controls = document.createElement('div'); controls.style.marginTop = '8px'; controls.innerHTML = `<button id="type-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="type-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controls);
+  // No select/clear controls for Type group — only populate checkboxes
       list.forEach((val,i)=>{
         const id = 'type_cb_dyn_' + i;
         const wrapper = document.createElement('div');
         wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" /> ${val}</label>`;
         container.appendChild(wrapper);
       });
-      container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
-      const selAll = document.getElementById('type-select-all');
-      const clr = document.getElementById('type-clear');
-  if (selAll) selAll.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = true); window.currentPage = 1; window.loadResults(); });
-  if (clr) clr.addEventListener('click', ()=>{ window.lastAppliedFilter = null; container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.checked = false); window.currentPage = 1; window.loadResults(); });
+    container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
     }catch(e){ container.innerHTML = ''; }
   }
   window.populateTypeCheckboxes = populateTypeCheckboxes;
@@ -275,6 +280,8 @@
         label.innerHTML = `<input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" value="${escapeHtml(val)}"> ${escapeHtml(val)}`;
         container.appendChild(label);
       });
+      // ensure controls at bottom of gender area
+      ensureControls(container, 'gender-select-all', 'gender-clear');
       // wire handlers
       container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
       const selAll = document.getElementById('gender-select-all');
@@ -322,18 +329,17 @@
       container.appendChild(div);
       // apply inline styles so runtime-inserted nodes match the intended layout
       try{
-        div.style.padding = '12px 0';
+        div.style.position = 'relative';
+        div.style.padding = '16px 0 20px 0';
         div.style.borderBottom = '1px solid #e6e9ef';
-        div.style.display = 'flex';
-        div.style.justifyContent = 'space-between';
-        div.style.alignItems = 'center';
-        div.style.gap = '12px';
         const main = div.querySelector('.result-main');
-        if (main) main.style.flex = '1 1 auto';
+        if (main) main.style.marginRight = '180px';
         const right = div.querySelector('.result-right');
         if (right){
-          right.style.width = '160px';
-          right.style.flex = '0 0 160px';
+          right.style.position = 'absolute';
+          right.style.right = '16px';
+          right.style.top = '12px';
+          right.style.width = 'auto';
           right.style.textAlign = 'right';
           right.style.color = '#6b7280';
           right.style.fontSize = '0.95rem';
@@ -573,12 +579,20 @@
       const checkedDecades = Array.from(document.querySelectorAll('#filter-decade input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
   const checkedTypes = Array.from(document.querySelectorAll('#filter-type input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
   const checkedGenders = Array.from(document.querySelectorAll('#filter-gender input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
+      const checkedRepublics = Array.from(document.querySelectorAll('#filter-republic input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
   // selected genders will be reflected in the UI status
       window.lastFiltered = (rows || []).filter(r => {
         if (qv && !normalize(Object.values(r||{}).join(' ')).includes(qv)) return false;
         if (window.selectedComposer){ const comp = (r['Composer'] || r.Composer || '').toString(); if (!normalize(comp).includes(normalize(window.selectedComposer))) return false; }
         if (checked.length){ const countryVal = normalize(r.Country || r.Nationality || ''); const matches = checked.some(sel => normalize(sel) && countryVal.includes(normalize(sel))); if (!matches) return false; }
         if (checkedDecades.length){ const decadeVal = normalize(r.Decade || r.Year || ''); const matches = checkedDecades.some(sel => normalize(sel) && decadeVal.includes(normalize(sel))); if (!matches) return false; }
+        if (checkedRepublics.length){
+          // Use helper to read column G (handles arrays and objects, and falls back to nth-key)
+          let repVal = '';
+          try{ repVal = String(getByLetterFromRow(r, 'G') || ''); }catch(_){ repVal = ''; }
+          const matches = checkedRepublics.some(sel => normalize(sel) && normalize(repVal).includes(normalize(sel)));
+          if (!matches) return false;
+        }
         if (checkedTypes.length){ const typeVal = normalize(r.Type || r.type || r['Type of piece'] || r['Type'] || ''); const matches = checkedTypes.some(sel => normalize(sel) && typeVal.includes(normalize(sel))); if (!matches) return false; }
         if (checkedGenders.length){
           // extract gender value: handle array-form rows (column H -> index 7) or object keys
@@ -778,8 +792,163 @@
         const mfCenter = document.getElementById('mf-center');
         const mfComposers = document.getElementById('mf-composers');
         if (mfFilters) mfFilters.addEventListener('click', ()=>{ const el = document.getElementById('panel-left'); if (el) el.scrollIntoView({behavior:'smooth', block:'center'}); });
-        if (mfCenter) mfCenter.addEventListener('click', ()=>{ const el = document.getElementById('panel-center'); if (el) el.scrollIntoView({behavior:'smooth', block:'center'}); });
-        if (mfComposers) mfComposers.addEventListener('click', ()=>{ window.location.href = '/composers'; });
+          if (mfCenter) mfCenter.addEventListener('click', ()=>{ const el = document.getElementById('panel-center'); if (el) el.scrollIntoView({behavior:'smooth', block:'center'}); });
+          if (mfComposers) mfComposers.addEventListener('click', ()=>{ window.location.href = '/composers'; });
+          // Mobile overlay behavior (clone-based): on small screens, open panels as overlays
+          try{
+            const overlays = new Map(); // which -> { overlay, trigger, clone }
+
+            const focusableSelector = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+            const buildOverlay = (which, ariaLabel) => {
+              const overlayId = 'mobile-overlay-' + which;
+              let overlay = document.getElementById(overlayId);
+              if (overlay) return overlay;
+              overlay = document.createElement('div'); overlay.id = overlayId; overlay.className = 'mobile-overlay'; overlay.setAttribute('role','dialog'); overlay.setAttribute('aria-modal','true'); overlay.setAttribute('aria-label', ariaLabel || (which + ' panel'));
+              const inner = document.createElement('div'); inner.className = 'overlay-inner';
+              const closeBtn = document.createElement('button'); closeBtn.className = 'overlay-close'; closeBtn.type = 'button'; closeBtn.textContent = 'Close'; closeBtn.addEventListener('click', ()=>{ closeOverlay(which); });
+              overlay.appendChild(inner);
+              overlay.appendChild(closeBtn);
+              document.body.appendChild(overlay);
+              return overlay;
+            };
+
+            const clonePanelIntoOverlay = (which, triggerEl) => {
+              const panelId = which === 'filters' ? 'panel-left' : 'panel-right';
+              const panel = document.getElementById(panelId);
+              if (!panel) return null;
+              const overlay = buildOverlay(which, which === 'filters' ? 'Filters' : 'Composer information');
+              const inner = overlay.querySelector('.overlay-inner');
+              // remove any previous clone
+              const existing = overlays.get(which);
+              if (existing && existing.clone) { existing.clone.parentNode && existing.clone.parentNode.removeChild(existing.clone); }
+              // deep clone the panel content so original DOM is untouched
+              const clone = panel.cloneNode(true);
+              clone.classList.add('mobile-overlay-clone');
+              // Remove any IDs from clone to avoid duplicate IDs
+              Array.from(clone.querySelectorAll('[id]')).forEach(n => n.removeAttribute('id'));
+              // Append clone into inner
+              inner.innerHTML = ''; inner.appendChild(clone);
+              overlays.set(which, { overlay, trigger: triggerEl, clone, panel });
+              // sync initial focus
+              return { overlay, clone, panel };
+            };
+
+            const syncInputsBack = (clone, panel) => {
+              if (!clone || !panel) return;
+              const cloneInputs = Array.from(clone.querySelectorAll('input,textarea,select'));
+              cloneInputs.forEach(cn => {
+                // attempt to match by name, data-val or label text
+                const name = cn.name || cn.getAttribute('data-val') || cn.getAttribute('data-name') || cn.getAttribute('value') || null;
+                let target = null;
+                if (name) target = panel.querySelector(`[name="${CSS.escape(name)}"]`) || panel.querySelector(`[data-val="${CSS.escape(name)}"]`) || panel.querySelector(`[data-name="${CSS.escape(name)}"]`);
+                if (!target){
+                  // fallback: try to match by input type and index
+                  const inputs = Array.from(panel.querySelectorAll('input,textarea,select'));
+                  const idx = Array.from(clone.querySelectorAll('input,textarea,select')).indexOf(cn);
+                  if (inputs[idx]) target = inputs[idx];
+                }
+                if (!target) return;
+                try{
+                  if (target.type === 'checkbox' || target.type === 'radio') target.checked = cn.checked;
+                  else target.value = cn.value;
+                  // trigger input/change events on target so listeners react
+                  target.dispatchEvent(new Event('input', { bubbles: true }));
+                  target.dispatchEvent(new Event('change', { bubbles: true }));
+                }catch(_){ }
+              });
+            };
+
+            const trapFocus = (overlay) => {
+              if (!overlay) return null;
+              const inner = overlay.querySelector('.overlay-inner');
+              const focusable = Array.from(inner.querySelectorAll(focusableSelector)).filter(n => !n.hasAttribute('disabled'));
+              const first = focusable[0] || inner;
+              const last = focusable[focusable.length-1] || first;
+              const handler = (e) => {
+                if (e.key !== 'Tab') return;
+                if (focusable.length === 0){ e.preventDefault(); return; }
+                if (e.shiftKey){ if (document.activeElement === first){ e.preventDefault(); last.focus(); } }
+                else { if (document.activeElement === last){ e.preventDefault(); first.focus(); } }
+              };
+              document.addEventListener('keydown', handler);
+              return () => { document.removeEventListener('keydown', handler); };
+            };
+
+            const openOverlay = (which, triggerEl) => {
+              const { overlay, clone, panel } = clonePanelIntoOverlay(which, triggerEl) || {};
+              if (!overlay) return;
+              overlay.classList.add('open');
+              // remember previously focused element
+              const prevFocus = document.activeElement;
+              overlays.get(which).prevFocus = prevFocus;
+              // prevent background scroll
+              document.body.style.overflow = 'hidden';
+              // focus first focusable element inside
+              setTimeout(()=>{
+                try{ const inner = overlay.querySelector('.overlay-inner'); const focusable = inner.querySelectorAll(focusableSelector); if (focusable && focusable.length) focusable[0].focus(); else inner.focus(); }catch(_){ }
+              }, 60);
+              // install focus trap
+              const releaseTrap = trapFocus(overlay);
+              overlays.get(which).releaseTrap = releaseTrap;
+            };
+
+            const closeOverlay = (which) => {
+              const state = overlays.get(which);
+              if (!state) return;
+              const { overlay, clone, panel, trigger, prevFocus, releaseTrap } = state;
+              // copy input values from clone back to original panel
+              try{ syncInputsBack(clone, panel); }catch(_){ }
+              // run optional cleanup
+              try{ overlay.classList.remove('open'); }catch(_){ }
+              // allow body scroll again
+              try{ document.body.style.overflow = ''; }catch(_){ }
+              // remove clone after animation end
+              try{
+                const inner = overlay.querySelector('.overlay-inner');
+                const onEnd = () => { try{ if (clone && clone.parentNode) clone.parentNode.removeChild(clone); }catch(_){} try{ if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); }catch(_){} if (releaseTrap) try{ releaseTrap(); }catch(_){ } if (prevFocus && prevFocus.focus) try{ prevFocus.focus(); }catch(_){ }; overlay.removeEventListener('transitionend', onEnd); };
+                overlay.addEventListener('transitionend', onEnd);
+                // fallback removal after 300ms
+                setTimeout(onEnd, 350);
+              }catch(_){ if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); if (releaseTrap) try{ releaseTrap(); }catch(_){ } if (prevFocus && prevFocus.focus) try{ prevFocus.focus(); }catch(_){ } }
+              overlays.delete(which);
+            };
+
+            const closeAllOverlays = ()=>{ Array.from(overlays.keys()).forEach(k=> closeOverlay(k)); };
+
+            // wire toolbar buttons
+            if (mfFilters) mfFilters.addEventListener('click', (ev)=>{ ev.preventDefault(); if (window.innerWidth <= 600) { openOverlay('filters', mfFilters); } else { const el = document.getElementById('panel-left'); if (el) el.scrollIntoView({behavior:'smooth', block:'center'}); } });
+            if (mfComposers) mfComposers.addEventListener('click', (ev)=>{ ev.preventDefault(); if (window.innerWidth <= 600){ openOverlay('composer', mfComposers); } else { window.location.href = '/composers'; } });
+
+            // close overlays on escape
+            document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') closeAllOverlays(); });
+            // tap outside overlay inner to close (use capture to run before other handlers)
+            document.addEventListener('click', (e)=>{ const open = document.querySelector('.mobile-overlay.open'); if (!open) return; const inner = open.querySelector('.overlay-inner'); if (!inner) return; if (!inner.contains(e.target) && !e.target.classList.contains('mf-btn') && !e.target.classList.contains('mf-center')){ closeAllOverlays(); } }, true);
+
+            // Hamburger / swipe menu wiring
+            const hamburger = document.getElementById('mf-hamburger');
+            const swipeMenu = document.getElementById('mobile-swipe-menu');
+            const swmClose = document.getElementById('swm-close');
+            const swmFilters = document.getElementById('swm-filters');
+            const swmComposers = document.getElementById('swm-composers');
+            const swmHome = document.getElementById('swm-home');
+            function openSwipeMenu(){ if (!swipeMenu) return; swipeMenu.setAttribute('aria-hidden','false'); if (hamburger) hamburger.setAttribute('aria-expanded','true'); document.body.style.overflow='hidden'; }
+            function closeSwipeMenu(){ if (!swipeMenu) return; swipeMenu.setAttribute('aria-hidden','true'); if (hamburger) hamburger.setAttribute('aria-expanded','false'); document.body.style.overflow=''; }
+            if (hamburger) hamburger.addEventListener('click', (ev)=>{ ev.preventDefault(); if (window.innerWidth <= 600) { openSwipeMenu(); } else { /* noop on desktop */ } });
+            if (swmClose) swmClose.addEventListener('click', (ev)=>{ ev.preventDefault(); closeSwipeMenu(); });
+            if (swmFilters) swmFilters.addEventListener('click', (ev)=>{ ev.preventDefault(); closeSwipeMenu(); if (window.innerWidth <= 600) { openOverlay('filters', document.getElementById('mf-filters')); } else { const el = document.getElementById('panel-left'); if (el) el.scrollIntoView({behavior:'smooth', block:'center'}); } });
+            if (swmComposers) swmComposers.addEventListener('click', (ev)=>{ ev.preventDefault(); closeSwipeMenu(); if (window.innerWidth <= 600){ openOverlay('composer', document.getElementById('mf-composers')); } else { window.location.href = '/composers'; } });
+            if (swmHome) swmHome.addEventListener('click', (ev)=>{ ev.preventDefault(); window.location.href = '/'; });
+
+            // left-edge swipe to open filters: simple gesture detection
+            try{
+              let touchStartX = null; let touchStartY = null; let touchStartedAtEdge = false;
+              window.addEventListener('touchstart', (e)=>{ const t = e.touches && e.touches[0]; if (!t) return; touchStartX = t.clientX; touchStartY = t.clientY; touchStartedAtEdge = touchStartX <= 24; });
+              window.addEventListener('touchmove', (e)=>{ if (!touchStartedAtEdge) return; const t = e.touches && e.touches[0]; if (!t) return; const dx = t.clientX - touchStartX; const dy = Math.abs(t.clientY - touchStartY); if (dx > 60 && dy < 60){ // horizontal swipe right
+                openSwipeMenu(); touchStartedAtEdge = false; }
+              });
+            }catch(_){ }
+          }catch(_){ }
       }catch(_){ }
       // no autotest/debug behavior in production
     }catch(e){ const resultsEl = document.getElementById('results'); if (resultsEl) resultsEl.innerText = 'Initialization failed: ' + String(e); console.error('Initialization failed', e); }

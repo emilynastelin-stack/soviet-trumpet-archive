@@ -14,8 +14,9 @@
     });
     // visible debug badge so users can see client status without DevTools
     try{
-      const badge = document.createElement('div');
-      badge.id = 'cr-debug';
+  const badge = document.createElement('div');
+  badge.id = 'cr-debug';
+  badge.dataset.clientVersion = 'v2';
       badge.style.position = 'fixed';
       badge.style.right = '12px';
       badge.style.top = '72px';
@@ -26,7 +27,7 @@
       badge.style.borderRadius = '6px';
       badge.style.fontSize = '12px';
       badge.style.fontFamily = 'system-ui,Segoe UI,Roboto,Arial';
-      badge.textContent = 'client: loaded';
+  badge.textContent = 'client: loaded (v2)';
       document.body.appendChild(badge);
     }catch(_){ }
   }catch(_){ /* ignore */ }
@@ -62,6 +63,44 @@
       const rows = (json.table.rows || []).map(r => (r.c || []).map(cell => (cell && cell.v !== undefined && cell.v !== null) ? cell.v : ''));
       return { cols, rows };
     }catch(_){ return null; }
+  }
+
+  // Helper: read a value from a row by column letter (A=0 -> index 0). Works with
+  // array rows (gviz style) and object rows (api/sheets returns objects keyed by header).
+  function getByLetterFromRow(row, letter){
+    try{
+      if (!row) return '';
+      const L = (letter || '').toString().toUpperCase();
+      const idx = L.length ? (L.charCodeAt(0) - 65) : null; // A->0, B->1, ...
+      if (Array.isArray(row)){
+        if (idx !== null && idx >= 0 && idx < row.length) return row[idx] != null ? String(row[idx]) : '';
+        return '';
+      }
+      if (typeof row === 'object'){
+        const keys = Object.keys(row || {});
+        // try some canonical header names first (case-insensitive)
+        const canonical = ['Soviet republic','Soviet Republic','Soviet','Republic','Republic (EN)','republic','Soviet republic (EN)','SovietRepublic','Republic/Region','Region'];
+        for (const want of canonical){
+          const found = keys.find(k => (k || '').toString().toLowerCase().trim() === (want || '').toString().toLowerCase().trim());
+          if (found) return row[found] != null ? String(row[found]) : '';
+        }
+        // fallback: look for any key that contains the word 'republic' or 'soviet'
+        const contains = keys.find(k => { const kk = (k||'').toString().toLowerCase(); return kk.includes('republic') || kk.includes('soviet'); });
+        if (contains) return row[contains] != null ? String(row[contains]) : '';
+        // try generated column keys from gviz fallback (col_0, col_1 ...)
+        if (idx !== null){
+          const colKey = 'col_' + idx; if (colKey in row) return row[colKey] != null ? String(row[colKey]) : '';
+          const colKeyOne = 'col_' + (idx + 1); if (colKeyOne in row) return row[colKeyOne] != null ? String(row[colKeyOne]) : '';
+          const colKeyAlt = 'col' + idx; if (colKeyAlt in row) return row[colKeyAlt] != null ? String(row[colKeyAlt]) : '';
+        }
+        // try if someone used the letter as a key
+        if (L in row) return row[L] != null ? String(row[L]) : '';
+        // last resort: return first value that looks like a soviet republic (heuristic)
+        for (const k of keys){ const v = row[k]; if (v && typeof v === 'string' && v.toLowerCase().includes('sov')) return String(v); }
+        return '';
+      }
+    }catch(e){ return ''; }
+    return '';
   }
 
   // state
@@ -210,7 +249,7 @@
     const start = (page - 1) * window.PAGE_SIZE;
     const pageItems = (window.lastFiltered || []).slice(start, start + window.PAGE_SIZE);
     if (!pageItems.length) {
-      container.innerHTML = '<div class="result-item">No results</div>';
+      container.innerHTML = '<div class="result-card">No results</div>';
       // still render pagination so users can navigate (handles case where currentPage is out of range)
       const totalPages = Math.max(1, Math.ceil(((window.lastFiltered || []).length || 0) / window.PAGE_SIZE));
       renderPagination(totalPages, page);
@@ -218,13 +257,13 @@
     }
     pageItems.forEach(r =>{
       const div = document.createElement('div');
-      div.className = 'result-item';
-      const title = (r.Title || r.Compositions || r.title || 'Untitled');
-      const author = r['Composer'] || r.Composer || r.composer || 'Unknown';
-      const published = r.Year || r.Published || r.Decade || r.year || '';
-      const composerEsc = escapeHtml(author);
-      const composerData = encodeURIComponent(String(author || ''));
-      div.innerHTML = `<h2>${escapeHtml(title)}</h2><p><strong>Composer:</strong> <a href="#" class="composer-link" data-name="${composerData}">${composerEsc}</a></p><p><strong>Published:</strong> ${escapeHtml(published)}</p>`;
+      div.className = 'result-card';
+      // map columns: A => bold primary (e.g., title), J => composer (clickable), K => year/info
+      const colA = escapeHtml(getByLetterFromRow(r, 'A') || r.Title || r.title || '');
+      const colJ = escapeHtml(getByLetterFromRow(r, 'J') || r['Composer'] || r.Composer || r.composer || '');
+      const colK = escapeHtml(getByLetterFromRow(r, 'K') || r.Year || r.Published || r.Decade || r.year || '');
+      const composerData = encodeURIComponent(String(getByLetterFromRow(r, 'J') || r['Composer'] || r.Composer || r.composer || ''));
+      div.innerHTML = `<div class="result-main"><b>${colA}</b><div style="margin-top:6px"><a href="#" class="composer-link" data-name="${composerData}">${colJ || 'Unknown'}</a> ${colK ? '(' + colK + ')' : ''}</div></div><div class="result-right"><a href="#" class="view-link">View</a></div>`;
       container.appendChild(div);
       const link = div.querySelector('.composer-link');
       if (link){
@@ -237,6 +276,8 @@
           window.loadResults();
         });
       }
+      const view = div.querySelector('.view-link');
+      if (view){ view.addEventListener('click', (e)=>{ e.preventDefault(); const name = decodeURIComponent(composerData||''); window.selectedComposer = name || ''; populateComposerBox(name, r); }); }
     });
     renderPagination(Math.ceil((window.lastFiltered || []).length / window.PAGE_SIZE), page);
   }
@@ -244,11 +285,12 @@
   function renderPagination(pageCount, active){
     let pag = document.getElementById('pagination');
     if (pag) pag.remove();
-  const pagRoot = document.getElementById('results-pagination-top');
-      const pagBottom = document.getElementById('results-pagination-bottom');
-  // support both #results (older markup) and #results-list (current markup)
-  const resultsEl = document.getElementById('results') || document.getElementById('results-list');
-  if (!resultsEl || !pagRoot) return;
+    // prefer explicit pagination roots, fallback to panel center
+    const pagRoot = document.getElementById('results-pagination-top') || document.getElementById('panel-center');
+    const pagBottom = document.getElementById('results-pagination-bottom');
+    // support both #results (older markup) and #results-list (current markup)
+    const resultsEl = document.getElementById('results') || document.getElementById('results-list');
+    if (!resultsEl || !pagRoot) return;
   pag = document.createElement('div');
     pag.id = 'pagination';
     pag.className = 'pagination';
@@ -260,7 +302,7 @@
         window.lastAppliedFilter = null;
         const clearComposerBtn = document.getElementById('clear-composer'); if (clearComposerBtn) clearComposerBtn.style.display = 'none';
         const composerContent = document.getElementById('composer-content'); if (composerContent) composerContent.innerHTML = 'Select a result to view composer details.';
-        document.querySelectorAll('#filter-country input[type=checkbox], #filter-decade input[type=checkbox], #filter-type input[type=checkbox]').forEach(cb=> cb.checked = false);
+        document.querySelectorAll('#filter-country input[type=checkbox], #filter-republic input[type=checkbox], #filter-decade input[type=checkbox], #filter-type input[type=checkbox]').forEach(cb=> cb.checked = false);
         window.currentPage = 1;
         window.loadResults();
       }catch(e){ console.error('clearAllFilters failed', e); }
@@ -326,13 +368,26 @@
       }
       const qinputEl = document.getElementById('qinput');
       const qv = normalize(qinputEl ? qinputEl.value || '' : '');
-      const checked = Array.from(document.querySelectorAll('#filter-country input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
+  const checked = Array.from(document.querySelectorAll('#filter-country input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
+  const checkedRepublics = Array.from(document.querySelectorAll('#filter-republic input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
       const checkedDecades = Array.from(document.querySelectorAll('#filter-decade input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
       const checkedTypes = Array.from(document.querySelectorAll('#filter-type input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
       window.lastFiltered = (rows || []).filter(r => {
         if (qv && !normalize(Object.values(r||{}).join(' ')).includes(qv)) return false;
         if (window.selectedComposer){ const comp = (r['Composer'] || r.Composer || '').toString(); if (!normalize(comp).includes(normalize(window.selectedComposer))) return false; }
         if (checked.length){ const countryVal = normalize(r.Country || r.Nationality || ''); const matches = checked.some(sel => normalize(sel) && countryVal.includes(normalize(sel))); if (!matches) return false; }
+        if (checkedRepublics.length){ const repRaw = (function(){ try{
+            // Prefer a case-insensitive, trimmed match for the explicit header 'Soviet republic'
+            if (r && typeof r === 'object' && !Array.isArray(r)){
+              const foundKey = Object.keys(r).find(k => normalize(k||'') === normalize('Soviet republic'));
+              if (foundKey) return r[foundKey] != null ? String(r[foundKey]) : '';
+            }
+            // fallback to column-letter or other aliases
+            return getByLetterFromRow(r, 'G') || r['Soviet republic'] || r['Soviet Republic'] || r['Republic'] || r['Republic/Region'] || '';
+          }catch(_){ return ''; } })();
+          const repVal = normalize(repRaw || '');
+          const matchesR = checkedRepublics.some(sel => normalize(sel) && repVal.includes(normalize(sel)));
+          if (!matchesR) return false; }
         if (checkedDecades.length){ const decadeVal = normalize(r.Decade || r.Year || ''); const matches = checkedDecades.some(sel => normalize(sel) && decadeVal.includes(normalize(sel))); if (!matches) return false; }
         if (checkedTypes.length){ const typeVal = normalize(r.Type || r.type || r['Type of piece'] || r['Type'] || ''); const matches = checkedTypes.some(sel => normalize(sel) && typeVal.includes(normalize(sel))); if (!matches) return false; }
         return true;
@@ -475,9 +530,16 @@
   window.normalize = normalize;
   window.escapeHtml = escapeHtml;
 
+  // Allow static buttons in the template to ask the client to filter by composer
+  window.filterByComposer = function(name){ try{ if (!name) return; window.selectedComposer = String(name || ''); window.currentPage = 1; if (typeof window.loadResults === 'function') window.loadResults(); }catch(e){ console.warn('filterByComposer failed', e); } };
+
   // basic wiring
   try{
     window.populateCountryCheckboxes().catch(()=>{});
+    // ensure static republic checkboxes (in the Astro template) trigger filtering when toggled
+    try{
+      document.querySelectorAll('#filter-republic input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
+    }catch(e){ }
     const sbtn = document.getElementById('qbtn'); if (sbtn) sbtn.addEventListener('click', ()=>{ window.currentPage = 1; window.loadResults(); });
     const qinputEl = document.getElementById('qinput'); if (qinputEl) qinputEl.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { window.currentPage = 1; window.loadResults(); } });
   }catch(e){ console.error('client init failed', e); }
