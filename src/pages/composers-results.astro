@@ -92,7 +92,68 @@
   /* panel title + divider */
   .panel-title { margin:0 0 8px; font-weight:700; color:var(--accent); font-size:16px; }
   .panel-divider { height:1px; background:#e6e9ef; margin:8px 0 12px 0; }
-    <!-- Fallback behavior removed: the client runtime now fully controls filtering and rendering. -->
+  /* pagination styles */
+  .pagination { display:flex; gap:8px; align-items:center; }
+  .pagination { background: #fff; padding:6px; border-radius:6px; color: #0f172a; }
+  /* New filter-panel styles */
+  .filter-panel {
+    width: 270px;
+    background: #f9fafb;
+    border-right: 1px solid #e5e7eb;
+    padding: 20px;
+    font-family: Inter, system-ui, sans-serif;
+  }
+
+  .filter-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 18px;
+    color: #1f2937;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 6px;
+  }
+
+  .filter-box {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .filter-group {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+
+  .filter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .filter-group h4 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+  }
+
+  .filter-options {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 14px;
+    color: #374151;
+  }
+
+  .filter-options label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
     padding: 4px 6px;
     border-radius: 6px;
     transition: background 0.15s ease;
@@ -143,28 +204,28 @@
     #panel-center { display:block; }
     #panel-center .panel-title { font-size:18px; margin-bottom:12px; color:var(--accent); }
     #panel-center .panel-divider { margin-bottom:16px; height:1px; background:#e6e9ef; }
-    #panel-center #results-list { display:flex; flex-direction:column; gap:12px; }
+    #panel-center #results-list { display:flex; flex-direction:column; gap:8px; }
     #panel-center .result-card {
       display:flex;
       align-items:flex-start;
       justify-content:space-between;
-      gap:12px;
-      padding:14px 16px;
-      border-radius:10px;
-      box-shadow:0 1px 4px rgba(0,0,0,0.08);
+      gap:10px;
+      padding:10px 12px;
+      border-radius:8px;
+      box-shadow:0 1px 3px rgba(0,0,0,0.06);
       background:#fff;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
     }
     #panel-center .result-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      transform: translateY(-1px);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.08);
     }
-    #panel-center .result-main { flex:1 1 auto; margin-right:12px; }
-    #panel-center .result-main b { display:block; margin-bottom:4px; color:var(--accent); }
+    #panel-center .result-main { flex:1 1 auto; margin-right:10px; }
+    #panel-center .result-main b { display:block; margin-bottom:2px; color:var(--accent); }
     #panel-center .result-right { display:flex; align-items:center; gap:8px; }
     #panel-center .more-composer-btn { background:var(--accent); color:#fff; border:0; border-radius:6px; padding:6px 8px; font-size:0.8rem; font-weight:700; cursor:pointer; }
     #panel-center .more-composer-btn:hover { background:#5c0000; }
-    #panel-center .pagination { justify-content:center; margin-top:20px; display:flex; gap:8px; }
+    #panel-center .pagination { justify-content:center; margin-top:16px; display:flex; gap:8px; }
     /* Fixed footer bar locked to viewport (shared with main site) */
     #fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#8b0000; color:white; z-index:1200; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
     .fixed-footer-inner { width:100%; max-width:none; margin:0; padding:0 20px; display:flex; gap:12px; justify-content:space-between; align-items:center; }
@@ -390,7 +451,7 @@
 
         </div>
       </aside>
-      <div class="panel" id="panel-center" style="width:800px;">
+  <div class="panel" id="panel-center">
         <h3 class="panel-title">Results</h3>
         <div class="panel-divider"></div>
 
