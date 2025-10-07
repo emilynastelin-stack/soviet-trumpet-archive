@@ -545,36 +545,8 @@
       </div>
     </div>
 
-  <script src="/composers-results.client.js?v=2" defer></script>
+  <script src="/composers-results.client.js?v=3" defer></script>
     <!-- Inline loader and fallback pagination removed; external client script will render pagination controls -->
-    <script>
-    // Diagnostic: fetch the client script and show a banner with its version so we can tell what the browser received
-    (function(){
-      try{
-        const banner = document.createElement('div');
-        banner.id = 'cr-serve-diagnostic';
-        banner.style.position = 'fixed';
-        banner.style.left = '12px';
-        banner.style.top = '108px';
-        banner.style.zIndex = '99999';
-        banner.style.background = '#fff5f5';
-        banner.style.color = '#5c0000';
-        banner.style.padding = '8px 10px';
-        banner.style.border = '1px solid #fca5a5';
-        banner.style.borderRadius = '6px';
-        banner.style.fontSize = '13px';
-        banner.textContent = 'Diagnostic: checking client script...';
-        document.body.appendChild(banner);
-        fetch('/composers-results.client.js?v=2', { cache: 'no-store' }).then(r=> r.text()).then(txt=>{
-          const ok = txt && txt.indexOf('client: loaded (v2)') !== -1;
-          banner.textContent = ok ? 'Diagnostic: OK — client v2 served' : 'Diagnostic: MISMATCH — client v2 NOT found';
-          banner.style.background = ok ? '#ecfdf5' : '#fff1f2';
-          banner.style.color = ok ? '#065f46' : '#7f1d1d';
-          banner.style.borderColor = ok ? '#bbf7d0' : '#fecaca';
-        }).catch(e=>{ banner.textContent = 'Diagnostic: error fetching script: ' + String(e); banner.style.background = '#fff7ed'; banner.style.color = '#92400e'; banner.style.borderColor = '#fed7aa'; });
-      }catch(e){ console.warn('diagnostic failed', e); }
-    })();
-    </script>
   <body>
     <!-- background overlay (behind everything) -->
     <div id="bg-overlay" aria-hidden="true">
@@ -626,8 +598,26 @@
           filtered.slice(0, pageSize).forEach(r => {
             const title = r.Title || r.Compositions || r.title || '';
             const author = r['Composer'] || r.Composer || r.composer || '';
-            const div = document.createElement('div'); div.className = 'result-item';
-            div.innerHTML = `<div class="result-main"><h2>${esc(title)}</h2><p><strong>Composer:</strong> ${esc(author)}</p></div>`;
+            const published = r.Published || r.Year || r['Date'] || r['Published'] || '';
+            const pieceType = r['Type'] || r['Type of piece'] || r.Type || '';
+            const republic = r['Soviet republic'] || r['Soviet Republic'] || r['Republic'] || r['Republic/Region'] || '';
+            const div = document.createElement('div'); div.className = 'result-card';
+            div.innerHTML = `
+              <div class="result-main">
+                <b>${esc(title)}</b>
+                <div style="margin-top:6px;color:#6b7280;font-size:0.95rem">
+                  ${pieceType ? esc(pieceType) + (published ? ' · ' : '') : ''}${published ? esc(published) : ''}
+                </div>
+                <div style="margin-top:8px"><strong>Composer:</strong> ${esc(author)}</div>
+                ${republic ? `<div style="margin-top:6px;color:#6b7280;font-size:0.9rem">${esc(republic)}</div>` : ''}
+              </div>
+              <div class="result-right"><a href="#" class="details-link">View</a></div>
+            `;
+            // Minimal View handler for fallback: populate right panel with basic composer info
+            try{
+              const link = div.querySelector('.details-link');
+              if (link){ link.addEventListener('click', (ev)=>{ ev.preventDefault(); try{ const content = document.getElementById('composer-content'); if (content) content.innerHTML = `<div><strong style="color:var(--accent)">${esc(author)}</strong><div style="margin-top:8px;color:#6b7280">${published ? esc(published) : ''}</div></div>`; const more = document.getElementById('more-from-composer'); if (more){ more.style.display = 'block'; more.innerHTML = `<div style="background:#fff;padding:10px;border-radius:8px;border:1px solid #eef2f6;"><strong>More from ${esc(author)}</strong><div style="margin-top:8px;color:#6b7280;font-size:0.95rem">Full composer details are available when the client runtime is enabled.</div></div>`; } }catch(_){ } }); }
+            }catch(_){ }
             container.appendChild(div);
           });
         }catch(e){ console.error('Fallback republic filter failed', e); }

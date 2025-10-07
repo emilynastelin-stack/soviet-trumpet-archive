@@ -12,24 +12,7 @@
         const cc = document.getElementById('composer-content'); if (cc) cc.innerText = 'Client error: see console';
       }catch(_){ /* ignore */ }
     });
-    // visible debug badge so users can see client status without DevTools
-    try{
-      const badge = document.createElement('div');
-      badge.id = 'cr-debug';
-      badge.dataset.clientVersion = 'v2';
-      badge.style.position = 'fixed';
-      badge.style.right = '12px';
-      badge.style.top = '72px';
-      badge.style.zIndex = '9999';
-      badge.style.background = 'rgba(0,0,0,0.6)';
-      badge.style.color = '#fff';
-      badge.style.padding = '6px 8px';
-      badge.style.borderRadius = '6px';
-      badge.style.fontSize = '12px';
-      badge.style.fontFamily = 'system-ui,Segoe UI,Roboto,Arial';
-      badge.textContent = 'client: loaded (v2)';
-      document.body.appendChild(badge);
-    }catch(_){ }
+    // no persistent debug badge in production
   }catch(_){ /* ignore */ }
   const params = new URLSearchParams(window.location.search);
   const q = params.get('q') || '';
@@ -59,43 +42,7 @@
   }
   function escapeHtml(str){ if (str == null) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
-  // Debug panel: visible runtime diagnostics
-  function ensureDebugPanel(){
-    try{
-      let p = document.getElementById('cr-debug-panel');
-      if (!p){
-        p = document.createElement('div');
-        p.id = 'cr-debug-panel';
-        p.style.position = 'fixed';
-        p.style.left = '12px';
-        p.style.bottom = '72px';
-        p.style.zIndex = 99999;
-        p.style.background = 'rgba(255,255,255,0.95)';
-        p.style.border = '1px solid #eee';
-        p.style.padding = '8px 10px';
-        p.style.borderRadius = '8px';
-        p.style.maxWidth = '360px';
-        p.style.fontSize = '13px';
-        p.style.color = '#111';
-        p.style.boxShadow = '0 6px 18px rgba(0,0,0,0.06)';
-        p.innerHTML = '<strong>client debug</strong><div id="cr-debug-body" style="margin-top:6px;font-size:12px;color:#333">initializing…</div>';
-        document.body.appendChild(p);
-      }
-      return document.getElementById('cr-debug-body');
-    }catch(e){ return null; }
-  }
-  function updateDebugPanel(info){
-    try{
-      const el = ensureDebugPanel(); if (!el) return;
-      const lines = [];
-      if (info.apiRows !== undefined) lines.push('apiRows: ' + info.apiRows);
-      if (info.filtered !== undefined) lines.push('filtered: ' + info.filtered);
-      if (info.page !== undefined) lines.push('page: ' + info.page);
-      if (info.error) lines.push('error: ' + info.error);
-      if (info.note) lines.push(info.note);
-      el.innerText = lines.join('\n');
-    }catch(e){ /* ignore */ }
-  }
+  // production: no visible debug panel
 
   // Helper: get a value for spreadsheet column letter from an arbitrary row
   function getByLetterFromRow(row, letter){
@@ -141,6 +88,30 @@
       const rows = (json.table.rows || []).map(r => (r.c || []).map(cell => (cell && cell.v !== undefined && cell.v !== null) ? cell.v : ''));
       return { cols, rows };
     }catch(_){ return null; }
+  }
+
+  // Fetch top N works for a composer from MusicList (best-effort matching)
+  async function fetchMoreWorks(composerName, limit = 5){
+    if (!composerName) return [];
+    try{
+      const res = await fetch('/api/sheets?sheet=MusicList', { headers: { 'Accept': 'application/json' } });
+      const raw = await res.json().catch(()=>null);
+      const rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : []);
+      if (!rows || !rows.length) return [];
+      const norm = s => String((s||'')).toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
+      const target = norm(composerName || '');
+      const matches = [];
+      for (const r of rows){
+        const author = (r['Composer'] || r.Composer || r.composer || Object.values(r)[0] || '') || '';
+        const an = norm(author);
+        if (!an) continue;
+        if (an === target || an.includes(target) || target.includes(an)){
+          matches.push(r);
+        }
+        if (matches.length >= limit) break;
+      }
+      return matches;
+    }catch(e){ return []; }
   }
 
   // Ensure a single pair of Select All / Clear controls exist inside a filter container
@@ -829,7 +800,25 @@
     const moreEl = document.getElementById('more-from-composer');
     if (moreEl){
       moreEl.style.display = 'block';
-      moreEl.innerHTML = `<div style="background:#fff;padding:10px;border-radius:8px;border:1px solid #eef2f6;"><strong>More from ${escapeHtml(dispFound)}</strong><div style="margin-top:8px;color:#6b7280;font-size:0.95rem">Loading more works…</div></div>`;
+      moreEl.innerHTML = `<div style="background:#fff;padding:10px;border-radius:8px;border:1px solid #eef2f6;"><strong>More from ${escapeHtml(dispFound)}</strong><div id="more-works-list" style="margin-top:8px;color:#6b7280;font-size:0.95rem">Loading more works…</div></div>`;
+      // populate with actual works
+      try{
+        const works = await fetchMoreWorks(dispFound, 5);
+        const listWrap = moreEl.querySelector('#more-works-list');
+        if (listWrap){
+          if (!works || !works.length){ listWrap.innerHTML = '<div style="color:#6b7280">No additional works found.</div>'; }
+          else{
+            listWrap.innerHTML = '';
+            works.forEach(w=>{
+              const t = w.Title || w.title || w.Compositions || '';
+              const yr = w.Published || w.Year || w['Date'] || '';
+              const item = document.createElement('div'); item.style.padding = '8px 0'; item.style.borderBottom = '1px solid #f3f4f6';
+              item.innerHTML = `<div style="font-weight:600;color:#111">${escapeHtml(t || '(untitled)')}</div><div style="font-size:0.9rem;color:#6b7280">${escapeHtml(yr || '')}</div>`;
+              listWrap.appendChild(item);
+            });
+          }
+        }
+      }catch(_){ try{ const lw = moreEl.querySelector('#more-works-list'); if (lw) lw.innerHTML = '<div style="color:#6b7280">Failed to load works.</div>'; }catch(_){ } }
     }
   }catch(_){ }
     if (clearBtn) { clearBtn.style.display = 'inline-block'; clearBtn.onclick = () => { window.selectedComposer = ''; if (clearBtn) clearBtn.style.display = 'none'; try{ const moreEl = document.getElementById('more-from-composer'); if (moreEl) { moreEl.style.display = 'none'; moreEl.innerHTML = ''; } }catch(_){ } populateComposerBox('', null); window.currentPage = 1; window.loadResults(); }; }
