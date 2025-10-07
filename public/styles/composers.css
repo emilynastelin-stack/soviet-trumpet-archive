@@ -1,0 +1,67 @@
+/* Static styles for composers results page: ensure background and card visuals load before JS */
+:root { --accent: #8b0000; --muted:#6b7280; }
+html,body{height:100%;}
+body{
+  background-image: url('https://i.imgur.com/ZENogwV.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-attachment: fixed;
+  background-color: #f7fafc;
+}
+
+/* Result card visuals (match client-injected rules) */
+.result-card{
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 10px;
+  transition: box-shadow 180ms ease, transform 180ms ease;
+  box-shadow: 0 1px 4px rgba(15,23,42,0.06);
+  overflow: hidden;
+  background: #fff;
+}
+.result-card.empty{ background:#fff; }
+.result-card:hover{ box-shadow: 0 10px 24px rgba(15,23,42,0.12); transform: translateY(-4px); }
+.result-card .result-main{ transition: inherit; flex: 1 1 auto; }
+.result-card .result-right{ transition: inherit; }
+
+.card-more-btn{
+  position: relative;
+  margin-right: 16px;
+  margin-left: 12px;
+  align-self: center;
+  background: #8b0000;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  z-index: 2;
+}
+.card-more-btn:hover{ background:#6b0000; }
+.card-toggle-btn{
+  position: relative;
+  margin-right: 8px;
+  margin-left: 6px;
+  align-self: center;
+  background: transparent;
+  color: #374151;
+  border: 1px solid #e6e9ef;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 120ms ease, transform 120ms ease;
+  font-size: 0.9rem;
+}
+.card-toggle-btn:hover{ background:#f8fafc; }
+.inline-details{ background:#fbfbfd; border-radius:8px; margin:8px 0 12px 0; }
+
+/* Ensure background overlay element sits behind content */
+#bg-overlay{ position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
+#bg-overlay img{ position:absolute; left:0; top:0; width:100vw; height:100vh; object-fit:cover; will-change:left,top,width,height; pointer-events:none; }

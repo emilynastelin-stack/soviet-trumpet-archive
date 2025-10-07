@@ -7,7 +7,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Composers results - Archive of Soviet Trumpet Music</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-    <style>
+    <link rel="stylesheet" href="/styles/composers.css">
+      <style>
     :root { --accent:#8b0000; --muted:#6b7280; --bg:#f7f9fc; }
     * { box-sizing:border-box; }
     body {
@@ -16,7 +17,8 @@
       color: #0f172a;
       background-color: var(--bg);
       background-image: none;
-      padding-bottom: 64px; /* reserve space for fixed footer */
+      /* increase bottom padding so content isn't hidden under the fixed footer */
+      padding-bottom: 96px; /* reserve space for fixed footer */
       padding-top: 112px; /* reserve space for fixed header + search strip */
     }
 
@@ -315,8 +317,22 @@
       .mobile-footer-toolbar .mf-btn { flex:0 0 auto; border:1px solid #e6e9ef; background:#fff; padding:8px 12px; border-radius:10px; font-weight:700; color:var(--accent); }
       /* make hamburger inline on the bar (no red circular center) */
       .mobile-footer-toolbar .mf-center { position:static; transform:none; width:auto; height:auto; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; background:transparent; color:var(--accent); box-shadow:none; border:1px solid #e6e9ef; padding:8px 12px; }
-      /* ensure toolbar overlays footer */
-      #fixed-footer { z-index:1300; }
+  /* ensure toolbar overlays footer */
+  /* Fixed footer: bring in the same styling used on the main composers page */
+  footer { margin-top:40px; padding:36px 0; background:transparent; }
+  /* Fixed footer bar locked to viewport (shared with main site) */
+  #fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#8b0000; color:white; /* slightly higher z so footer sits above content overlays */ z-index:1400; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
+  .fixed-footer-inner { width:100%; max-width:none; margin:0; padding:0 20px; display:flex; gap:12px; justify-content:space-between; align-items:center; }
+  .footer-grid { display:flex; gap:24px; flex-wrap:wrap; }
+  .footer-left { display:flex; flex-direction:column; transform: translateY(-5px); }
+  .footer-left .title { font-weight:700; color:white; font-size:16px; line-height:1.1; padding:12px 0 0 0; margin-left:0; }
+  .footer-left .subtitle { color:rgba(255,255,255,0.8); font-size:13px; margin-top:0; margin-left:0; padding-left:0; }
+  .fixed-footer-right { display:flex; align-items:center; }
+  .fixed-footer-center { flex:1; display:flex; align-items:center; justify-content:center; transform: translateY(-3px); }
+  .fixed-footer-center .links { color:white; font-size:13px; text-align:center; }
+  .fixed-footer-center .links a { color:inherit; text-decoration:none; margin:0 8px; }
+  .fixed-footer-right { display:flex; align-items:center; justify-content:flex-end; min-width:220px; transform: translateY(-3px); }
+  .fixed-footer-right .copyright { color:rgba(255,255,255,0.9); font-size:13px; }
       /* make room for toolbar so content isn't hidden */
       body { padding-bottom: calc(64px + 56px); }
     }
@@ -589,18 +605,24 @@
 
     <!-- main content is now presented inside the three panels above -->
 
-    <div id="fixed-footer" role="contentinfo">
-  <div class="fixed-footer-inner" style="display:flex;justify-content:space-between;align-items:center;padding:2px 20px;">
-          <div class="footer-left">
-          <div class="title">Archive of Soviet Trumpet Music</div>
-          <div class="subtitle">Архив советской трубной музыки</div>
+    <div id="fixed-footer" aria-hidden="false" role="contentinfo">
+    <div class="fixed-footer-inner">
+      <div class="footer-left">
+        <div class="title">Archive of Soviet Trumpet Music</div>
+        <div class="subtitle">Архив советской трубной музыки</div>
+      </div>
+      <div class="fixed-footer-center">
+        <div class="links">
+          <a href="/about">About</a>
+          <a href="#">Contact</a>
+          <a href="/sources">Sources</a>
         </div>
-        <div class="fixed-footer-center">
-          <div class="links"><a href="/about">About</a> <a href="#">Contact</a> <a href="#">Help</a></div>
-        </div>
-        <div class="fixed-footer-right"><div class="copyright">© 2025 Archive of Soviet Trumpet Music</div></div>
+      </div>
+      <div class="fixed-footer-right">
+        <div class="copyright">© 2025 Archive of Soviet Trumpet Music</div>
       </div>
     </div>
+  </div>
 
     <!-- Mobile toolbar: Filters | Hamburger menu (center) | Composers -->
     <div class="mobile-footer-toolbar" id="mobileFooterToolbar" aria-hidden="false">
@@ -653,10 +675,9 @@
     // Expose globally for inline onclick handlers
     window.filterByComposer = filterByComposer;
   </script>
-  <body>
     <!-- background overlay (behind everything) -->
     <div id="bg-overlay" aria-hidden="true">
-      <img id="bg-img" src="https://i.imgur.com/o8mycA8.png" alt="" />
+      <img id="bg-img" src="https://i.imgur.com/ZENogwV.png" alt="" />
     </div>
     <script>
     // Select All / Clear All for filter groups — dispatches change events and triggers loadResults

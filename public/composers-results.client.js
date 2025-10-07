@@ -14,6 +14,67 @@
     });
     // no persistent debug badge in production
   }catch(_){ /* ignore */ }
+  // Inject lightweight styles for result cards (rounded corners + hover lift)
+  (function addCardStyles(){
+    try{
+      if (document.getElementById('cr-card-styles')) return;
+      const css = `
+        .result-card {
+          position: relative;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          border-radius: 10px;
+          transition: box-shadow 180ms ease, transform 180ms ease;
+          box-shadow: 0 1px 4px rgba(15,23,42,0.06);
+          overflow: hidden;
+          background: #fff;
+        }
+        .result-card.empty { background: #fff; }
+        .result-card:hover { box-shadow: 0 10px 24px rgba(15,23,42,0.12); transform: translateY(-4px); }
+        .result-card .result-main { transition: inherit; flex: 1 1 auto; }
+        .result-card .result-right { transition: inherit; }
+        /* card button (right aligned) - in-flow, tightly wrapped and vertically centered */
+        .card-more-btn {
+          position: relative;
+          margin-right: 16px;
+          margin-left: 12px;
+          align-self: center;
+          background: #8b0000;
+          color: #fff;
+          border: none;
+          padding: 8px 12px;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: background-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+          font-weight: 600;
+          font-size: 0.95rem;
+          white-space: nowrap;
+          z-index: 2;
+        }
+        .card-more-btn:hover { background: #6b0000; }
+        .card-toggle-btn {
+          position: relative;
+          margin-right: 8px;
+          margin-left: 6px;
+          align-self: center;
+          background: transparent;
+          color: #374151;
+          border: 1px solid #e6e9ef;
+          padding: 6px 8px;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: background-color 120ms ease, transform 120ms ease;
+          font-size: 0.9rem;
+        }
+        .card-toggle-btn:hover { background: #f8fafc; }
+        .inline-details { background:#fbfbfd; border-radius:8px; margin:8px 0 12px 0; }
+        /* page background is handled by static /styles/composers.css to ensure it loads before JS */
+      `;
+      const s = document.createElement('style'); s.id = 'cr-card-styles'; s.appendChild(document.createTextNode(css));
+      if (document.head) document.head.appendChild(s);
+    }catch(_){ /* ignore */ }
+  })();
   const params = new URLSearchParams(window.location.search);
   const q = params.get('q') || '';
   const qinput = document.getElementById('qinput');
@@ -321,100 +382,166 @@
     .more-composer-btn) so style rules in the page apply consistently.
   --------------------------------------------------------------------------- */
   function renderPage(page){
+    // Render empty placeholder cards for the current page.
+    // This intentionally shows "empty" cards (skeletons) while preserving
+    // the static "Results" header in the page markup. Pagination is still
+    // rendered by renderPagination below.
     const container = document.getElementById('results-list');
     if (!container) return;
     container.innerHTML = '';
+
+    const total = (window.lastFiltered && window.lastFiltered.length) || 0;
+    const pageCount = Math.max(1, Math.ceil(total / window.PAGE_SIZE));
     const start = (page - 1) * window.PAGE_SIZE;
-    const pageItems = (window.lastFiltered || []).slice(start, start + window.PAGE_SIZE);
-  if (!pageItems.length) { container.innerHTML = '<div class="result-card">No results</div>'; return; }
-  pageItems.forEach((r, idx) =>{
-      const globalIndex = start + idx;
+
+    // Determine how many slots to render on this page. If we have real
+    // filtered results, render that many placeholders; otherwise render a
+    // full page of empty slots so the UI doesn't look empty.
+    let slots = 0;
+    if (total > 0){
+      slots = Math.min(window.PAGE_SIZE, Math.max(0, total - start));
+    } else {
+      slots = window.PAGE_SIZE;
+    }
+
+    if (slots === 0){
+      // No results for this page -> show a friendly empty message
+      const no = document.createElement('div');
+      no.className = 'result-card';
+      no.innerHTML = '<div class="result-main">No results</div>';
+      container.appendChild(no);
+      renderPagination(pageCount, page);
+      return;
+    }
+
+    for (let i = 0; i < slots; i++){
+      const globalIndex = start + i;
       const div = document.createElement('div');
-      div.className = 'result-card';
-      const title = (r.Title || r.Compositions || r.title || 'Untitled');
-      const author = r['Composer'] || r.Composer || r.composer || 'Unknown';
-      const published = r.Year || r.Published || r.Decade || r.year || '';
-      const pieceType = r['Type'] || r.Type || r['Type of piece'] || '';
-      const composerEsc = escapeHtml(author);
-      const composerData = encodeURIComponent(String(author || ''));
+      div.className = 'result-card empty';
+      // Minimal skeleton structure that preserves server-side selectors
+      // (.result-main, .result-right) so CSS and any layout still apply.
+      // If we have an actual row for this slot, pull values from columns:
+      //   J -> title, A -> composer, K -> published
+      // Otherwise fall back to the static sample text.
+      const row = (window.lastFiltered && window.lastFiltered[globalIndex]) ? window.lastFiltered[globalIndex] : null;
+      let titleVal = '';
+      let composerVal = '';
+      let publishedVal = '';
+      try{
+        if (row){
+          titleVal = getByLetterFromRow(row, 'J') || row.J || row.Title || row['Title'] || '';
+          composerVal = getByLetterFromRow(row, 'A') || row.A || row.Composer || row['Composer'] || '';
+          publishedVal = getByLetterFromRow(row, 'K') || row.K || row.Published || row['Published'] || '';
+        } else {
+          titleVal = 'Concert Scherzo';
+          composerVal = 'Abramyan, Eduard Aslanovich';
+          publishedVal = '1957';
+        }
+      }catch(_){ titleVal = titleVal || 'Concert Scherzo'; composerVal = composerVal || 'Abramyan, Eduard Aslanovich'; publishedVal = publishedVal || '1957'; }
+      div.dataset.index = String(globalIndex);
       div.innerHTML = `
-        <div class="result-main">
-          <b>${escapeHtml(title)}</b>
-          <div class="meta">${escapeHtml(pieceType || '')}${(pieceType && published) ? ' · ' : ''}${escapeHtml(published || '')}</div>
-          <div style="margin-top:8px"><strong>Composer:</strong> <a href="#" class="composer-link" data-index="${globalIndex}" data-name="${composerData}">${composerEsc}</a></div>
-        </div>
-        <div class="result-right">
-          <a href="#" class="details-link" data-index="${globalIndex}">Details</a>
-          <button class="more-composer-btn" data-index="${globalIndex}" data-name="${composerData}">More from this composer</button>
+        <div class="result-main" style="padding:20px 16px;">
+          <p><strong style="font-size:1.2em; color:#8b0000;">${escapeHtml(String(titleVal || ''))}</strong></p>
+          <p><strong>Composer:</strong> ${escapeHtml(String(composerVal || ''))}</p>
+          <p><strong>Published:</strong> ${escapeHtml(String(publishedVal || ''))}</p>
         </div>
       `;
-      container.appendChild(div);
-      // prefer CSS for layout; ensure a consistent border-bottom for list separation
+      try{ div.style.minHeight = '72px'; }catch(_){ }
+      // keep visuals consistent
       try{ div.style.borderBottom = '1px solid #eef2f6'; }catch(_){ }
-    });
-
-  // ------------------------------------------------------------------
-  // Wiring: composer links, Details link and "More from this composer" btn
-  // ------------------------------------------------------------------
-  // The handlers below control interactive behavior for items in the
-  // center panel. populateComposerBox is used to fill the right-hand
-  // composer panel; renderInlineDetails will render additional per-item
-  // detail blocks if invoked.
-  // wire up composer link and details link click handlers (delegated from current container)
-    Array.from(container.querySelectorAll('.composer-link')).forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const name = decodeURIComponent(link.dataset.name || '');
-        window.selectedComposer = name || '';
-        // find the corresponding row by index if available or pass name
-        const idx = Number(link.dataset.index);
-        const row = Array.isArray(window.lastFiltered) ? window.lastFiltered[idx] : null;
-  populateComposerBox(name, row || {});
-        // filter results to this composer
-        try{ window.currentPage = 1; window.loadResults(); }catch(_){ }
-      });
-    });
-    Array.from(container.querySelectorAll('.details-link')).forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const idx = Number(link.dataset.index);
-        const row = Array.isArray(window.lastFiltered) ? window.lastFiltered[idx] : null;
-        const name = row && (row['Composer'] || row.Composer || row.composer) ? (row['Composer'] || row.Composer || row.composer) : '';
-  // toggle inline details beneath this result (columns L..R)
-  // NOTE: result cards use the .result-card class
-  const resultItem = link.closest('.result-card');
-        if (!resultItem) { populateComposerBox(name, row || {}); return; }
-        const existing = resultItem.nextElementSibling;
-        if (existing && existing.classList && existing.classList.contains('inline-details') && existing.dataset.forIndex == String(idx)){
-          // already open -> close
-          existing.remove();
-          return;
+      // add the maroon 'More about this composer' button (no behavior yet)
+      try{
+        // collapse/expand toggle for inline details
+        const tgl = document.createElement('button');
+        tgl.type = 'button';
+        tgl.className = 'card-toggle-btn';
+        tgl.setAttribute('aria-expanded', 'false');
+        tgl.textContent = 'Show details';
+        // main maroon button
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'card-more-btn';
+        btn.textContent = 'More about this composer';
+        // Wire the button to populate the composer details panel for this row
+        btn.setAttribute('aria-label', 'More about this composer');
+        // avoid focus-caused scroll by preventing default on mousedown
+        try{ btn.addEventListener('mousedown', (e) => { try{ e.preventDefault(); }catch(_){ } }); }catch(_){ }
+  btn.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          try{
+            const idx = Number(div.dataset && div.dataset.index != null ? div.dataset.index : globalIndex);
+            const rowFor = (window.lastFiltered && window.lastFiltered[idx]) ? window.lastFiltered[idx] : null;
+            const name = rowFor ? (getByLetterFromRow(rowFor, 'A') || rowFor.A || rowFor.Composer || Object.values(rowFor)[0] || '') : '';
+            window.selectedComposer = String(name || '');
+            // populateComposerBox will handle empty/null names gracefully
+            try{ populateComposerBox(window.selectedComposer, rowFor); }catch(_){ }
+            // remove focus which can trigger browser scrolling to the element
+            try{ if (ev && ev.currentTarget && typeof ev.currentTarget.blur === 'function') ev.currentTarget.blur(); }catch(_){ }
+            // stop propagation so the card-level click handler does not run a second time
+            try{ if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation(); }catch(_){ }
+          }catch(_){ }
+        });
+        // append toggle first, then the more button
+        try{ div.appendChild(tgl); }catch(_){ }
+        div.appendChild(btn);
+        // toggle click: show/hide the inline details under this card
+        try{
+          tgl.addEventListener('click', (ev) => {
+            try{
+              ev.preventDefault(); ev.stopPropagation();
+              const idx = Number(div.dataset && div.dataset.index != null ? div.dataset.index : globalIndex);
+              const details = container.querySelector('.inline-details[data-for-index="' + String(idx) + '"]');
+              if (!details) return;
+              const isHidden = details.style.display === 'none' || getComputedStyle(details).display === 'none';
+              if (isHidden){ details.style.display = 'block'; tgl.setAttribute('aria-expanded','true'); tgl.textContent = 'Hide details'; }
+              else { details.style.display = 'none'; tgl.setAttribute('aria-expanded','false'); tgl.textContent = 'Show details'; }
+            }catch(_){ }
+          });
+        }catch(_){ }
+        // Clicking the card anywhere (except on interactive elements) opens the composer panel
+        try{
+          // make the whole card clickable (and keyboard-accessible)
+          div.tabIndex = 0;
+          div.setAttribute('role', 'button');
+          // card click handler (guard on defaultPrevented to avoid duplicate work)
+          div.addEventListener('click', (ev) => {
+            try{
+              if (!ev || ev.defaultPrevented) return;
+              if (!ev.target) return;
+              // don't intercept clicks that originated on form controls or explicit links/buttons
+              if (ev.target.closest && (ev.target.closest('input') || ev.target.closest('select') || ev.target.closest('textarea'))) return;
+              const idx = Number(div.dataset && div.dataset.index != null ? div.dataset.index : globalIndex);
+              const rowFor = (window.lastFiltered && window.lastFiltered[idx]) ? window.lastFiltered[idx] : null;
+              const name = rowFor ? (getByLetterFromRow(rowFor, 'A') || rowFor.A || rowFor.Composer || Object.values(rowFor)[0] || '') : '';
+              window.selectedComposer = String(name || '');
+              try{ populateComposerBox(window.selectedComposer, rowFor); }catch(_){ }
+              try{ if (ev && ev.currentTarget && typeof ev.currentTarget.blur === 'function') ev.currentTarget.blur(); }catch(_){ }
+            }catch(_){ }
+          });
+          // keyboard activation for accessibility (Enter / Space)
+          div.addEventListener('keydown', (ev) => {
+            try{
+              if (ev.key === 'Enter' || ev.key === ' '){
+                ev.preventDefault();
+                // simulate click
+                div.click();
+              }
+            }catch(_){ }
+          });
+        }catch(_){ }
+      }catch(_){ }
+      container.appendChild(div);
+      // If we have a real row for this slot, render inline deploy details (L..Q)
+      try{
+        if (row){
+          const details = renderInlineDetails(row, globalIndex);
+          if (details) container.appendChild(details);
         }
-        // remove any other inline details blocks
-        Array.from(document.querySelectorAll('.inline-details')).forEach(n => n.remove());
-  const detailsEl = renderInlineDetails(row || {}, idx);
-        if (detailsEl) resultItem.parentNode.insertBefore(detailsEl, resultItem.nextSibling);
-        // Note: do NOT call loadResults here — keeping details open requires avoiding a full re-render
-      });
-    });
-    Array.from(container.querySelectorAll('.more-composer-btn')).forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const name = decodeURIComponent(btn.dataset.name || '');
-        const idx = Number(btn.dataset.index);
-        const row = Array.isArray(window.lastFiltered) ? window.lastFiltered[idx] : null;
-        window.selectedComposer = name || '';
-        populateComposerBox(name, row || {});
-      });
-    });
+      }catch(_){ }
+    }
 
-    // remove bottom border on last item (target .result-card)
-    try{
-      const items = Array.from(container.children).filter(n => n.classList && n.classList.contains('result-card'));
-      if (items.length){ items[items.length-1].style.borderBottom = 'none'; }
-    }catch(_){ }
-
-    renderPagination(Math.ceil((window.lastFiltered || []).length / window.PAGE_SIZE), page);
+    // No event wiring for skeleton cards (they're inert). Render pagination.
+    renderPagination(pageCount, page);
   }
 
 
@@ -427,13 +554,15 @@
      downloads), update populateComposerBox and renderInlineDetails.
   --------------------------------------------------------------------------- */
 
-    // Render an inline details block showing columns L..R beneath a result item
+    // Render an inline details block showing columns L..Q beneath a result item
     function renderInlineDetails(row, index){
-      const letters = ['L','M','N','O','P','Q','R'];
+      const letters = ['L','M','N','O','P','Q'];
       const wrapper = document.createElement('div');
       wrapper.className = 'inline-details';
-      wrapper.dataset.forIndex = String(index);
-      wrapper.style.padding = '12px 16px';
+  wrapper.dataset.forIndex = String(index);
+  // hidden by default; toggled by the card 'Show details' button
+  wrapper.style.display = 'none';
+  wrapper.style.padding = '12px 16px';
       wrapper.style.background = '#fbfbfd';
       wrapper.style.borderLeft = '4px solid rgba(0,0,0,0.03)';
       wrapper.style.marginBottom = '8px';
@@ -698,7 +827,7 @@
     if (!name){ content.innerHTML = 'Select a result to view composer details.'; if (clearBtn) clearBtn.style.display = 'none'; return; }
     const normalizeKey = k => String(k || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').trim();
     const normVal = v => (typeof normalize === 'function') ? normalize(String(v || '')) : String(v || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').trim();
-    const looksLikeCompDet = (sampleObj) => {
+    const looksLikeMusicList = (sampleObj) => {
       if (!sampleObj || typeof sampleObj !== 'object') return false;
       const keys = Object.keys(sampleObj).map(k => normalizeKey(k));
       const hasComposer = keys.some(k => k.includes('composer') || k.includes('композитор'));
@@ -707,7 +836,7 @@
       const looksLikeMusicList = keys.includes('title') || keys.includes('compositions') || keys.includes('snippet') || keys.includes('published');
       return hasComposer && (hasLife || hasCountry) && !looksLikeMusicList;
     };
-    const candidates = ['CompDet','Sheet2','ComposersAggregated','Composers','Aggregated'];
+  const candidates = ['MusicList','Sheet2','ComposersAggregated','Composers','Aggregated'];
     let rows = [];
     let sourceSheet = null;
     try {
@@ -716,12 +845,12 @@
       const mjRows = (mj && Array.isArray(mj)) ? mj : (mj && mj.rows && Array.isArray(mj.rows) ? mj.rows : null);
       if (mjRows && mjRows.length) { rows = mjRows; sourceSheet = 'MusicList'; console.debug('COMPOSER_DEBUG using MusicList aggregation (client-side)'); }
     } catch (e) { }
-    for (const sname of candidates){
+      for (const sname of candidates){
       try{
         const res = await fetch('/api/sheets?sheet=' + encodeURIComponent(sname), { headers: { 'Accept': 'application/json' } });
         const jrRaw = await res.json().catch(()=>null);
         const jr = Array.isArray(jrRaw) ? jrRaw : (jrRaw && Array.isArray(jrRaw.rows) ? jrRaw.rows : jrRaw);
-        if (Array.isArray(jr) && jr.length){ const sample = jr[0]; if (looksLikeCompDet(sample)){ rows = jr; sourceSheet = sname; console.debug('COMPOSER_DEBUG selected sheet (api):', sname, 'headers:', Object.keys(sample)); break; } else { console.debug('COMPOSER_DEBUG rejected sheet (api):', sname, 'headers:', Object.keys(sample)); } }
+  if (Array.isArray(jr) && jr.length){ const sample = jr[0]; if (looksLikeMusicList(sample)){ rows = jr; sourceSheet = sname; console.debug('COMPOSER_DEBUG selected sheet (api):', sname, 'headers:', Object.keys(sample)); break; } else { console.debug('COMPOSER_DEBUG rejected sheet (api):', sname, 'headers:', Object.keys(sample)); } }
         else { console.debug('COMPOSER_DEBUG no-array or empty from API for', sname, jr); }
       }catch(e){ console.debug('COMPOSER_DEBUG api fetch failed for', sname, e); }
     }
@@ -733,7 +862,7 @@
             const headers = g.cols.map(h => String(h).trim() || '');
             const sampleObj = {};
             for (let i=0;i<headers.length;i++){ const hk = headers[i] || `col${i+1}`; sampleObj[hk] = g.rows[0][i]; }
-            if (looksLikeCompDet(sampleObj)){
+            if (looksLikeMusicList(sampleObj)){
               rows = g.rows.map(r => { const obj = {}; for (let i = 0; i < headers.length; i++) { const hk = headers[i] || `col${i+1}`; obj[hk] = r[i] !== undefined && r[i] !== null ? r[i] : ''; } return obj; });
               sourceSheet = sname; break;
             }
@@ -741,13 +870,13 @@
         }catch(e){ console.debug('COMPOSER_DEBUG gviz fetch failed for', sname, e); }
       }
     }
-    if (!rows || rows.length === 0){ content.innerHTML = `<div>No composer detail sheet (CompDet) could be located. I tried: ${candidates.join(', ')}.</div>`; if (clearBtn) clearBtn.style.display = 'none'; return; }
+  if (!rows || rows.length === 0){ content.innerHTML = `<div>No composer detail sheet (MusicList) could be located. I tried: ${candidates.join(', ')}.</div>`; if (clearBtn) clearBtn.style.display = 'none'; return; }
     let matchRow = null; let foundVal = null; const target = String(name || '').trim(); const normTarget = normVal(target);
     const sampleKeys = Object.keys(rows[0] || {});
     const composerKey = sampleKeys.find(k => normalizeKey(k).includes('composer') || normalizeKey(k).includes('композитор'));
     if (composerKey){ for (const r of rows){ const val = String(r[composerKey] || '').trim(); if (!val) continue; const nv = normVal(val); if (nv === normTarget || nv.includes(normTarget) || normTarget.includes(nv)){ matchRow = r; foundVal = val; break; } } }
     if (!matchRow){ for (const r of rows){ for (const v of Object.values(r)){ if (!v) continue; const str = String(v || '').trim(); const nv = normVal(str); if (nv === normTarget || nv.includes(normTarget) || normTarget.includes(nv)){ matchRow = r; foundVal = str; break; } } if (matchRow) break; } }
-    if (!matchRow){ const samplePreview = escapeHtml(JSON.stringify(rows[0] || {}, null, 2)); content.innerHTML = `<div>No composer match in ${escapeHtml(sourceSheet || 'CompDet')} for <strong>${escapeHtml(name)}</strong>.</div><div style="margin-top:8px;color:#6b7280;font-size:0.9rem">Sample headers from detected sheet (for debugging):</div><pre style="max-height:220px;overflow:auto;background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;font-size:0.85rem">${samplePreview}</pre>`; if (clearBtn) clearBtn.style.display = 'inline-block'; return; }
+  if (!matchRow){ const samplePreview = escapeHtml(JSON.stringify(rows[0] || {}, null, 2)); content.innerHTML = `<div>No composer match in ${escapeHtml(sourceSheet || 'MusicList')} for <strong>${escapeHtml(name)}</strong>.</div><div style="margin-top:8px;color:#6b7280;font-size:0.9rem">Sample headers from detected sheet (for debugging):</div><pre style="max-height:220px;overflow:auto;background:#fafafa;border:1px solid #eee;padding:8px;border-radius:6px;font-size:0.85rem">${samplePreview}</pre>`; if (clearBtn) clearBtn.style.display = 'inline-block'; return; }
     let rowObj = {};
     if (Array.isArray(matchRow)){
       const sampleObj = (rows && rows.length && typeof rows[0] === 'object') ? rows[0] : null;

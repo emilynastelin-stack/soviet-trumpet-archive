@@ -75,7 +75,7 @@ export async function GET(request) {
   // MusicList tab for composer aggregation when no explicit sheet/range is
   // provided.
   let primaryRange = overrideRange || (sheetName ? `${sheetName}!A1:Z1000` : DEFAULT_SHEET_RANGE);
-  if (!sheetName && !overrideRange && String(primaryRange).includes('Sheet1')) {
+    if (!sheetName && !overrideRange && String(primaryRange).includes('Sheet1')) {
     primaryRange = 'MusicList!A1:Z1000';
   }
   const strictRequest = Boolean(sheetName || overrideRange);
@@ -90,7 +90,7 @@ export async function GET(request) {
   if (!sheetName && String(primaryRange).includes('Sheet1')){
     candidateRanges.push('MusicList!A1:Z1000');
     candidateRanges.push('MusicList!A1:O1000');
-    candidateRanges.push('CompDet!A1:Z1000');
+    candidateRanges.push('MusicList!A1:Z1000');
   }
 
   const serviceAccountEnv = process.env.SERVICE_ACCOUNT_JSON;
@@ -125,13 +125,13 @@ export async function GET(request) {
           try{
             const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: rng });
             const data = await parseRowsToJson(res.data.values || []);
-            // if caller requested a specific sheet/range, be strict: ensure the returned data looks like CompDet
+            // if caller requested a specific sheet/range, be strict: ensure the returned data looks like MusicList/composer-detail headers
             if (strictRequest){
               const sample = Array.isArray(data) && data.length ? data[0] : null;
               const keys = sample ? Object.keys(sample).map(k=>String(k||'').toLowerCase()) : [];
               const hasCompLike = keys.some(k=> ['lifespan','composer','композитор','learn more','learnmore','native'].includes(k));
               if (!hasCompLike){
-                lastErr = new Error('Requested sheet did not contain CompDet-like headers');
+                lastErr = new Error('Requested sheet did not contain MusicList-like headers');
                 break; // don't try other fallbacks when strict
               }
             }
@@ -167,7 +167,7 @@ export async function GET(request) {
               const sample = Array.isArray(data) && data.length ? data[0] : null;
               const keys = sample ? Object.keys(sample).map(k=>String(k||'').toLowerCase()) : [];
               const hasCompLike = keys.some(k=> ['lifespan','composer','композитор','learn more','learnmore','native'].includes(k));
-              if (!hasCompLike){ lastErr = new Error('Requested sheet did not contain CompDet-like headers'); break; }
+              if (!hasCompLike){ lastErr = new Error('Requested sheet did not contain MusicList-like headers'); break; }
             }
           return jsonResponse(data, 200, rng);
         }catch(errRange){ lastErr = errRange; }
@@ -194,7 +194,7 @@ export async function GET(request) {
         const sample = Array.isArray(data) && data.length ? data[0] : null;
         const keys = sample ? Object.keys(sample).map(k=>String(k||'').toLowerCase()) : [];
         const hasCompLike = keys.some(k=> ['lifespan','composer','композитор','learn more','learnmore','native'].includes(k));
-        if (!hasCompLike) return jsonResponse({ error: 'SHEET_CONTENT_MISMATCH', message: 'Requested sheet did not appear to contain CompDet headers' }, 422, primaryRange);
+        if (!hasCompLike) return jsonResponse({ error: 'SHEET_CONTENT_MISMATCH', message: 'Requested sheet did not appear to contain MusicList-like headers' }, 422, primaryRange);
       }
       return jsonResponse(data, 200, primaryRange);
     } catch (err) {
@@ -226,7 +226,7 @@ export async function GET(request) {
     const sample = Array.isArray(data) && data.length ? data[0] : null;
     const keys = sample ? Object.keys(sample).map(k=>String(k||'').toLowerCase()) : [];
     const hasCompLike = keys.some(k=> ['lifespan','composer','композитор','learn more','learnmore','native'].includes(k));
-    if (!hasCompLike) return jsonResponse({ error: 'SHEET_CONTENT_MISMATCH', message: 'Requested sheet did not appear to contain CompDet headers' }, 422, sheetParam + '!A1:Z1000');
+    if (!hasCompLike) return jsonResponse({ error: 'SHEET_CONTENT_MISMATCH', message: 'Requested sheet did not appear to contain MusicList-like headers' }, 422, sheetParam + '!A1:Z1000');
   }
   return jsonResponse(data, 200, sheetParam + '!A1:Z1000');
       }
