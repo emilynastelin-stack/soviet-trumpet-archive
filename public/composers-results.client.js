@@ -59,6 +59,44 @@
   }
   function escapeHtml(str){ if (str == null) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
+  // Debug panel: visible runtime diagnostics
+  function ensureDebugPanel(){
+    try{
+      let p = document.getElementById('cr-debug-panel');
+      if (!p){
+        p = document.createElement('div');
+        p.id = 'cr-debug-panel';
+        p.style.position = 'fixed';
+        p.style.left = '12px';
+        p.style.bottom = '72px';
+        p.style.zIndex = 99999;
+        p.style.background = 'rgba(255,255,255,0.95)';
+        p.style.border = '1px solid #eee';
+        p.style.padding = '8px 10px';
+        p.style.borderRadius = '8px';
+        p.style.maxWidth = '360px';
+        p.style.fontSize = '13px';
+        p.style.color = '#111';
+        p.style.boxShadow = '0 6px 18px rgba(0,0,0,0.06)';
+        p.innerHTML = '<strong>client debug</strong><div id="cr-debug-body" style="margin-top:6px;font-size:12px;color:#333">initializing…</div>';
+        document.body.appendChild(p);
+      }
+      return document.getElementById('cr-debug-body');
+    }catch(e){ return null; }
+  }
+  function updateDebugPanel(info){
+    try{
+      const el = ensureDebugPanel(); if (!el) return;
+      const lines = [];
+      if (info.apiRows !== undefined) lines.push('apiRows: ' + info.apiRows);
+      if (info.filtered !== undefined) lines.push('filtered: ' + info.filtered);
+      if (info.page !== undefined) lines.push('page: ' + info.page);
+      if (info.error) lines.push('error: ' + info.error);
+      if (info.note) lines.push(info.note);
+      el.innerText = lines.join('\n');
+    }catch(e){ /* ignore */ }
+  }
+
   // Helper: get a value for spreadsheet column letter from an arbitrary row
   function getByLetterFromRow(row, letter){
     if (!row || !letter) return '';
@@ -573,6 +611,21 @@
           }
         }catch(e){ const errText = typeof rows === 'object' ? JSON.stringify(rows) : String(rows); const resultsEl = document.getElementById('results'); if (resultsEl) resultsEl.innerText = 'Load failed: unexpected /api/sheets response: ' + errText; return; }
       }
+        // expose raw rows for debug and compute a small preview of the "Soviet republic"/column G values
+        try{
+          window.lastRowsJson = rows;
+          window.lastApiRowsCount = Array.isArray(rows) ? rows.length : 0;
+          const previewVals = [];
+          for (let i=0;i<Math.min(20, window.lastApiRowsCount); i++){
+            const r = rows[i];
+            let rep = '';
+            try{ rep = String(getByLetterFromRow(r, 'G') || r['Soviet republic'] || r['Soviet Republic'] || r['Republic'] || r['republic'] || r['Republic/Region'] || ''); }catch(_){ rep = ''; }
+            rep = rep.replace(/\s+/g,' ').trim();
+            previewVals.push(rep);
+          }
+          const uniq = Array.from(new Set(previewVals.filter(Boolean)));
+          updateDebugPanel({ apiRows: window.lastApiRowsCount, note: 'republics: ' + (uniq.slice(0,10).join(' | ') || '(none)'), page: window.currentPage });
+        }catch(e){ try{ updateDebugPanel({ error: 'debug preview failed: ' + String(e) }); }catch(_){} }
       const qinputEl = document.getElementById('qinput');
       const qv = normalize(qinputEl ? qinputEl.value || '' : '');
       const checked = Array.from(document.querySelectorAll('#filter-country input[type=checkbox]:checked')).map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || ''));
@@ -615,6 +668,7 @@
         const bd = document.getElementById('cr-debug');
         if (bd) bd.textContent = `client: ${ (window.lastFiltered || []).length } results`;
       }catch(_){ }
+        try{ updateDebugPanel({ apiRows: window.lastApiRowsCount || 0, filtered: (window.lastFiltered || []).length, page: window.currentPage }); }catch(_){}
       if (options && options.resetPage) window.currentPage = 1;
       renderPage(window.currentPage);
       // gender-status removed; no visual indicator updated here
