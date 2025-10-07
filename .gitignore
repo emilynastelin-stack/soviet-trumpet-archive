@@ -25,3 +25,15 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# local/temp files created during debugging
+tmp_*
+preview_*
+tmp-*
+*.tmp
+tmp_sheets.json
+tmp_composers_autotest.html
+preview_page.html
+preview_client.js
+.vercel/.env.preview.local
+tools/
