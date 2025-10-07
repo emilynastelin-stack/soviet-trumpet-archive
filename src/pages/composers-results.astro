@@ -201,31 +201,37 @@
   .result-card .result-right { flex:0 0 auto; text-align:right; align-self:center; }
   .result-card .result-right a { color:var(--accent); font-weight:700; text-decoration:none; }
 /* Updated Results Panel Style */
-  #panel-center { display:block; background:#f9fafb; border-left:1px solid #e5e7eb; box-shadow: none; }
+  #panel-center { display:block; background:#fff; border-left:0; box-shadow:0 6px 18px rgba(11,15,30,0.06); border-radius:10px; padding:14px; }
     #panel-center .panel-title { font-size:18px; margin-bottom:12px; color:var(--accent); }
     #panel-center .panel-divider { margin-bottom:16px; height:1px; background:#e6e9ef; }
     #panel-center #results-list { display:flex; flex-direction:column; gap:8px; }
-    #panel-center .result-card {
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:10px;
-      padding:10px 12px;
-      border-radius:8px;
-      box-shadow:0 1px 3px rgba(0,0,0,0.06);
-      background:#fff;
-      transition: transform 0.12s ease, box-shadow 0.12s ease;
-    }
-    #panel-center .result-card:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 3px 8px rgba(0,0,0,0.08);
-    }
-    #panel-center .result-main { flex:1 1 auto; margin-right:10px; }
-    #panel-center .result-main b { display:block; margin-bottom:2px; color:var(--accent); }
-    #panel-center .result-right { display:flex; align-items:center; gap:8px; }
-    #panel-center .more-composer-btn { background:var(--accent); color:#fff; border:0; border-radius:6px; padding:6px 8px; font-size:0.8rem; font-weight:700; cursor:pointer; }
-    #panel-center .more-composer-btn:hover { background:#5c0000; }
-    #panel-center .pagination { justify-content:center; margin-top:16px; display:flex; gap:8px; }
+      #panel-center #results-list { display:flex; flex-direction:column; gap:12px; }
+      #panel-center .result-card {
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:12px;
+        padding:12px 16px;
+        border-radius:10px;
+        box-shadow:0 2px 8px rgba(15,23,42,0.06);
+        background:#fff;
+        border:1px solid #eef2f6;
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
+      }
+      #panel-center .result-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(11,15,30,0.08);
+      }
+      #panel-center .result-main { flex:1 1 auto; margin-right:12px; color:#0f172a }
+      #panel-center .result-main b { display:block; margin-bottom:6px; color:var(--accent); }
+      #panel-center .result-main .meta { color:#6b7280; font-size:0.95rem; margin-top:6px }
+      #panel-center .result-right { display:flex; align-items:center; gap:10px; }
+      #panel-center .details-link { color:var(--muted); font-weight:700; margin-right:8px; text-decoration:none }
+      #panel-center .more-composer-btn { background:#8b0000; color:#fff; border:0; border-radius:999px; padding:6px 12px; font-size:0.85rem; font-weight:700; cursor:pointer; }
+      #panel-center .more-composer-btn:hover { background:#5c0000; }
+      #panel-center .pagination { justify-content:center; margin-top:18px; display:flex; gap:8px; }
+      /* Pagination button active state */
+      .pagination .page-btn[aria-current="true"] { background:var(--accent); color:#fff; border-color:var(--accent); }
     /* Fixed footer bar locked to viewport (shared with main site) */
     #fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#8b0000; color:white; z-index:1200; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
     .fixed-footer-inner { width:100%; max-width:none; margin:0; padding:0 20px; display:flex; gap:12px; justify-content:space-between; align-items:center; }
@@ -460,21 +466,33 @@
           <div class="result-card">
             <div class="result-main">
               <b>[A]</b>
-              [J] ([K])
+              <div class="meta">[J] ([K])</div>
+            </div>
+            <div class="result-right">
+              <a href="#" class="details-link">View</a>
+              <button class="more-composer-btn">More from this composer</button>
             </div>
           </div>
 
           <div class="result-card">
             <div class="result-main">
               <b>[A]</b>
-              [J] ([K])
+              <div class="meta">[J] ([K])</div>
+            </div>
+            <div class="result-right">
+              <a href="#" class="details-link">View</a>
+              <button class="more-composer-btn">More from this composer</button>
             </div>
           </div>
 
           <div class="result-card">
             <div class="result-main">
               <b>[A]</b>
-              [J] ([K])
+              <div class="meta">[J] ([K])</div>
+            </div>
+            <div class="result-right">
+              <a href="#" class="details-link">View</a>
+              <button class="more-composer-btn">More from this composer</button>
             </div>
           </div>
         </div>
