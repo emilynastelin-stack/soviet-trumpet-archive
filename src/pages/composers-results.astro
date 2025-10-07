@@ -92,68 +92,7 @@
   /* panel title + divider */
   .panel-title { margin:0 0 8px; font-weight:700; color:var(--accent); font-size:16px; }
   .panel-divider { height:1px; background:#e6e9ef; margin:8px 0 12px 0; }
-  /* pagination styles */
-  .pagination { display:flex; gap:8px; align-items:center; }
-  .pagination { background: #fff; padding:6px; border-radius:6px; color: #0f172a; }
-  /* New filter-panel styles */
-  .filter-panel {
-    width: 270px;
-    background: #f9fafb;
-    border-right: 1px solid #e5e7eb;
-    padding: 20px;
-    font-family: Inter, system-ui, sans-serif;
-  }
-
-  .filter-title {
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 18px;
-    color: #1f2937;
-    border-bottom: 2px solid #e5e7eb;
-    padding-bottom: 6px;
-  }
-
-  .filter-box {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .filter-group {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 12px 10px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  }
-
-  .filter-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-  }
-
-  .filter-group h4 {
-    font-size: 15px;
-    font-weight: 600;
-    color: #111827;
-    margin: 0;
-  }
-
-  .filter-options {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    font-size: 14px;
-    color: #374151;
-  }
-
-  .filter-options label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
+    <!-- Fallback behavior removed: the client runtime now fully controls filtering and rendering. -->
     padding: 4px 6px;
     border-radius: 6px;
     transition: background 0.15s ease;
@@ -614,10 +553,28 @@
               <div class="result-right"><a href="#" class="details-link">View</a></div>
             `;
             // Minimal View handler for fallback: populate right panel with basic composer info
-            try{
-              const link = div.querySelector('.details-link');
-              if (link){ link.addEventListener('click', (ev)=>{ ev.preventDefault(); try{ const content = document.getElementById('composer-content'); if (content) content.innerHTML = `<div><strong style="color:var(--accent)">${esc(author)}</strong><div style="margin-top:8px;color:#6b7280">${published ? esc(published) : ''}</div></div>`; const more = document.getElementById('more-from-composer'); if (more){ more.style.display = 'block'; more.innerHTML = `<div style="background:#fff;padding:10px;border-radius:8px;border:1px solid #eef2f6;"><strong>More from ${esc(author)}</strong><div style="margin-top:8px;color:#6b7280;font-size:0.95rem">Full composer details are available when the client runtime is enabled.</div></div>`; } }catch(_){ } }); }
-            }catch(_){ }
+              try{
+                const link = div.querySelector('.details-link');
+                if (link){
+                  link.addEventListener('click', (ev)=>{
+                    ev.preventDefault();
+                    try{
+                      const content = document.getElementById('composer-content');
+                      if (content) content.innerHTML = `<div><strong style="color:var(--accent)">${esc(author)}</strong><div style="margin-top:8px;color:#6b7280">${published ? esc(published) : ''}</div></div>`;
+                      const more = document.getElementById('more-from-composer');
+                      if (more){
+                        more.style.display = 'block';
+                        // Only set a lightweight placeholder if the container is empty.
+                        // This avoids clobbering the richer client-rendered content.
+                        if (!more.innerHTML || !more.innerHTML.trim()){
+                          more.innerHTML = `<div style="background:#fff;padding:10px;border-radius:8px;border:1px solid #eef2f6;"><strong>More from ${esc(author)}</strong><div style="margin-top:8px;color:#6b7280;font-size:0.95rem">Full composer details are available when the client runtime is enabled.</div></div>`;
+                          more.dataset.fallback = '1';
+                        }
+                      }
+                    }catch(_){ }
+                  });
+                }
+              }catch(_){ }
             container.appendChild(div);
           });
         }catch(e){ console.error('Fallback republic filter failed', e); }
