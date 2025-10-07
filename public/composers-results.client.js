@@ -42,6 +42,37 @@
   }
   function escapeHtml(str){ if (str == null) return ''; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
+  // Helper: get a value for spreadsheet column letter from an arbitrary row
+  function getByLetterFromRow(row, letter){
+    if (!row || !letter) return '';
+    const up = String(letter).toUpperCase();
+    const idx = up.charCodeAt(0) - 65; // A=0
+    try{
+      if (Array.isArray(row)){
+        return row[idx] != null ? row[idx] : '';
+      }
+      // try common column names like colN
+      const colName = 'col' + (idx + 1);
+      if (row[colName] != null) return row[colName];
+      // use nth key fallback
+      const keys = Object.keys(row || {});
+      if (keys[idx]) return row[keys[idx]] != null ? row[keys[idx]] : '';
+      // try header-like property matching
+      const letterName = Object.keys(row || {}).find(k => String(k || '').toUpperCase() === up);
+      if (letterName) return row[letterName];
+    }catch(_){ }
+    return '';
+  }
+
+  function headerLabelForRow(row, letter){
+    const up = String(letter).toUpperCase();
+    const idx = up.charCodeAt(0) - 65;
+    if (Array.isArray(row)) return 'Column ' + up;
+    const keys = Object.keys(row || {});
+    if (keys[idx]) return keys[idx];
+    return 'Column ' + up;
+  }
+
   async function gvizFetch(sheetName, range = 'A1:Z1000'){
     try{
       const id = '1UiK8QDq98C-9wCpQjdQAVpSdH8mZkpxYgMMEHM3uaGk';
@@ -332,7 +363,19 @@
         const row = Array.isArray(window.lastFiltered) ? window.lastFiltered[idx] : null;
         const name = row && (row['Composer'] || row.Composer || row.composer) ? (row['Composer'] || row.Composer || row.composer) : '';
         window.selectedComposer = name || '';
-        populateComposerBox(name, row || {});
+        // toggle inline details beneath this result (columns L..R)
+        const resultItem = link.closest('.result-item');
+        if (!resultItem) { populateComposerBox(name, row || {}); return; }
+        const existing = resultItem.nextElementSibling;
+        if (existing && existing.classList && existing.classList.contains('inline-details') && existing.dataset.forIndex == String(idx)){
+          // already open -> close
+          existing.remove();
+          return;
+        }
+        // remove any other inline details blocks
+        Array.from(document.querySelectorAll('.inline-details')).forEach(n => n.remove());
+        const detailsEl = renderInlineDetails(row || {}, idx);
+        if (detailsEl) resultItem.parentNode.insertBefore(detailsEl, resultItem.nextSibling);
       });
     });
 
@@ -344,6 +387,26 @@
 
     renderPagination(Math.ceil((window.lastFiltered || []).length / window.PAGE_SIZE), page);
   }
+
+    // Render an inline details block showing columns L..R beneath a result item
+    function renderInlineDetails(row, index){
+      const letters = ['L','M','N','O','P','Q','R'];
+      const wrapper = document.createElement('div');
+      wrapper.className = 'inline-details';
+      wrapper.dataset.forIndex = String(index);
+      wrapper.style.padding = '12px 16px';
+      wrapper.style.background = '#fbfbfd';
+      wrapper.style.borderLeft = '4px solid rgba(0,0,0,0.03)';
+      wrapper.style.marginBottom = '8px';
+      wrapper.style.borderBottom = '1px solid #e6e9ef';
+      const rows = letters.map(l => {
+        const label = headerLabelForRow(row, l) || l;
+        const val = getByLetterFromRow(row, l) || '';
+        return `<div style="margin-bottom:6px;"><strong style="display:block;color:#374151">${escapeHtml(String(label))}</strong><div style="color:#0f172a">${escapeHtml(String(val))}</div></div>`;
+      }).join('\n');
+      wrapper.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px">${rows}</div>`;
+      return wrapper;
+    }
 
   function renderPagination(pageCount, active){
     // render pagination into both top and bottom roots
