@@ -326,7 +326,7 @@
     container.innerHTML = '';
     const start = (page - 1) * window.PAGE_SIZE;
     const pageItems = (window.lastFiltered || []).slice(start, start + window.PAGE_SIZE);
-    if (!pageItems.length) { container.innerHTML = '<div class="result-item">No results</div>'; return; }
+  if (!pageItems.length) { container.innerHTML = '<div class="result-card">No results</div>'; return; }
   pageItems.forEach((r, idx) =>{
       const globalIndex = start + idx;
       const div = document.createElement('div');
@@ -380,8 +380,9 @@
         const idx = Number(link.dataset.index);
         const row = Array.isArray(window.lastFiltered) ? window.lastFiltered[idx] : null;
         const name = row && (row['Composer'] || row.Composer || row.composer) ? (row['Composer'] || row.Composer || row.composer) : '';
-        // toggle inline details beneath this result (columns L..R)
-        const resultItem = link.closest('.result-item');
+  // toggle inline details beneath this result (columns L..R)
+  // NOTE: result cards use the .result-card class
+  const resultItem = link.closest('.result-card');
         if (!resultItem) { populateComposerBox(name, row || {}); return; }
         const existing = resultItem.nextElementSibling;
         if (existing && existing.classList && existing.classList.contains('inline-details') && existing.dataset.forIndex == String(idx)){
@@ -407,9 +408,9 @@
       });
     });
 
-    // remove bottom border on last item (support both result-card and legacy result-item)
+    // remove bottom border on last item (target .result-card)
     try{
-      const items = Array.from(container.children).filter(n => n.classList && (n.classList.contains('result-card') || n.classList.contains('result-item')));
+      const items = Array.from(container.children).filter(n => n.classList && n.classList.contains('result-card'));
       if (items.length){ items[items.length-1].style.borderBottom = 'none'; }
     }catch(_){ }
 
@@ -858,7 +859,7 @@
 
   (async function init(){
     try{
-      const resultsList = document.getElementById('results-list'); if (resultsList) resultsList.innerHTML = '<div class="result-item"><em>Loading results…</em></div>';
+      const resultsList = document.getElementById('results-list'); if (resultsList) resultsList.innerHTML = '<div class="result-card"><em>Loading results…</em></div>';
   const fc = document.getElementById('filter-country'); if (fc) fc.innerHTML = '<div style="color:#6b7280">Loading…</div>';
   const fd = document.getElementById('filter-decade'); if (fd) fd.innerHTML = '<div style="color:#6b7280">Loading…</div>';
   const ft = document.getElementById('filter-type'); if (ft) ft.innerHTML = '<div style="color:#6b7280">Loading…</div>';
