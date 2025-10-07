@@ -772,6 +772,15 @@
       const qinputEl = document.getElementById('qinput'); if (qinputEl) qinputEl.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { window.currentPage = 1; window.loadResults(); } });
       try{ window.populateComposerBox('', null); }catch(_){ }
       await window.loadResults();
+      // mobile footer toolbar wiring
+      try{
+        const mfFilters = document.getElementById('mf-filters');
+        const mfCenter = document.getElementById('mf-center');
+        const mfComposers = document.getElementById('mf-composers');
+        if (mfFilters) mfFilters.addEventListener('click', ()=>{ const el = document.getElementById('panel-left'); if (el) el.scrollIntoView({behavior:'smooth', block:'center'}); });
+        if (mfCenter) mfCenter.addEventListener('click', ()=>{ const el = document.getElementById('panel-center'); if (el) el.scrollIntoView({behavior:'smooth', block:'center'}); });
+        if (mfComposers) mfComposers.addEventListener('click', ()=>{ window.location.href = '/composers'; });
+      }catch(_){ }
       // no autotest/debug behavior in production
     }catch(e){ const resultsEl = document.getElementById('results'); if (resultsEl) resultsEl.innerText = 'Initialization failed: ' + String(e); console.error('Initialization failed', e); }
   })();
