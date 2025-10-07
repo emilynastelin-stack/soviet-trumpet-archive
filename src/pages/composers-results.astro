@@ -1,629 +1,337 @@
----
----
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Composers results - Archive of Soviet Trumpet Music</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
     <style>
-    :root { --accent:#8b0000; --muted:#6b7280; --bg:#f7f9fc; }
-    * { box-sizing:border-box; }
-    body {
-      font-family: Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      margin: 0;
-      color: #0f172a;
-      background-color: var(--bg);
-      background-image: none;
-      padding-bottom: 64px; /* reserve space for fixed footer */
-      padding-top: 112px; /* reserve space for fixed header + search strip */
-    }
+      :root { --accent: #8b0000; --muted: #6b7280; }
+      body {
+        font-family: Inter, system-ui, sans-serif;
+        background: #f9fafb;
+        margin: 0;
+        padding: 20px;
+        color: #111827;
+      }
 
-    header {
-      background:white; 
-      border-bottom:1px solid #e6e9ef; 
-      position:sticky; 
-      top:0; 
-      z-index:1000; /* ensure header sits above overlays */
-      height:64px; /* explicit height so search strip can sit flush below */
-      display:flex; align-items:center;
-    }
+      .three-panels {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+      }
 
-  /* Header: span full width so title can be flush left; language selector sits flush right via flex */
-  /* header container: remove vertical padding so search strip sits flush */
-  header .container { width:100%; max-width:none; margin:0; padding:0 20px; }
-  /* top title absolutely flush left (no left padding) */
-  #navEnglish { display:inline-block; padding-left:0; }
-    .container { max-width:1100px; margin:0 auto; padding:20px; }
+      .panel {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 6px 12px rgba(15,23,42,0.06);
+      }
 
-    .nav { display:flex; align-items:center; gap:18px; }
-  .logo { font-weight:800; color:var(--accent); font-size:20px; }
-  .logo a { color:inherit; text-decoration:none; display:inline-flex; gap:8px; align-items:center; }
-  .logo a:focus { outline:3px solid rgba(139,0,0,0.12); border-radius:6px; }
-    .nav-english { color:var(--accent); font-weight:800; }
-    .nav-pipe { color:#000; margin:0 8px; }
-    .nav-russian { color:var(--muted); }
+      .left-panel, .right-panel {
+        width: 220px;
+      }
 
-    /* language toggle */
-    .lang-toggle { position:relative; display:inline-block; margin-right:12px; }
-    .lang-btn { background:transparent; border:1px solid #e6e9ef; padding:6px 8px; border-radius:6px; cursor:pointer; font-weight:600; }
-    .lang-dropdown { position:absolute; top:100%; right:0; background:white; border:1px solid #e6e9ef; border-radius:6px; padding:6px; box-shadow:0 6px 18px rgba(16,24,40,0.06); display:none; min-width:140px; }
-    .lang-dropdown.open { display:block; }
-    .lang-option { padding:6px 8px; cursor:pointer; }
-    .lang-option:hover { background:#f3f4f6; }
+      .center-panel {
+        width: 800px;
+        min-height: 400px;
+      }
 
-    /* Hero & search panel (reduced to essentials used by results page) */
-    .search-bar { display:flex; gap:8px; padding:12px 20px; }
-    .search-input, #qinput { flex:1; padding:10px 12px; border-radius:8px; border:1px solid #e5e7eb; }
-    .search-cta, #qbtn { padding:10px 12px; border-radius:8px; background:var(--accent); color:white; border:none; font-weight:700; cursor:pointer; }
+      .panel-title {
+        margin: 0 0 12px 0;
+        font-weight: 700;
+        color: var(--accent);
+        font-size: 18px;
+      }
 
-  .filters { width:305px; }
-  .results { flex:1; }
-  .composer-box { width:345px; }
-    .section-divider { height:1px; background:#e6e9ef; margin:8px 0; }
+      .panel-divider {
+        height: 1px;
+        background: #e6e9ef;
+        margin: 8px 0 16px 0;
+      }
 
-  /* Fixed translucent search strip under the navbar */
-  .search-strip { position:fixed; left:0; right:0; top:64px; z-index:1400; background: rgba(128,128,128,0.75); padding:12px 0; }
-  .search-center { max-width:1100px; margin:0 auto; padding:0 20px; display:flex; align-items:center; gap:8px; box-sizing:border-box; }
-  .search-center #qinput { flex:1; padding:12px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.12); background:white; min-width:0; }
-  .search-center #qbtn { padding:12px 16px; border-radius:10px; background:var(--accent); color:white; border:none; font-weight:700; cursor:pointer; }
-  /* three horizontal panels below the search strip
-    Layout: full-width container with 20px side padding so
-    the left panel sits 20px from the left edge and the right
-    panel sits 20px from the right edge. Left/right panels
-    use fixed widths; center panel is fluid. */
-  .three-panels { display:flex; gap:16px; width:100%; margin:45px 0 0 0; padding:0 20px; box-sizing:border-box; }
-  /* left filter panel (anchored 20px from left) */
-  .three-panels .panel:first-child { width:270px; flex:0 0 270px; }
-  /* center results panel (flexible) */
-  .three-panels .panel:nth-child(2) { flex:1 1 auto; min-width:0; }
-  /* right composer panel (anchored 20px from right) */
-  .three-panels .panel:last-child { width:345px; flex:0 0 345px; }
-  .three-panels .panel { background:white; border-radius:8px; padding:16px; box-shadow:0 6px 12px rgba(15,23,42,0.06); min-height:140px; box-sizing:border-box; position:relative; z-index:1; }
-  /* Results item styling: separator line between entries and right-side details column */
-  .result-item { padding:12px 0; border-bottom:1px solid #e6e9ef; display:flex; justify-content:space-between; align-items:center; gap:12px; }
-  .result-item:last-child { border-bottom: none; }
-  /* Position details link at the upper-right of the item */
-  .result-item { position: relative; padding: 16px 0 20px 0; }
-  .result-item .result-main { flex:1 1 auto; margin-right:180px; }
-  .result-item .result-right { position: absolute; right:16px; top:12px; width:auto; flex:0 0 auto; text-align:right; color:#6b7280; font-size:0.95rem; display:flex; align-items:center; justify-content:flex-end; }
-  .result-item .details-link { color:var(--accent); text-decoration:none; font-weight:700; }
-  /* panel title + divider */
-  .panel-title { margin:0 0 8px; font-weight:700; color:var(--accent); font-size:16px; }
-  .panel-divider { height:1px; background:#e6e9ef; margin:8px 0 12px 0; }
-  /* pagination styles */
-  .pagination { display:flex; gap:8px; align-items:center; }
-  .pagination { background: #fff; padding:6px; border-radius:6px; color: #0f172a; }
-  /* New filter-panel styles */
-  .filter-panel {
-    width: 270px;
-    background: #f9fafb;
-    border-right: 1px solid #e5e7eb;
-    padding: 20px;
-    font-family: Inter, system-ui, sans-serif;
-  }
+      /* Result cards */
+      #results-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
 
-  .filter-title {
-    font-size: 18px;
-    font-weight: 700;
-    margin-bottom: 18px;
-    color: #1f2937;
-    border-bottom: 2px solid #e5e7eb;
-    padding-bottom: 6px;
-  }
+      .result-card {
+        background: #ffffff;
+        border-radius: 10px;
+        padding: 14px 16px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
 
-  .filter-box {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
+      .result-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      }
 
-  .filter-group {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    padding: 12px 10px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  }
+      .result-main {
+        flex: 1 1 auto;
+        margin-right: 12px;
+      }
 
-  .filter-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-  }
+      .result-main b {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--accent);
+      }
 
-  .filter-group h4 {
-    font-size: 15px;
-    font-weight: 600;
-    color: #111827;
-    margin: 0;
-  }
+      .result-right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
 
-  .filter-options {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    font-size: 14px;
-    color: #374151;
-  }
+      .result-right a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
 
-  .filter-options label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    padding: 4px 6px;
-    border-radius: 6px;
-    transition: background 0.15s ease;
-  }
+      .more-composer-btn {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 4px 8px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
 
-  .filter-options label:hover {
-    background: #f3f4f6;
-  }
+      .more-composer-btn:hover {
+        background: #5c0000;
+      }
 
-  input[type="checkbox"] {
-    accent-color: #2563eb;
-    width: 15px;
-    height: 15px;
-  }
+      /* Pagination */
+      .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 20px;
+        flex-wrap: wrap;
+      }
 
-  .filter-actions {
-    display: flex;
-    gap: 6px;
-  }
+      .page-btn {
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 1px solid #e6e9ef;
+        background: #fff;
+        color: #111827;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.2s;
+      }
 
-  .small-action {
-    background: none;
-    border: none;
-    color: #2563eb;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 2px 4px;
-    border-radius: 4px;
-  }
+      .page-btn:hover {
+        background: #f3f4f6;
+      }
 
-  .small-action:hover {
-    background: #e0e7ff;
-  }
-  .pagination .page-btn { display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:36px; padding:0 10px; border-radius:8px; border:1px solid #e6e9ef; background:#fff; color:#0f172a; cursor:pointer; font-weight:600; }
-  .pagination .page-btn:hover { background:#f3f4f6; }
-  .pagination .page-btn[aria-current="true"] { background:var(--accent); color:#fff; border-color:var(--accent); }
-  .pagination .page-ellipsis { padding:0 6px; color:var(--muted); }
-  .pagination .pager-controls { display:flex; gap:8px; align-items:center; }
+      .page-btn[aria-current="true"] {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
 
-  /* Result card styles for center panel */
-  .result-card { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:12px 14px; border-bottom:1px solid #eef2f6; }
-  .result-card .result-main { flex:1 1 auto; color:#0f172a; }
-  .result-card .result-main b { display:block; color:var(--accent); font-weight:700; margin-bottom:6px; }
-  .result-card .result-right { flex:0 0 auto; text-align:right; align-self:center; }
-  .result-card .result-right a { color:var(--accent); font-weight:700; text-decoration:none; }
+      .page-arrow {
+        font-weight: 700;
+        font-size: 14px;
+      }
 
-  /* Scoped center-panel styles to match requested design */
-  #panel-center { display: block; }
-  #panel-center .panel-title { font-size: 18px; margin-bottom: 12px; }
-  #panel-center .panel-divider { margin-bottom: 16px; }
-  #panel-center #results-list { display:flex; flex-direction:column; gap:12px; }
-  #panel-center .result-card { background:#fff; border-radius:10px; padding:14px 16px; box-shadow:0 1px 4px rgba(0,0,0,0.08); transition:transform 0.2s ease, box-shadow 0.2s ease; }
-  #panel-center .result-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
-  #panel-center .result-main { flex:1 1 auto; margin-right:12px; }
-  #panel-center .result-main b { display:block; margin-bottom:4px; }
-  #panel-center .result-right { display:flex; align-items:center; gap:8px; }
-  #panel-center .more-composer-btn { background:var(--accent); color:#fff; border:0; border-radius:6px; padding:6px 8px; font-size:0.8rem; font-weight:700; cursor:pointer; }
-  #panel-center .more-composer-btn:hover { background:#5c0000; }
-  #panel-center .pagination { justify-content:center; margin-top:20px; }
+      /* Composer details */
+      #composer-content {
+        font-size: 0.95rem;
+      }
 
-    /* Fixed footer bar locked to viewport (shared with main site) */
-    #fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#8b0000; color:white; z-index:1200; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
-    .fixed-footer-inner { width:100%; max-width:none; margin:0; padding:0 20px; display:flex; gap:12px; justify-content:space-between; align-items:center; }
-    .footer-left { display:flex; flex-direction:column; transform: translateY(-5px); }
-    .footer-left .title { font-weight:700; color:white; font-size:16px; line-height:1.1; padding:12px 0 0 0; margin-left:0; }
-    .footer-left .subtitle { color:rgba(255,255,255,0.8); font-size:13px; margin-top:0; margin-left:0; padding-left:0; }
-    .fixed-footer-center { flex:1; display:flex; align-items:center; justify-content:center; transform: translateY(-3px); }
-    .fixed-footer-center .links { color:white; font-size:13px; text-align:center; }
-    .fixed-footer-center .links a { color:inherit; text-decoration:none; margin:0 8px; }
-    .fixed-footer-right { display:flex; align-items:center; justify-content:flex-end; min-width:220px; transform: translateY(-3px); }
-    .fixed-footer-right .copyright { color:rgba(255,255,255,0.9); font-size:13px; }
+      #composer-content b {
+        color: var(--accent);
+      }
 
-    @media (max-width:900px) { .grid { grid-template-columns:repeat(2,1fr); } }
-    @media (max-width:600px) { .grid{grid-template-columns:1fr;} .search-row{flex-direction:column;} .container{padding:14px;} }
+      /* Filter styles */
+      .filter-group {
+        margin-bottom: 16px;
+      }
 
-    /* Mobile toolbar overlaying footer (visible on small screens, full-width) */
-    .mobile-footer-toolbar { display:none; }
-    @media (max-width:600px) {
-      .mobile-footer-toolbar { display:flex; position:fixed; left:0; right:0; bottom:0; box-sizing:border-box; height:56px; background:rgba(255,255,255,0.98); align-items:center; justify-content:space-between; padding:0 calc(12px + env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)); gap:12px; z-index:2000; box-shadow:0 -6px 18px rgba(11,15,30,0.08); backdrop-filter: blur(6px); margin:0; }
-      .mobile-footer-toolbar .mf-btn { flex:0 0 auto; border:1px solid #e6e9ef; background:#fff; padding:8px 12px; border-radius:10px; font-weight:700; color:var(--accent); }
-      /* make hamburger inline on the bar (no red circular center) */
-      .mobile-footer-toolbar .mf-center { position:static; transform:none; width:auto; height:auto; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; background:transparent; color:var(--accent); box-shadow:none; border:1px solid #e6e9ef; padding:8px 12px; }
-      /* ensure toolbar overlays footer */
-      #fixed-footer { z-index:1300; }
-      /* make room for toolbar so content isn't hidden */
-      body { padding-bottom: calc(64px + 56px); }
-    }
+      .filter-group label {
+        display: block;
+        margin-bottom: 4px;
+        font-weight: 600;
+      }
 
-    /* hide fixed footer on mobile to avoid duplicate chrome */
-    @media (max-width:600px) { #fixed-footer { display: none !important; } }
+      .filter-group select {
+        width: 100%;
+        padding: 6px 8px;
+        border-radius: 6px;
+        border: 1px solid #d1d5db;
+      }
 
-    /* Make header and search strip adapt to small screens */
-    @media (max-width:600px) {
-      header .container { padding: 10px 14px; }
-      .search-strip { top:64px; }
-      /* limit total search control width to screen width minus 30px (15px padding each side) */
-      .search-center { padding: 0; max-width: none; width: calc(100% - 30px); margin: 0 15px; }
-      .search-center #qinput { border-radius:8px; width:100%; min-width:0; }
-      .search-center #qbtn { flex: 0 0 auto; }
-    }
-
-    /* On small screens collapse the left and right panels; open as overlays when requested */
-    @media (max-width:600px) {
-      /* hide the side panels in the main layout so center takes full width */
-      .three-panels .panel:first-child, .three-panels .panel:last-child { display: none !important; }
-      .three-panels { margin-top: 28px; }
-      .three-panels .panel:nth-child(2) { width:100%; padding-bottom: 120px; }
-
-      /* full-screen overlay for mobile panels */
-      .mobile-overlay { display: none; position: fixed; inset: 0; z-index: 2200; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); }
-      .mobile-overlay.open { display: block; }
-      .mobile-overlay .overlay-inner { position: absolute; left: 0; right: 0; top: 64px; bottom: 56px; margin: 0; background: white; overflow: auto; padding: 16px; box-sizing: border-box; will-change: transform, opacity; transform: translateY(8px); opacity: 0; transition: transform 200ms ease, opacity 200ms ease; border-top-left-radius: 12px; border-top-right-radius:12px; }
-      .mobile-overlay.open .overlay-inner { transform: translateY(0); opacity: 1; }
-      .mobile-overlay .overlay-close { position: absolute; right: 12px; top: 72px; z-index: 2300; border: 0; background: #fff; border-radius: 8px; padding: 8px 10px; box-shadow: 0 6px 12px rgba(0,0,0,0.08); }
-    }
-
-    /* swipe menu (left-side sliding) */
-    .mobile-swipe-menu { display:none; position:fixed; inset:0; z-index:2100; pointer-events:none; }
-    .mobile-swipe-menu[aria-hidden="false"] { display:block; pointer-events:auto; }
-    .mobile-swipe-menu .swipe-inner { position:absolute; left:0; top:64px; bottom:56px; width:84%; max-width:380px; background:white; transform:translateX(-8%); opacity:0; transition:transform 220ms ease, opacity 220ms ease; box-shadow: 6px 0 18px rgba(0,0,0,0.12); border-top-right-radius:12px; border-bottom-right-radius:12px; overflow:auto; }
-    .mobile-swipe-menu[aria-hidden="false"] .swipe-inner { transform:translateX(0); opacity:1; }
-    .swm-close { position:absolute; right:10px; top:8px; }
-    .swm-item { display:block; width:100%; text-align:left; margin:8px 0; padding:10px 12px; border-radius:8px; border:1px solid #e6e9ef; background:#fff; }
-
-  /* background overlay removed for now */
-  /* background overlay: ensure it sits behind content and doesn't intercept clicks */
-  #bg-overlay { position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
-  #bg-overlay img { position:absolute; left:0; top:0; width:100vw; height:100vh; object-fit:cover; will-change:left,top,width,height; pointer-events:none; }
-  .search-panel, .search-panel.fixed, .search-cta, .search-input, .cta-row a, .lang-btn, .lang-dropdown, .filters select, .small-btn, .reset-btn { position:relative; z-index:2000; pointer-events:auto; }
     </style>
   </head>
   <body>
-    <!-- background overlay removed -->
-  <header style="position:fixed;left:0;right:0;top:0;z-index:1500;background:white;">
-    <div class="container nav" style="display:flex;justify-content:space-between;align-items:center">
-      <div class="logo">
-        <a href="/composers" aria-label="Back to composers" title="Back to composers">
-          <span class="nav-english" id="navEnglish">Archive of Soviet Trumpet Music</span>
-          <span class="nav-pipe">|</span>
-          <span class="nav-russian" id="navRussian" lang="ru" style="font-family: 'Segoe UI', 'Noto Sans', Arial, sans-serif;">Архив советской трубной музыки</span>
-        </a>
-      </div>
-      <div class="lang-toggle" id="langToggle">
-        <button class="lang-btn" id="langBtn">EN ▾</button>
-        <div class="lang-dropdown" id="langDropdown">
-          <div class="lang-option" data-locale="en">English</div>
-          <div class="lang-option" data-locale="de">Deutsch</div>
+
+    <div class="three-panels">
+      <!-- Left Panel: Filters -->
+      <div class="panel left-panel">
+        <h3 class="panel-title">Filters</h3>
+        <div class="panel-divider"></div>
+
+        <div class="filter-group">
+          <label for="filter-gender">Gender</label>
+          <select id="filter-gender" onchange="applyFilters()">
+            <option value="">All</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="filter-decade">Decade</label>
+          <select id="filter-decade" onchange="applyFilters()">
+            <option value="">All</option>
+            <option value="1950s">1950s</option>
+            <option value="1960s">1960s</option>
+            <option value="1970s">1970s</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label for="filter-country">Country</label>
+          <select id="filter-country" onchange="applyFilters()">
+            <option value="">All</option>
+            <option value="Russia">Russia</option>
+            <option value="Armenia">Armenia</option>
+            <option value="Georgia">Georgia</option>
+          </select>
         </div>
       </div>
-    </div>
-  </header>
-  <script>
-    // Force English locale on this results page to keep filter labels consistent
-    try{ localStorage.setItem('locale','en'); }catch(e){}
-  </script>
-    <!-- fixed translucent search strip centered under the navbar (flush with nav) -->
-    <div class="search-strip" aria-hidden="false">
-      <div class="search-center">
-        <input id="qinput" type="text" placeholder="Search composers, countries, or pieces..." />
-        <button id="qbtn">Search</button>
-      </div>
-    </div>
-    <!-- three horizontal panels, 20px below the search strip -->
-    <div class="three-panels" role="region" aria-label="Quick panels">
-      <aside class="panel filter-panel" id="panel-left">
-        <h3 class="filter-title">Filters</h3>
 
-        <div class="filter-box">
-
-          <!-- COUNTRY -->
-          <div class="filter-group" data-group="country">
-            <div class="filter-header">
-              <h4>Country</h4>
-              <div class="filter-actions"></div>
-            </div>
-            <div class="filter-options" id="filter-country">
-              <label><input type="checkbox" value="Russia" data-val="Russia"> Russia</label>
-              <label><input type="checkbox" value="Ukraine" data-val="Ukraine"> Ukraine</label>
-              <label><input type="checkbox" value="Belarus" data-val="Belarus"> Belarus</label>
-              <label><input type="checkbox" value="Armenia" data-val="Armenia"> Armenia</label>
-              <label><input type="checkbox" value="Georgia" data-val="Georgia"> Georgia</label>
-              <label><input type="checkbox" value="Latvia" data-val="Latvia"> Latvia</label>
-              <label><input type="checkbox" value="Estonia" data-val="Estonia"> Estonia</label>
-              <label><input type="checkbox" value="Lithuania" data-val="Lithuania"> Lithuania</label>
-              <label><input type="checkbox" value="Kazakhstan" data-val="Kazakhstan"> Kazakhstan</label>
-              <label><input type="checkbox" value="Uzbekistan" data-val="Uzbekistan"> Uzbekistan</label>
-              <label><input type="checkbox" value="Other" data-val="Other"> Other</label>
-            </div>
-                 <div class="filter-actions">
-                   <button class="small-action select-all">Select all</button>
-                   <button class="small-action clear-all">Clear all</button>
-                 </div>
-          </div>
-
-          <!-- REPUBLIC -->
-          <div class="filter-group" data-group="republic">
-            <div class="filter-header">
-              <h4>Soviet Republic</h4>
-              <div class="filter-actions"></div>
-            </div>
-            <div class="filter-options" id="filter-republic">
-              <label><input type="checkbox" value="Russian SFSR" data-val="Russian SFSR"> Russian SFSR</label>
-              <label><input type="checkbox" value="Ukrainian SSR" data-val="Ukrainian SSR"> Ukrainian SSR</label>
-              <label><input type="checkbox" value="Byelorussian SSR" data-val="Byelorussian SSR"> Byelorussian SSR</label>
-              <label><input type="checkbox" value="Armenian SSR" data-val="Armenian SSR"> Armenian SSR</label>
-              <label><input type="checkbox" value="Georgian SSR" data-val="Georgian SSR"> Georgian SSR</label>
-              <label><input type="checkbox" value="Latvian SSR" data-val="Latvian SSR"> Latvian SSR</label>
-              <label><input type="checkbox" value="Estonian SSR" data-val="Estonian SSR"> Estonian SSR</label>
-              <label><input type="checkbox" value="Lithuanian SSR" data-val="Lithuanian SSR"> Lithuanian SSR</label>
-              <label><input type="checkbox" value="Kazakh SSR" data-val="Kazakh SSR"> Kazakh SSR</label>
-              <label><input type="checkbox" value="Uzbek SSR" data-val="Uzbek SSR"> Uzbek SSR</label>
-              <label><input type="checkbox" name="republic" value="North Ossetian ASSR" data-val="North Ossetian ASSR"> North Ossetian ASSR</label>
-              <label><input type="checkbox" name="republic" value="Chuvash ASSR" data-val="Chuvash ASSR"> Chuvash ASSR</label>
-              <label><input type="checkbox" name="republic" value="Mari ASSR" data-val="Mari ASSR"> Mari ASSR</label>
-              <label><input type="checkbox" name="republic" value="Tartar ASSR" data-val="Tartar ASSR"> Tartar ASSR</label>
-              <label><input type="checkbox" name="republic" value="Tuvan ASSR" data-val="Tuvan ASSR"> Tuvan ASSR</label>
-              <label><input type="checkbox" value="Other" data-val="Other"> Other</label>
-            </div>
-          
-                <div class="filter-actions">
-                   <button class="small-action select-all">Select all</button>
-                   <button class="small-action clear-all">Clear all</button>
-                 </div>
-          </div>
-
-          <!-- DECADE -->
-          <div class="filter-group" data-group="decade">
-            <div class="filter-header">
-              <h4>Decade</h4>
-              <div class="filter-actions"></div>
-            </div>
-            <div class="filter-options" id="filter-decade">
-              <label><input type="checkbox" value="1920s" data-val="1920s"> 1920s</label>
-              <label><input type="checkbox" value="1930s" data-val="1930s"> 1930s</label>
-              <label><input type="checkbox" value="1940s" data-val="1940s"> 1940s</label>
-              <label><input type="checkbox" value="1950s" data-val="1950s"> 1950s</label>
-              <label><input type="checkbox" value="1960s" data-val="1960s"> 1960s</label>
-              <label><input type="checkbox" value="1970s" data-val="1970s"> 1970s</label>
-              <label><input type="checkbox" value="1980s" data-val="1980s"> 1980s</label>
-            </div>
-                 <div class="filter-actions">
-                   <button class="small-action select-all">Select all</button>
-                   <button class="small-action clear-all">Clear all</button>
-                 </div>
-          </div>
-
-          <!-- GENDER -->
-          <div class="filter-group" data-group="gender">
-            <div class="filter-header">
-              <h4>Gender</h4>
-              <div class="filter-actions"></div>
-            </div>
-            <div class="filter-options" id="filter-gender">
-              <label><input type="checkbox" value="Male" data-val="Male"> Male</label>
-              <label><input type="checkbox" value="Female" data-val="Female"> Female</label>
-              <label><input type="checkbox" value="Other" data-val="Other"> Other</label>
-            </div>
-                 <div class="filter-actions">
-                   <button class="small-action select-all">Select all</button>
-                   <button class="small-action clear-all">Clear all</button>
-                 </div>
-          </div>
-
-          <!-- TYPE -->
-          <div class="filter-group" data-group="type">
-            <div class="filter-header">
-              <h4>Type of Piece</h4>
-              <div class="filter-actions"></div>
-            </div>
-            <div class="filter-options" id="filter-type">
-              <label><input type="checkbox" value="Concert Piece" data-val="Concert Piece"> Concert Piece</label>
-              <label><input type="checkbox" value="Concerto/Concertino" data-val="Concerto/Concertino"> Concerto/Concertino</label>
-              <label><input type="checkbox" value="Fantasy/Variations" data-val="Fantasy/Variations"> Fantasy/Variations</label>
-              <label><input type="checkbox" value="Poem" data-val="Poem"> Poem</label>
-              <label><input type="checkbox" value="Scherzo" data-val="Scherzo"> Scherzo</label>
-              <label><input type="checkbox" value="Sonata/Sonatina" data-val="Sonata/Sonatina"> Sonata/Sonatina</label>
-            </div>
-                 <div class="filter-actions">
-                   <button class="small-action select-all">Select all</button>
-                   <button class="small-action clear-all">Clear all</button>
-                 </div>
-          </div>
-
-        </div>
-      </aside>
-      <div class="panel" id="panel-center" style="width:800px;">
+      <!-- Center Panel: Results -->
+      <div class="panel center-panel">
         <h3 class="panel-title">Results</h3>
         <div class="panel-divider"></div>
 
         <div id="results-list">
-          <!-- Result Card Template: client will replace placeholders with actual data -->
-          <div class="result-card">
-            <div class="result-main">
-              <b>[A]</b>
-              [J] ([K])
-            </div>
-            <div class="result-right"><a href="#">View</a></div>
-          </div>
-
-          <div class="result-card">
-            <div class="result-main">
-              <b>[A]</b>
-              [J] ([K])
-            </div>
-            <div class="result-right"><a href="#">View</a></div>
-          </div>
-
-          <div class="result-card">
-            <div class="result-main">
-              <b>[A]</b>
-              [J] ([K])
-            </div>
-            <div class="result-right"><a href="#">View</a></div>
-          </div>
+          <!-- Result cards dynamically inserted here -->
         </div>
 
-        <!-- Pagination (static template; client may replace this) -->
-        <div class="pagination" style="margin-top:12px;">
-          <button class="page-btn page-arrow">&lt;</button>
-          <button class="page-btn" aria-current="true">1</button>
-          <button class="page-btn">2</button>
-          <button class="page-btn">3</button>
-          <span class="page-ellipsis">…</span>
-          <button class="page-btn">10</button>
-          <button class="page-btn page-arrow">&gt;</button>
+        <div class="pagination" id="pagination">
+          <!-- Pagination buttons dynamically inserted here -->
         </div>
       </div>
-      <div class="panel" id="panel-right">
-        <h3 class="panel-title">Composer information</h3>
+
+      <!-- Right Panel: Composer Details -->
+      <div class="panel right-panel">
+        <h3 class="panel-title">Composer Details</h3>
         <div class="panel-divider"></div>
-        <div id="composer-content" style="margin-top:8px">Select a result to view composer details.</div>
-        <!-- Dedicated container for "More from this composer" so the client can toggle it
-             without being overwritten when #composer-content is replaced. -->
-        <div id="more-from-composer" style="margin-top:16px; display:none;"></div>
-        <div style="margin-top:12px;">
-          <button id="clear-composer" style="display:none;padding:6px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear composer</button>
-        </div>
-      </div>
-    </div>
-    <!-- background overlay (moved to page top) -->
-
-    <!-- Background adjustment control removed -->
-
-    <!-- duplicate bottom search bar removed -->
-
-    <!-- main content is now presented inside the three panels above -->
-
-    <div id="fixed-footer" role="contentinfo">
-  <div class="fixed-footer-inner" style="display:flex;justify-content:space-between;align-items:center;padding:2px 20px;">
-          <div class="footer-left">
-          <div class="title">Archive of Soviet Trumpet Music</div>
-          <div class="subtitle">Архив советской трубной музыки</div>
-        </div>
-        <div class="fixed-footer-center">
-          <div class="links"><a href="/about">About</a> <a href="#">Contact</a> <a href="#">Help</a></div>
-        </div>
-        <div class="fixed-footer-right"><div class="copyright">© 2025 Archive of Soviet Trumpet Music</div></div>
-      </div>
-    </div>
-
-    <!-- Mobile toolbar: Filters | Hamburger menu (center) | Composers -->
-    <div class="mobile-footer-toolbar" id="mobileFooterToolbar" aria-hidden="false">
-      <button class="mf-btn" id="mf-filters">Filters</button>
-      <button class="mf-center" id="mf-hamburger" aria-label="Menu" aria-expanded="false">☰</button>
-      <button class="mf-btn" id="mf-composers">Composers</button>
-    </div>
-
-    <!-- Left-edge swipe menu overlay (sliding panel) -->
-    <div id="mobile-swipe-menu" class="mobile-swipe-menu" aria-hidden="true">
-      <div class="swipe-inner" role="menu" aria-label="Quick menu">
-        <button id="swm-close" class="swm-close">Close</button>
-        <div style="padding:12px">
-          <button id="swm-filters" class="swm-item">Filters</button>
-          <button id="swm-composers" class="swm-item">Composers</button>
-          <button id="swm-home" class="swm-item">Home</button>
+        <div id="composer-content">
+          Click a composer for details.
         </div>
       </div>
     </div>
 
-  <script src="/composers-results.client.js?v=2" defer></script>
-    <!-- Inline loader and fallback pagination removed; external client script will render pagination controls -->
     <script>
-    // Diagnostic: fetch the client script and show a banner with its version so we can tell what the browser received
-    (function(){
-      try{
-        const banner = document.createElement('div');
-        banner.id = 'cr-serve-diagnostic';
-        banner.style.position = 'fixed';
-        banner.style.left = '12px';
-        banner.style.top = '108px';
-        banner.style.zIndex = '99999';
-        banner.style.background = '#fff5f5';
-        banner.style.color = '#5c0000';
-        banner.style.padding = '8px 10px';
-        banner.style.border = '1px solid #fca5a5';
-        banner.style.borderRadius = '6px';
-        banner.style.fontSize = '13px';
-        banner.textContent = 'Diagnostic: checking client script...';
-        document.body.appendChild(banner);
-        fetch('/composers-results.client.js?v=2', { cache: 'no-store' }).then(r=> r.text()).then(txt=>{
-          const ok = txt && txt.indexOf('client: loaded (v2)') !== -1;
-          banner.textContent = ok ? 'Diagnostic: OK — client v2 served' : 'Diagnostic: MISMATCH — client v2 NOT found';
-          banner.style.background = ok ? '#ecfdf5' : '#fff1f2';
-          banner.style.color = ok ? '#065f46' : '#7f1d1d';
-          banner.style.borderColor = ok ? '#bbf7d0' : '#fecaca';
-        }).catch(e=>{ banner.textContent = 'Diagnostic: error fetching script: ' + String(e); banner.style.background = '#fff7ed'; banner.style.color = '#92400e'; banner.style.borderColor = '#fed7aa'; });
-      }catch(e){ console.warn('diagnostic failed', e); }
-    })();
-    </script>
-  <body>
-    <!-- background overlay (behind everything) -->
-    <div id="bg-overlay" aria-hidden="true">
-      <img id="bg-img" src="https://i.imgur.com/o8mycA8.png" alt="" />
-    </div>
-    <script>
-    // Select All / Clear All for filter groups — dispatches change events and triggers loadResults
-    document.addEventListener('DOMContentLoaded', () => {
-      document.querySelectorAll('.filter-group').forEach(group => {
-        const selectAll = group.querySelector('.select-all');
-        const clearAll = group.querySelector('.clear-all');
-        const checks = Array.from(group.querySelectorAll('input[type="checkbox"]'));
-        const dispatchChange = (el) => { try{ const ev = new Event('change', { bubbles: true }); el.dispatchEvent(ev); }catch(_){ try{ const ev2 = document.createEvent('HTMLEvents'); ev2.initEvent('change', true, false); el.dispatchEvent(ev2); }catch(_){}} };
-        const applyAndNotify = (val) => { checks.forEach(c => { c.checked = val; dispatchChange(c); }); try{ if (window && typeof window.loadResults === 'function'){ window.currentPage = 1; window.loadResults(); } }catch(_){ } };
-        if (selectAll) selectAll.addEventListener('click', (e) => { e.preventDefault(); applyAndNotify(true); });
-        if (clearAll) clearAll.addEventListener('click', (e) => { e.preventDefault(); applyAndNotify(false); });
-      });
-    });
-    </script>
-    <script>
-    // Republic-change fallback: if the main client runtime provides window.loadResults, call it.
-    // Otherwise perform a minimal /api/sheets fetch + filter by the 'Soviet republic' column and render basic results.
-    document.addEventListener('DOMContentLoaded', ()=>{
-      const esc = (s)=> String(s==null? '': s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-      const getCheckedRepublics = ()=> Array.from(document.querySelectorAll('#filter-republic input[type=checkbox]:checked')).map(cb=> decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || '').trim()).filter(Boolean);
-      async function fallbackFilterAndRender(){
-        const checked = getCheckedRepublics();
-        if (typeof window.loadResults === 'function'){
-          // client runtime available and should handle filtering correctly
-          try{ window.currentPage = 1; window.loadResults(); }catch(e){ console.warn('loadResults call failed', e); }
-          return;
-        }
-        // fetch and do a minimal filter/render
-        try{
-          const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
-          const raw = await res.json().catch(()=>null);
-          const rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
-          const normalizedChecked = checked.map(c=> c.toLowerCase());
-          const filtered = (rows || []).filter(r => {
-            const val = ( (r && (r['Soviet republic'] || r['Soviet Republic'] || r['Republic'] || r['Republic/Region'])) || '' ).toString().toLowerCase();
-            if (!normalizedChecked.length) return true;
-            return normalizedChecked.some(sc => val.includes(sc));
-          });
-          const container = document.getElementById('results-list');
-          if (!container) return;
-          container.innerHTML = '';
-          if (!filtered.length){ container.innerHTML = '<div class="result-item">No results</div>'; return; }
-          const pageSize = window.PAGE_SIZE || 25;
-          filtered.slice(0, pageSize).forEach(r => {
-            const title = r.Title || r.Compositions || r.title || '';
-            const author = r['Composer'] || r.Composer || r.composer || '';
-            const div = document.createElement('div'); div.className = 'result-item';
-            div.innerHTML = `<div class="result-main"><h2>${esc(title)}</h2><p><strong>Composer:</strong> ${esc(author)}</p></div>`;
-            container.appendChild(div);
-          });
-        }catch(e){ console.error('Fallback republic filter failed', e); }
+      const pageSize = 10;
+      let currentPage = 1;
+      let allResults = [];
+      let filteredResults = [];
+
+      function loadResults(data) {
+        allResults = data;
+        filteredResults = [...allResults];
+        renderPage(currentPage);
       }
-      // attach listeners to static republic checkboxes
-      try{ document.querySelectorAll('#filter-republic input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ fallbackFilterAndRender(); })); }catch(e){}
-      // also run once on load to apply any pre-selected boxes
-      setTimeout(()=>{ try{ fallbackFilterAndRender(); }catch(_){} }, 50);
-    });
+
+      function renderPage(page) {
+        const start = (page - 1) * pageSize;
+        const end = start + pageSize;
+        const pageData = filteredResults.slice(start, end);
+
+        const resultsList = document.getElementById('results-list');
+        resultsList.innerHTML = '';
+
+        pageData.forEach(row => {
+          const card = document.createElement('div');
+          card.className = 'result-card';
+          card.innerHTML = `
+            <div class="result-main">
+              <b>${row.A}</b>
+              ${row.J} (${row.K})
+            </div>
+            <div class="result-right">
+              <a href="#">View</a>
+              <button class="more-composer-btn" onclick="filterByComposer('${row.A}')">
+                More from this composer
+              </button>
+            </div>
+          `;
+          resultsList.appendChild(card);
+        });
+
+        renderPagination();
+      }
+
+      function renderPagination() {
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+
+        const totalPages = Math.ceil(filteredResults.length / pageSize);
+
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'page-btn page-arrow';
+        prevBtn.innerHTML = '&lt;';
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.onclick = () => { currentPage--; renderPage(currentPage); };
+        pagination.appendChild(prevBtn);
+
+        for (let i = 1; i <= totalPages; i++) {
+          const btn = document.createElement('button');
+          btn.className = 'page-btn';
+          btn.innerText = i;
+          if (i === currentPage) btn.setAttribute('aria-current', 'true');
+          btn.onclick = () => { currentPage = i; renderPage(currentPage); };
+          pagination.appendChild(btn);
+        }
+
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'page-btn page-arrow';
+        nextBtn.innerHTML = '&gt;';
+        nextBtn.disabled = currentPage === totalPages;
+        nextBtn.onclick = () => { currentPage++; renderPage(currentPage); };
+        pagination.appendChild(nextBtn);
+      }
+
+      function filterByComposer(composerName) {
+        filteredResults = allResults.filter(r => r.A === composerName);
+        currentPage = 1;
+        renderPage(currentPage);
+      }
+
+      function applyFilters() {
+        const gender = document.getElementById('filter-gender').value;
+        const decade = document.getElementById('filter-decade').value;
+        const country = document.getElementById('filter-country').value;
+
+        filteredResults = allResults.filter(r => {
+          return (!gender || r.Gender === gender)
+              && (!decade || r.Decade === decade)
+              && (!country || r.Country === country);
+        });
+
+        currentPage = 1;
+        renderPage(currentPage);
+      }
+
+      // Load data from Apps Script server
+      google.script.run.withSuccessHandler(loadResults).getComposerData();
     </script>
+
+  </body>
+</html>
