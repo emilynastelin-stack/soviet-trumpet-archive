@@ -22,6 +22,9 @@
       padding-top: 112px; /* reserve space for fixed header + search strip */
     }
 
+    /* Ensure the fixed footer is visible on all screen sizes (override mobile-only rules) */
+    #fixed-footer { display: block !important; visibility: visible !important; z-index: 99999 !important; }
+
     header {
       background:white; 
       border-bottom:1px solid #e6e9ef; 
@@ -319,13 +322,33 @@
       .mobile-footer-toolbar .mf-center { position:static; transform:none; width:auto; height:auto; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; background:transparent; color:var(--accent); box-shadow:none; border:1px solid #e6e9ef; padding:8px 12px; }
   /* ensure toolbar overlays footer */
   /* Fixed footer: bring in the same styling used on the main composers page */
-  footer { margin-top:40px; padding:36px 0; background:transparent; }
+  footer { margin-top:40px; padding:36px 0; }
   /* Fixed footer bar locked to viewport (shared with main site) */
   /* Fixed footer: always visible and above other overlays */
-  #fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#8b0000; color:white; z-index:99999; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 calc(8px + env(safe-area-inset-bottom, 0px)) 0; }
-  /* Force-hide the mobile toolbar so it doesn't cover the fixed footer on small screens */
-  .mobile-footer-toolbar { display: none !important; }
-  .fixed-footer-inner { width:100%; max-width:none; margin:0; padding:0 20px; display:flex; gap:12px; justify-content:space-between; align-items:center; }
+  #fixed-footer { position:fixed; left:0; right:0; bottom:0; background-color:#8b0000 !important; color:white !important; z-index:99999; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 calc(8px + env(safe-area-inset-bottom, 0px)) 0; display:block; visibility:visible; }
+  /* On small screens we hide the desktop header and the fixed footer
+     and show compact mobile replacements (topbar + mobile toolbar). */
+  /* Remove the hard-hide so the mobile toolbar can be used as the footer replacement. */
+  /* The existing mobile toolbar styles above will take effect at <=600px. */
+
+  /* Desktop footer remains visible by default; on mobile it will be hidden. */
+  /* We define explicit mobile rules below to ensure predictable layout. */
+  @media (max-width:600px) {
+    /* Hide the large desktop header and the fixed footer bar on small screens */
+    header { display: none !important; }
+    #fixed-footer { display: none !important; }
+
+    /* Show the mobile footer toolbar (replacement) */
+    .mobile-footer-toolbar { display: flex !important; }
+
+    /* Reserve room for the mobile topbar + search strip so content isn't hidden */
+    body { padding-top: calc(56px + 64px); }
+
+    /* Mini mobile topbar (defined below in markup) will be shown */
+    .mobile-topbar { display: flex !important; }
+  }
+  /* center the footer content to match site layout and keep a comfortable max width */
+  .fixed-footer-inner { width:100%; max-width:1100px; margin:0 auto; padding:8px 20px; display:flex; gap:12px; justify-content:space-between; align-items:center; }
   .footer-grid { display:flex; gap:24px; flex-wrap:wrap; }
   .footer-left { display:flex; flex-direction:column; transform: translateY(-5px); }
   .footer-left .title { font-weight:700; color:white; font-size:16px; line-height:1.1; padding:12px 0 0 0; margin-left:0; }
@@ -402,6 +425,14 @@
       </div>
     </div>
   </header>
+  <!-- Mobile topbar: compact replacement for desktop header on narrow screens -->
+  <div class="mobile-topbar" aria-hidden="true" style="display:none; position:fixed; left:0; right:0; top:0; height:56px; z-index:1600; background:#fff; border-bottom:1px solid #eee; align-items:center; padding:0 12px;">
+    <div style="display:flex; align-items:center; gap:10px; width:100%; max-width:1100px; margin:0 auto;">
+      <button id="mtb-menu" aria-label="Open menu" style="border:0;background:transparent;font-size:20px;">☰</button>
+      <div style="flex:1; font-weight:700; color:var(--accent);">Archive of Soviet Trumpet Music</div>
+      <button id="mtb-search" aria-label="Search" style="border:0;background:transparent;font-size:18px;">🔍</button>
+    </div>
+  </div>
   <script>
     // Force English locale on this results page to keep filter labels consistent
     try{ localStorage.setItem('locale','en'); }catch(e){}
@@ -607,8 +638,8 @@
 
     <!-- main content is now presented inside the three panels above -->
 
-    <div id="fixed-footer" aria-hidden="false" role="contentinfo" tabindex="0">
-      <div class="fixed-footer-inner">
+  <div id="fixed-footer" aria-hidden="false" role="contentinfo" tabindex="0" style="display:block; visibility:visible; z-index:99999; background:#8b0000; color:#fff;">
+    <div class="fixed-footer-inner" style="max-width:1100px; margin:0 auto; padding:8px 20px; display:flex; justify-content:space-between; align-items:center;">
       <div class="footer-left">
         <div class="title">Archive of Soviet Trumpet Music</div>
         <div class="subtitle">Архив советской трубной музыки</div>
@@ -773,5 +804,57 @@
       try{ document.querySelectorAll('#filter-republic input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ fallbackFilterAndRender(); })); }catch(e){}
       // also run once on load to apply any pre-selected boxes
       setTimeout(()=>{ try{ fallbackFilterAndRender(); }catch(_){} }, 50);
+    });
+    </script>
+    <script>
+    // Mobile wiring: connect compact topbar and bottom toolbar to overlays and search
+    document.addEventListener('DOMContentLoaded', function(){
+      try{
+        const mtbMenu = document.getElementById('mtb-menu');
+        const mtbSearch = document.getElementById('mtb-search');
+        const mfFilters = document.getElementById('mf-filters');
+        const mfHamb = document.getElementById('mf-hamburger');
+        const mfComposers = document.getElementById('mf-composers');
+        const mobileSwipe = document.getElementById('mobile-swipe-menu');
+        const mobileOverlay = document.querySelector('.mobile-overlay');
+        const panelLeft = document.getElementById('panel-left');
+        const panelRight = document.getElementById('panel-right');
+
+        function openSwipe(){ if(mobileSwipe) mobileSwipe.setAttribute('aria-hidden','false'); }
+        function closeSwipe(){ if(mobileSwipe) mobileSwipe.setAttribute('aria-hidden','true'); }
+
+        if(mtbMenu) mtbMenu.addEventListener('click', function(e){ e.preventDefault(); openSwipe(); });
+        const swmClose = document.getElementById('swm-close');
+        if(swmClose) swmClose.addEventListener('click', function(){ closeSwipe(); });
+
+        if(mtbSearch) mtbSearch.addEventListener('click', function(e){ e.preventDefault(); const q = document.getElementById('qinput'); if(q){ q.focus(); window.scrollTo({ top: 0, behavior: 'smooth' }); } });
+
+        // Overlay helpers
+        function openOverlayWith(html){
+          if(!mobileOverlay) return;
+          mobileOverlay.classList.add('open');
+          mobileOverlay.setAttribute('aria-hidden','false');
+          const inner = mobileOverlay.querySelector('.overlay-inner');
+          if(inner){ inner.innerHTML = html; }
+        }
+        function closeOverlay(){ if(!mobileOverlay) return; mobileOverlay.classList.remove('open'); mobileOverlay.setAttribute('aria-hidden','true'); }
+        // wire any overlay-close buttons that may be dynamically created
+        document.addEventListener('click', function(ev){ if(ev.target && ev.target.matches && ev.target.matches('.overlay-close')){ ev.preventDefault(); closeOverlay(); } });
+
+        if(mfFilters) mfFilters.addEventListener('click', function(e){ e.preventDefault(); if(panelLeft) openOverlayWith(panelLeft.innerHTML); });
+        if(mfComposers) mfComposers.addEventListener('click', function(e){ e.preventDefault(); if(panelRight) openOverlayWith(panelRight.innerHTML); });
+
+        // quick menu inside swipe menu
+        const swmFilters = document.getElementById('swm-filters');
+        const swmComposers = document.getElementById('swm-composers');
+        if(swmFilters) swmFilters.addEventListener('click', function(e){ e.preventDefault(); closeSwipe(); if(panelLeft) openOverlayWith(panelLeft.innerHTML); });
+        if(swmComposers) swmComposers.addEventListener('click', function(e){ e.preventDefault(); closeSwipe(); if(panelRight) openOverlayWith(panelRight.innerHTML); });
+
+        // Keep mobile-topbar visible only on small screens
+        const mobileTopbar = document.querySelector('.mobile-topbar');
+        function updateMobileTopbar(){ if(!mobileTopbar) return; if(window.innerWidth <= 600){ mobileTopbar.setAttribute('aria-hidden','false'); } else { mobileTopbar.setAttribute('aria-hidden','true'); } }
+        updateMobileTopbar(); window.addEventListener('resize', updateMobileTopbar);
+
+      }catch(e){ console.warn('mobile wiring failed', e); }
     });
     </script>

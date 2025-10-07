@@ -114,10 +114,10 @@
     @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
     .results-count { font-weight:600; }
 
-  footer { margin-top:40px; padding:36px 0; background:transparent; }
+  footer { margin-top:40px; padding:36px 0; }
   /* Fixed footer: larger height, left-aligned site title with subtitle, resources on the right */
   /* Reduced padding to shrink overall footer height by 20px (was 18px) */
-  #fixed-footer { position:fixed; left:0; right:0; bottom:0; background:#8b0000; color:white; z-index:1200; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
+  #fixed-footer { position:fixed; left:0; right:0; bottom:0; background-color:#8b0000; color:white; z-index:1200; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
   /* make footer inner span the full viewport so left content can be flush to edge */
   .fixed-footer-inner { width:100%; max-width:none; margin:0; padding:0 20px; display:flex; gap:12px; justify-content:space-between; align-items:center; }
   .footer-grid { display:flex; gap:24px; flex-wrap:wrap; }
@@ -230,6 +230,14 @@
       </div>
     </div>
   </header>
+  <!-- Mobile topbar: compact replacement for desktop header on narrow screens -->
+  <div class="mobile-topbar" aria-hidden="true" style="display:none; position:fixed; left:0; right:0; top:0; height:56px; z-index:1600; background:#fff; border-bottom:1px solid #eee; align-items:center; padding:0 12px;">
+    <div style="display:flex; align-items:center; gap:10px; width:100%; max-width:1100px; margin:0 auto;">
+      <button id="mtb-menu" aria-label="Open menu" style="border:0;background:transparent;font-size:20px;">☰</button>
+      <div style="flex:1; font-weight:700; color:var(--accent);">Archive of Soviet Trumpet Music</div>
+      <button id="mtb-search" aria-label="Search" style="border:0;background:transparent;font-size:18px;">🔍</button>
+    </div>
+  </div>
   <!-- translucent centered box that spans the full page height -->
   <div class="tint-box">
   <!-- mast: centered image placed inside the tint box -->
@@ -325,5 +333,179 @@
       </div>
     </div>
 </div>
+
+  <!-- Mobile toolbar: Filters | Hamburger menu (center) | Composers -->
+  <div class="mobile-footer-toolbar" id="mobileFooterToolbar" aria-hidden="false" style="display:none;">
+    <button class="mf-btn" id="mf-filters">Filters</button>
+    <button class="mf-center" id="mf-hamburger" aria-label="Menu" aria-expanded="false">☰</button>
+    <button class="mf-btn" id="mf-composers">Composers</button>
+  </div>
+
+  <!-- Left-edge swipe menu overlay (sliding panel) -->
+  <div id="mobile-swipe-menu" class="mobile-swipe-menu" aria-hidden="true">
+    <div class="swipe-inner" role="menu" aria-label="Quick menu">
+      <button id="swm-close" class="swm-close">Close</button>
+      <div style="padding:12px">
+        <button id="swm-filters" class="swm-item">Filters</button>
+        <button id="swm-composers" class="swm-item">Composers</button>
+        <button id="swm-home" class="swm-item">Home</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile overlay container used to render filters / composer info on mobile -->
+  <div class="mobile-overlay" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="overlay-inner"></div>
+    <button class="overlay-close">Close</button>
+  </div>
+
+  <script>
+    // Mobile wiring for composers page: reuse handlers from composers-results page pattern
+    document.addEventListener('DOMContentLoaded', function(){
+      try{
+        const mtbMenu = document.getElementById('mtb-menu');
+        const mtbSearch = document.getElementById('mtb-search');
+        const mfFilters = document.getElementById('mf-filters');
+        const mfComposers = document.getElementById('mf-composers');
+        const mobileSwipe = document.getElementById('mobile-swipe-menu');
+        const mobileOverlay = document.querySelector('.mobile-overlay');
+        const filtersPanel = document.querySelector('.filters');
+        const resultsPanel = document.getElementById('results');
+
+        function openSwipe(){ if(mobileSwipe) mobileSwipe.setAttribute('aria-hidden','false'); }
+        function closeSwipe(){ if(mobileSwipe) mobileSwipe.setAttribute('aria-hidden','true'); }
+        const swmClose = document.getElementById('swm-close'); if(swmClose) swmClose.addEventListener('click', closeSwipe);
+        if(mtbMenu) mtbMenu.addEventListener('click', function(e){ e.preventDefault(); openSwipe(); });
+
+        if(mtbSearch) mtbSearch.addEventListener('click', function(e){ e.preventDefault(); const q = document.getElementById('q'); if(q){ q.focus(); window.scrollTo({ top: 0, behavior: 'smooth' }); } });
+
+        // Clone-based overlays: preserves original DOM, rebinds inputs back when closed,
+        // and installs a focus trap for accessibility.
+        const overlays = new Map(); // which -> { overlay, clone, panel, prevFocus, releaseTrap }
+        const focusableSelector = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+        const buildOverlay = (which, ariaLabel) => {
+          const overlayId = 'mobile-overlay-' + which;
+          let overlay = document.getElementById(overlayId);
+          if (overlay) return overlay;
+          overlay = document.querySelector('.mobile-overlay');
+          if (!overlay) {
+            overlay = document.createElement('div'); overlay.className = 'mobile-overlay'; document.body.appendChild(overlay);
+          }
+          overlay.id = overlayId;
+          overlay.setAttribute('role','dialog'); overlay.setAttribute('aria-modal','true'); overlay.setAttribute('aria-label', ariaLabel || (which + ' panel'));
+          const inner = overlay.querySelector('.overlay-inner');
+          if (!inner) {
+            const div = document.createElement('div'); div.className = 'overlay-inner'; overlay.appendChild(div);
+          }
+          const closeBtn = overlay.querySelector('.overlay-close') || (()=>{ const b = document.createElement('button'); b.className='overlay-close'; b.textContent='Close'; overlay.appendChild(b); return b; })();
+          closeBtn.addEventListener('click', ()=> { closeOverlay(which); });
+          return overlay;
+        };
+
+        const clonePanelIntoOverlay = (which, triggerEl) => {
+          const panelId = which === 'filters' ? 'panel-left' : 'panel-right';
+          const panel = document.getElementById(panelId);
+          if (!panel) return null;
+          const overlay = buildOverlay(which, which === 'filters' ? 'Filters' : 'Composer information');
+          const inner = overlay.querySelector('.overlay-inner');
+          // remove any previous clone
+          const existing = overlays.get(which);
+          if (existing && existing.clone) { try{ existing.clone.parentNode && existing.clone.parentNode.removeChild(existing.clone); }catch(_){ } }
+          // deep clone the panel content
+          const clone = panel.cloneNode(true);
+          clone.classList.add('mobile-overlay-clone');
+          // remove ids in clone to avoid duplicates
+          Array.from(clone.querySelectorAll('[id]')).forEach(n => n.removeAttribute('id'));
+          inner.innerHTML = ''; inner.appendChild(clone);
+          overlays.set(which, { overlay, clone, panel, trigger: triggerEl });
+          return { overlay, clone, panel };
+        };
+
+        const syncInputsBack = (clone, panel) => {
+          if (!clone || !panel) return;
+          const cloneInputs = Array.from(clone.querySelectorAll('input,textarea,select'));
+          cloneInputs.forEach(cn => {
+            const name = cn.name || cn.getAttribute('data-val') || cn.getAttribute('data-name') || cn.getAttribute('value') || null;
+            let target = null;
+            if (name) target = panel.querySelector(`[name="${CSS.escape(name)}"]`) || panel.querySelector(`[data-val="${CSS.escape(name)}"]`) || panel.querySelector(`[data-name="${CSS.escape(name)}"]`);
+            if (!target){ const inputs = Array.from(panel.querySelectorAll('input,textarea,select')); const idx = Array.from(clone.querySelectorAll('input,textarea,select')).indexOf(cn); if (inputs[idx]) target = inputs[idx]; }
+            if (!target) return;
+            try{
+              if (target.type === 'checkbox' || target.type === 'radio') target.checked = cn.checked;
+              else target.value = cn.value;
+              target.dispatchEvent(new Event('input', { bubbles: true }));
+              target.dispatchEvent(new Event('change', { bubbles: true }));
+            }catch(_){ }
+          });
+        };
+
+        const trapFocus = (overlay) => {
+          if (!overlay) return null;
+          const inner = overlay.querySelector('.overlay-inner');
+          const focusable = Array.from(inner.querySelectorAll(focusableSelector)).filter(n => !n.hasAttribute('disabled'));
+          const first = focusable[0] || inner;
+          const last = focusable[focusable.length-1] || first;
+          const handler = (e) => {
+            if (e.key !== 'Tab') return;
+            if (focusable.length === 0){ e.preventDefault(); return; }
+            if (e.shiftKey){ if (document.activeElement === first){ e.preventDefault(); last.focus(); } }
+            else { if (document.activeElement === last){ e.preventDefault(); first.focus(); } }
+          };
+          document.addEventListener('keydown', handler);
+          return () => { document.removeEventListener('keydown', handler); };
+        };
+
+        const openOverlay = (which, triggerEl) => {
+          const res = clonePanelIntoOverlay(which, triggerEl) || {};
+          const overlay = res.overlay;
+          if (!overlay) return;
+          overlay.classList.add('open');
+          const prevFocus = document.activeElement;
+          const state = overlays.get(which) || {}; state.prevFocus = prevFocus; overlays.set(which, state);
+          document.body.style.overflow = 'hidden';
+          setTimeout(()=>{ try{ const inner = overlay.querySelector('.overlay-inner'); const focusable = inner.querySelectorAll(focusableSelector); if (focusable && focusable.length) focusable[0].focus(); else inner.focus(); }catch(_){ } }, 60);
+          const releaseTrap = trapFocus(overlay);
+          overlays.get(which).releaseTrap = releaseTrap;
+        };
+
+        const closeOverlay = (which) => {
+          const state = overlays.get(which);
+          if (!state) return;
+          const { overlay, clone, panel, prevFocus, releaseTrap } = state;
+          try{ syncInputsBack(clone, panel); }catch(_){ }
+          try{ overlay.classList.remove('open'); }catch(_){ }
+          try{ document.body.style.overflow = ''; }catch(_){ }
+          try{
+            const inner = overlay.querySelector('.overlay-inner');
+            const onEnd = () => { try{ if (clone && clone.parentNode) clone.parentNode.removeChild(clone); }catch(_){} try{ if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); }catch(_){} if (releaseTrap) try{ releaseTrap(); }catch(_){ } if (prevFocus && prevFocus.focus) try{ prevFocus.focus(); }catch(_){ }; overlay.removeEventListener('transitionend', onEnd); };
+            overlay.addEventListener('transitionend', onEnd);
+            setTimeout(onEnd, 350);
+          }catch(_){ if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); if (releaseTrap) try{ releaseTrap(); }catch(_){ } if (prevFocus && prevFocus.focus) try{ prevFocus.focus(); }catch(_){ } }
+          overlays.delete(which);
+        };
+
+        const closeAllOverlays = ()=>{ Array.from(overlays.keys()).forEach(k=> closeOverlay(k)); };
+
+        // wire toolbar buttons with clone-overlay behavior on mobile
+        if (mfFilters) mfFilters.addEventListener('click', function(ev){ ev.preventDefault(); if (window.innerWidth <= 600){ openOverlay('filters', mfFilters); } else { if (filtersPanel) filtersPanel.scrollIntoView({behavior:'smooth', block:'center'}); } });
+        if (mfComposers) mfComposers.addEventListener('click', function(ev){ ev.preventDefault(); if (window.innerWidth <= 600){ openOverlay('composer', mfComposers); } else { window.location.href = '/composers'; } });
+
+        // swipe menu quick actions
+        const swmFilters = document.getElementById('swm-filters'); const swmComposers = document.getElementById('swm-composers');
+        if (swmFilters) swmFilters.addEventListener('click', function(ev){ ev.preventDefault(); closeSwipe(); if (window.innerWidth <= 600){ openOverlay('filters', swmFilters); } else { if (filtersPanel) filtersPanel.scrollIntoView({behavior:'smooth', block:'center'}); } });
+        if (swmComposers) swmComposers.addEventListener('click', function(ev){ ev.preventDefault(); closeSwipe(); if (window.innerWidth <= 600){ openOverlay('composer', swmComposers); } else { window.location.href = '/composers'; } });
+
+        // close overlays on escape and tap-outside
+        document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') closeAllOverlays(); });
+        document.addEventListener('click', (e)=>{ const open = document.querySelector('.mobile-overlay.open'); if (!open) return; const inner = open.querySelector('.overlay-inner'); if (!inner) return; if (!inner.contains(e.target) && !e.target.classList.contains('mf-btn') && !e.target.classList.contains('mf-center')){ closeAllOverlays(); } }, true);
+
+        const mobileTopbar = document.querySelector('.mobile-topbar');
+        function updateMobileTopbar(){ if(!mobileTopbar) return; if(window.innerWidth <= 600){ mobileTopbar.setAttribute('aria-hidden','false'); } else { mobileTopbar.setAttribute('aria-hidden','true'); } }
+        updateMobileTopbar(); window.addEventListener('resize', updateMobileTopbar);
+
+      }catch(e){ console.warn('mobile wiring (composers) failed', e); }
+    });
+  </script>
 </body>
 </html>
