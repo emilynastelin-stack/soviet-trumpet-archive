@@ -1,4 +1,5 @@
 ---
+import ComposersPage from "../components/ComposersPage.jsx";
 ---
 <!doctype html>
 <html lang="en">
@@ -94,6 +95,9 @@
   .result-item .result-main { flex:1 1 auto; margin-right:180px; }
   .result-item .result-right { position: absolute; right:16px; top:12px; width:auto; flex:0 0 auto; text-align:right; color:#6b7280; font-size:0.95rem; display:flex; align-items:center; justify-content:flex-end; }
   .result-item .details-link { color:var(--accent); text-decoration:none; font-weight:700; }
+  /* Make the small 'About this composer' label look and behave like a clickable control (visual only) */
+  .about-label, .about-badge { background: transparent; border: 0; padding: 0; margin: 0 6px 0 0; color: #6b7280; font-size:0.95rem; cursor: pointer; display: inline-block; }
+  .about-label:active, .about-badge:active { transform: translateY(1px); opacity: 0.9; }
   /* panel title + divider */
   .panel-title { margin:0 0 8px; font-weight:700; color:var(--accent); font-size:16px; }
   .panel-divider { height:1px; background:#e6e9ef; margin:8px 0 12px 0; }
@@ -200,14 +204,7 @@
   .pagination .pager-controls { display:flex; gap:8px; align-items:center; }
 
   /* Result card styles for center panel */
-  <div class="panel">
-  <h3 class="panel-title">Results</h3>
-  <div class="panel-divider"></div>
-
-  <div id="results-list"></div>
-
-  <div class="pagination" id="pagination"></div>
-</div>
+  /* Result card styles for center panel */
 
 <script>
   // Example data
@@ -316,8 +313,8 @@
     /* Mobile toolbar overlaying footer (visible on small screens, full-width) */
     .mobile-footer-toolbar { display:none; }
     @media (max-width:600px) {
-      .mobile-footer-toolbar { display:flex; position:fixed; left:0; right:0; bottom:0; box-sizing:border-box; height:56px; background:rgba(255,255,255,0.98); align-items:center; justify-content:space-between; padding:0 calc(12px + env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)); gap:12px; z-index:2000; box-shadow:0 -6px 18px rgba(11,15,30,0.08); backdrop-filter: blur(6px); margin:0; }
-      .mobile-footer-toolbar .mf-btn { flex:0 0 auto; border:1px solid #e6e9ef; background:#fff; padding:8px 12px; border-radius:10px; font-weight:700; color:var(--accent); }
+  .mobile-footer-toolbar { display:flex; position:fixed; left:0; right:0; bottom:0; box-sizing:border-box; height:56px; background:rgba(255,255,255,0.98); align-items:center; justify-content:space-between; padding:0 calc(12px + env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)); gap:12px; z-index:100001; box-shadow:0 -6px 18px rgba(11,15,30,0.08); backdrop-filter: blur(6px); margin:0; pointer-events:auto; }
+  .mobile-footer-toolbar .mf-btn { flex:0 0 auto; border:1px solid #e6e9ef; background:#fff; padding:8px 12px; border-radius:10px; font-weight:700; color:var(--accent); cursor:pointer; }
       /* make hamburger inline on the bar (no red circular center) */
       .mobile-footer-toolbar .mf-center { position:static; transform:none; width:auto; height:auto; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; background:transparent; color:var(--accent); box-shadow:none; border:1px solid #e6e9ef; padding:8px 12px; }
   /* ensure toolbar overlays footer */
@@ -425,12 +422,10 @@
       </div>
     </div>
   </header>
-  <!-- Mobile topbar: compact replacement for desktop header on narrow screens -->
-  <div class="mobile-topbar" aria-hidden="true" style="display:none; position:fixed; left:0; right:0; top:0; height:56px; z-index:1600; background:#fff; border-bottom:1px solid #eee; align-items:center; padding:0 12px;">
-    <div style="display:flex; align-items:center; gap:10px; width:100%; max-width:1100px; margin:0 auto;">
-      <button id="mtb-menu" aria-label="Open menu" style="border:0;background:transparent;font-size:20px;">☰</button>
-      <div style="flex:1; font-weight:700; color:var(--accent);">Archive of Soviet Trumpet Music</div>
-      <button id="mtb-search" aria-label="Search" style="border:0;background:transparent;font-size:18px;">🔍</button>
+  <!-- Mobile topbar: simple white bar with left-aligned title for small screens -->
+  <div class="mobile-topbar" aria-hidden="true">
+    <div class="mobile-topbar-inner">
+      <div class="mobile-title">Archive of Soviet Trumpet Music</div>
     </div>
   </div>
   <script>
@@ -458,17 +453,17 @@
               <div class="filter-actions"></div>
             </div>
             <div class="filter-options" id="filter-country">
-              <label><input type="checkbox" value="Russia" data-val="Russia"> Russia</label>
-              <label><input type="checkbox" value="Ukraine" data-val="Ukraine"> Ukraine</label>
-              <label><input type="checkbox" value="Belarus" data-val="Belarus"> Belarus</label>
-              <label><input type="checkbox" value="Armenia" data-val="Armenia"> Armenia</label>
-              <label><input type="checkbox" value="Georgia" data-val="Georgia"> Georgia</label>
-              <label><input type="checkbox" value="Latvia" data-val="Latvia"> Latvia</label>
-              <label><input type="checkbox" value="Estonia" data-val="Estonia"> Estonia</label>
-              <label><input type="checkbox" value="Lithuania" data-val="Lithuania"> Lithuania</label>
-              <label><input type="checkbox" value="Kazakhstan" data-val="Kazakhstan"> Kazakhstan</label>
-              <label><input type="checkbox" value="Uzbekistan" data-val="Uzbekistan"> Uzbekistan</label>
-              <label><input type="checkbox" value="Other" data-val="Other"> Other</label>
+              <label><input type="checkbox" name="country" value="Russia" data-val="Russia"> Russia</label>
+              <label><input type="checkbox" name="country" value="Ukraine" data-val="Ukraine"> Ukraine</label>
+              <label><input type="checkbox" name="country" value="Belarus" data-val="Belarus"> Belarus</label>
+              <label><input type="checkbox" name="country" value="Armenia" data-val="Armenia"> Armenia</label>
+              <label><input type="checkbox" name="country" value="Georgia" data-val="Georgia"> Georgia</label>
+              <label><input type="checkbox" name="country" value="Latvia" data-val="Latvia"> Latvia</label>
+              <label><input type="checkbox" name="country" value="Estonia" data-val="Estonia"> Estonia</label>
+              <label><input type="checkbox" name="country" value="Lithuania" data-val="Lithuania"> Lithuania</label>
+              <label><input type="checkbox" name="country" value="Kazakhstan" data-val="Kazakhstan"> Kazakhstan</label>
+              <label><input type="checkbox" name="country" value="Uzbekistan" data-val="Uzbekistan"> Uzbekistan</label>
+              <label><input type="checkbox" name="country" value="Other" data-val="Other"> Other</label>
             </div>
                  <div class="filter-actions">
                    <button class="small-action select-all">Select all</button>
@@ -483,22 +478,22 @@
               <div class="filter-actions"></div>
             </div>
             <div class="filter-options" id="filter-republic">
-              <label><input type="checkbox" value="Russian SFSR" data-val="Russian SFSR"> Russian SFSR</label>
-              <label><input type="checkbox" value="Ukrainian SSR" data-val="Ukrainian SSR"> Ukrainian SSR</label>
-              <label><input type="checkbox" value="Byelorussian SSR" data-val="Byelorussian SSR"> Byelorussian SSR</label>
-              <label><input type="checkbox" value="Armenian SSR" data-val="Armenian SSR"> Armenian SSR</label>
-              <label><input type="checkbox" value="Georgian SSR" data-val="Georgian SSR"> Georgian SSR</label>
-              <label><input type="checkbox" value="Latvian SSR" data-val="Latvian SSR"> Latvian SSR</label>
-              <label><input type="checkbox" value="Estonian SSR" data-val="Estonian SSR"> Estonian SSR</label>
-              <label><input type="checkbox" value="Lithuanian SSR" data-val="Lithuanian SSR"> Lithuanian SSR</label>
-              <label><input type="checkbox" value="Kazakh SSR" data-val="Kazakh SSR"> Kazakh SSR</label>
-              <label><input type="checkbox" value="Uzbek SSR" data-val="Uzbek SSR"> Uzbek SSR</label>
+              <label><input type="checkbox" name="republic" value="Russian SFSR" data-val="Russian SFSR"> Russian SFSR</label>
+              <label><input type="checkbox" name="republic" value="Ukrainian SSR" data-val="Ukrainian SSR"> Ukrainian SSR</label>
+              <label><input type="checkbox" name="republic" value="Byelorussian SSR" data-val="Byelorussian SSR"> Byelorussian SSR</label>
+              <label><input type="checkbox" name="republic" value="Armenian SSR" data-val="Armenian SSR"> Armenian SSR</label>
+              <label><input type="checkbox" name="republic" value="Georgian SSR" data-val="Georgian SSR"> Georgian SSR</label>
+              <label><input type="checkbox" name="republic" value="Latvian SSR" data-val="Latvian SSR"> Latvian SSR</label>
+              <label><input type="checkbox" name="republic" value="Estonian SSR" data-val="Estonian SSR"> Estonian SSR</label>
+              <label><input type="checkbox" name="republic" value="Lithuanian SSR" data-val="Lithuanian SSR"> Lithuanian SSR</label>
+              <label><input type="checkbox" name="republic" value="Kazakh SSR" data-val="Kazakh SSR"> Kazakh SSR</label>
+              <label><input type="checkbox" name="republic" value="Uzbek SSR" data-val="Uzbek SSR"> Uzbek SSR</label>
               <label><input type="checkbox" name="republic" value="North Ossetian ASSR" data-val="North Ossetian ASSR"> North Ossetian ASSR</label>
               <label><input type="checkbox" name="republic" value="Chuvash ASSR" data-val="Chuvash ASSR"> Chuvash ASSR</label>
               <label><input type="checkbox" name="republic" value="Mari ASSR" data-val="Mari ASSR"> Mari ASSR</label>
               <label><input type="checkbox" name="republic" value="Tartar ASSR" data-val="Tartar ASSR"> Tartar ASSR</label>
               <label><input type="checkbox" name="republic" value="Tuvan ASSR" data-val="Tuvan ASSR"> Tuvan ASSR</label>
-              <label><input type="checkbox" value="Other" data-val="Other"> Other</label>
+              <label><input type="checkbox" name="republic" value="Other" data-val="Other"> Other</label>
             </div>
           
                 <div class="filter-actions">
@@ -514,13 +509,13 @@
               <div class="filter-actions"></div>
             </div>
             <div class="filter-options" id="filter-decade">
-              <label><input type="checkbox" value="1920s" data-val="1920s"> 1920s</label>
-              <label><input type="checkbox" value="1930s" data-val="1930s"> 1930s</label>
-              <label><input type="checkbox" value="1940s" data-val="1940s"> 1940s</label>
-              <label><input type="checkbox" value="1950s" data-val="1950s"> 1950s</label>
-              <label><input type="checkbox" value="1960s" data-val="1960s"> 1960s</label>
-              <label><input type="checkbox" value="1970s" data-val="1970s"> 1970s</label>
-              <label><input type="checkbox" value="1980s" data-val="1980s"> 1980s</label>
+              <label><input type="checkbox" name="decade" value="1920s" data-val="1920s"> 1920s</label>
+              <label><input type="checkbox" name="decade" value="1930s" data-val="1930s"> 1930s</label>
+              <label><input type="checkbox" name="decade" value="1940s" data-val="1940s"> 1940s</label>
+              <label><input type="checkbox" name="decade" value="1950s" data-val="1950s"> 1950s</label>
+              <label><input type="checkbox" name="decade" value="1960s" data-val="1960s"> 1960s</label>
+              <label><input type="checkbox" name="decade" value="1970s" data-val="1970s"> 1970s</label>
+              <label><input type="checkbox" name="decade" value="1980s" data-val="1980s"> 1980s</label>
             </div>
                  <div class="filter-actions">
                    <button class="small-action select-all">Select all</button>
@@ -535,9 +530,9 @@
               <div class="filter-actions"></div>
             </div>
             <div class="filter-options" id="filter-gender">
-              <label><input type="checkbox" value="Male" data-val="Male"> Male</label>
-              <label><input type="checkbox" value="Female" data-val="Female"> Female</label>
-              <label><input type="checkbox" value="Other" data-val="Other"> Other</label>
+              <label><input type="checkbox" name="gender" value="Male" data-val="Male"> Male</label>
+              <label><input type="checkbox" name="gender" value="Female" data-val="Female"> Female</label>
+              <label><input type="checkbox" name="gender" value="Other" data-val="Other"> Other</label>
             </div>
                  <div class="filter-actions">
                    <button class="small-action select-all">Select all</button>
@@ -552,12 +547,12 @@
               <div class="filter-actions"></div>
             </div>
             <div class="filter-options" id="filter-type">
-              <label><input type="checkbox" value="Concert Piece" data-val="Concert Piece"> Concert Piece</label>
-              <label><input type="checkbox" value="Concerto/Concertino" data-val="Concerto/Concertino"> Concerto/Concertino</label>
-              <label><input type="checkbox" value="Fantasy/Variations" data-val="Fantasy/Variations"> Fantasy/Variations</label>
-              <label><input type="checkbox" value="Poem" data-val="Poem"> Poem</label>
-              <label><input type="checkbox" value="Scherzo" data-val="Scherzo"> Scherzo</label>
-              <label><input type="checkbox" value="Sonata/Sonatina" data-val="Sonata/Sonatina"> Sonata/Sonatina</label>
+              <label><input type="checkbox" name="type" value="Concert Piece" data-val="Concert Piece"> Concert Piece</label>
+              <label><input type="checkbox" name="type" value="Concerto/Concertino" data-val="Concerto/Concertino"> Concerto/Concertino</label>
+              <label><input type="checkbox" name="type" value="Fantasy/Variations" data-val="Fantasy/Variations"> Fantasy/Variations</label>
+              <label><input type="checkbox" name="type" value="Poem" data-val="Poem"> Poem</label>
+              <label><input type="checkbox" name="type" value="Scherzo" data-val="Scherzo"> Scherzo</label>
+              <label><input type="checkbox" name="type" value="Sonata/Sonatina" data-val="Sonata/Sonatina"> Sonata/Sonatina</label>
             </div>
                  <div class="filter-actions">
                    <button class="small-action select-all">Select all</button>
@@ -579,7 +574,7 @@
               <div class="meta">[J] ([K])</div>
             </div>
             <div class="result-right">
-              <a href="#" class="details-link">View</a>
+              <button type="button" class="about-label">About this composer</button>
               <button class="more-composer-btn">More from this composer</button>
             </div>
           </div>
@@ -590,7 +585,7 @@
               <div class="meta">[J] ([K])</div>
             </div>
             <div class="result-right">
-              <a href="#" class="details-link">View</a>
+              <div class="about-label" aria-hidden="true">About this composer</div>
               <button class="more-composer-btn">More from this composer</button>
             </div>
           </div>
@@ -601,7 +596,7 @@
               <div class="meta">[J] ([K])</div>
             </div>
             <div class="result-right">
-              <a href="#" class="details-link">View</a>
+              <div class="about-label" aria-hidden="true">About this composer</div>
               <button class="more-composer-btn">More from this composer</button>
             </div>
           </div>
@@ -647,8 +642,7 @@
       <div class="fixed-footer-center">
         <div class="links">
           <a href="/about">About</a>
-          <a href="#">Contact</a>
-          <a href="/sources">Sources</a>
+          <a href="/composers">Composers</a>
         </div>
       </div>
       <div class="fixed-footer-right">
@@ -657,11 +651,11 @@
     </div>
   </div>
 
-    <!-- Mobile toolbar: Filters | Hamburger menu (center) | Composers -->
+    <!-- Mobile toolbar: Filters | Hamburger menu (center) | Sources -->
     <div class="mobile-footer-toolbar" id="mobileFooterToolbar" aria-hidden="false">
       <button class="mf-btn" id="mf-filters">Filters</button>
       <button class="mf-center" id="mf-hamburger" aria-label="Menu" aria-expanded="false">☰</button>
-      <button class="mf-btn" id="mf-composers">Composers</button>
+  <!-- composers button removed -->
     </div>
 
     <!-- Left-edge swipe menu overlay (sliding panel) -->
@@ -669,7 +663,7 @@
       <div class="swipe-inner" role="menu" aria-label="Quick menu">
         <button id="swm-close" class="swm-close">Close</button>
         <div style="padding:12px">
-          <button id="swm-filters" class="swm-item">Filters</button>
+          <button id="swm-about" class="swm-item">About</button>
           <button id="swm-composers" class="swm-item">Composers</button>
           <button id="swm-home" class="swm-item">Home</button>
         </div>
@@ -685,6 +679,54 @@
       NOT the server page. The client script will insert nodes matching the
       .result-card/.result-main/.result-right structure defined above.
   -->
+  <script>
+    // Defensive shim: ensure a callable openComposerFromName exists before the heavy client loads.
+    // This lets static buttons immediately open a mobile overlay (fallback) so clicks don't appear to do nothing.
+    (function(){
+      try{
+        if (window && typeof window.openComposerFromName !== 'function'){
+          window.openComposerFromName = function(name, row){
+            try{
+              window.selectedComposer = String(name || '');
+              // populate a minimal composer-content if present
+              var content = document.getElementById('composer-content');
+              if (content) {
+                content.textContent = String(name || '');
+              }
+              // If small screen, clone/right-panel into a mobile overlay similar to client behavior
+              if (window.innerWidth <= 600){
+                if (!document.querySelector('.mobile-overlay.right')){
+                  var overlay = document.createElement('div');
+                  overlay.className = 'mobile-overlay right';
+                  overlay.setAttribute('role','dialog'); overlay.setAttribute('aria-modal','true');
+                  overlay.style.position = 'fixed'; overlay.style.inset = '0'; overlay.style.zIndex = '1990'; overlay.style.background = 'rgba(0,0,0,0.18)';
+                  var inner = document.createElement('div');
+                  inner.className = 'overlay-inner overlay-right-inner';
+                  inner.style.position = 'absolute'; inner.style.top = '0'; inner.style.bottom = '0'; inner.style.right = '0'; inner.style.left = 'auto';
+                  inner.style.width = 'min(92%, 420px)'; inner.style.maxWidth = '420px'; inner.style.zIndex = '1995'; inner.style.background = 'white'; inner.style.boxSizing = 'border-box'; inner.style.padding = '16px';
+                  // clone the right panel if present
+                  var panel = document.getElementById('panel-right');
+                  if (panel){
+                    var clone = panel.cloneNode(true);
+                    clone.id = 'panel-right-mobile-clone'; clone.classList.add('mobile-overlay-clone'); clone.style.margin = '0'; clone.style.padding = '0'; clone.style.width = '100%';
+                    inner.appendChild(clone);
+                  } else {
+                    inner.innerHTML = '<div style="padding:12px">Composer</div>';
+                  }
+                  overlay.appendChild(inner);
+                  document.body.appendChild(overlay);
+                  overlay.addEventListener('click', function(ev){ if (ev.target === overlay) overlay.remove(); });
+                }
+              } else {
+                var elp = document.getElementById('panel-right'); if (elp) elp.scrollIntoView({behavior:'smooth', block:'center'});
+              }
+              return true;
+            }catch(e){ return false; }
+          };
+        }
+      }catch(e){ /* ignore */ }
+    })();
+  </script>
   <script src="/composers-results.client.js?v=3" defer></script>
   <!-- Bridge script (below) provides a small shim for static buttons to call
        client-side filter functions. See the "filterByComposer" function. -->
@@ -771,31 +813,9 @@
                 <div style="margin-top:8px"><strong>Composer:</strong> ${esc(author)}</div>
                 ${republic ? `<div style="margin-top:6px;color:#6b7280;font-size:0.9rem">${esc(republic)}</div>` : ''}
               </div>
-              <div class="result-right"><a href="#" class="details-link">View</a></div>
+              <div class="result-right"></div>
             `;
-            // Minimal View handler for fallback: populate right panel with basic composer info
-              try{
-                const link = div.querySelector('.details-link');
-                if (link){
-                  link.addEventListener('click', (ev)=>{
-                    ev.preventDefault();
-                    try{
-                      const content = document.getElementById('composer-content');
-                      if (content) content.innerHTML = `<div><strong style="color:var(--accent)">${esc(author)}</strong><div style="margin-top:8px;color:#6b7280">${published ? esc(published) : ''}</div></div>`;
-                      const more = document.getElementById('more-from-composer');
-                      if (more){
-                        more.style.display = 'block';
-                        // Only set a lightweight placeholder if the container is empty.
-                        // This avoids clobbering the richer client-rendered content.
-                        if (!more.innerHTML || !more.innerHTML.trim()){
-                          more.innerHTML = `<div style="background:#fff;padding:10px;border-radius:8px;border:1px solid #eef2f6;"><strong>More from ${esc(author)}</strong><div style="margin-top:8px;color:#6b7280;font-size:0.95rem">Full composer details are available when the client runtime is enabled.</div></div>`;
-                          more.dataset.fallback = '1';
-                        }
-                      }
-                    }catch(_){ }
-                  });
-                }
-              }catch(_){ }
+            // No server-side 'View' anchor: the client runtime will render interactive controls
             container.appendChild(div);
           });
         }catch(e){ console.error('Fallback republic filter failed', e); }
@@ -807,54 +827,75 @@
     });
     </script>
     <script>
-    // Mobile wiring: connect compact topbar and bottom toolbar to overlays and search
-    document.addEventListener('DOMContentLoaded', function(){
-      try{
-        const mtbMenu = document.getElementById('mtb-menu');
-        const mtbSearch = document.getElementById('mtb-search');
-        const mfFilters = document.getElementById('mf-filters');
-        const mfHamb = document.getElementById('mf-hamburger');
-        const mfComposers = document.getElementById('mf-composers');
-        const mobileSwipe = document.getElementById('mobile-swipe-menu');
-        const mobileOverlay = document.querySelector('.mobile-overlay');
-        const panelLeft = document.getElementById('panel-left');
-        const panelRight = document.getElementById('panel-right');
+    // Mobile-only: open an empty right-side panel when a result card is clicked.
+    // This is intentionally visual-only: it creates a sliding panel from the right
+    // on small screens (<=600px) and provides a close button.
+    (function(){
+      function openEmptyRightPanel(){
+        if (document.querySelector('.mobile-overlay.right')) return;
+        var overlay = document.createElement('div');
+        overlay.className = 'mobile-overlay right';
+        overlay.setAttribute('role','dialog'); overlay.setAttribute('aria-modal','true');
+        overlay.style.position = 'fixed'; overlay.style.inset = '0'; overlay.style.zIndex = '1990'; overlay.style.background = 'rgba(0,0,0,0.18)';
+        var inner = document.createElement('div');
+        inner.className = 'overlay-inner overlay-right-inner';
+        inner.style.position = 'absolute'; inner.style.top = '0'; inner.style.bottom = '0'; inner.style.right = '0'; inner.style.left = 'auto';
+        inner.style.width = 'min(92%, 420px)'; inner.style.maxWidth = '420px'; inner.style.zIndex = '1995'; inner.style.background = 'white'; inner.style.boxSizing = 'border-box'; inner.style.padding = '12px';
+        // header with close
+        var header = document.createElement('div'); header.style.display = 'flex'; header.style.alignItems = 'center'; header.style.justifyContent = 'space-between';
+        var title = document.createElement('div'); title.textContent = '';
+        var closeBtn = document.createElement('button'); closeBtn.type = 'button'; closeBtn.innerHTML = '✕'; closeBtn.style.border = '0'; closeBtn.style.background = 'transparent'; closeBtn.style.fontSize = '1.1rem'; closeBtn.style.cursor = 'pointer';
+        closeBtn.addEventListener('click', function(){ try{ overlay.remove(); }catch(_){} });
+        header.appendChild(title); header.appendChild(closeBtn);
+        inner.appendChild(header);
+        // empty body area
+        var body = document.createElement('div'); body.style.minHeight = '40vh'; body.style.color = '#111'; inner.appendChild(body);
+        overlay.appendChild(inner);
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', function(ev){ if (ev.target === overlay) overlay.remove(); });
+      }
 
-        function openSwipe(){ if(mobileSwipe) mobileSwipe.setAttribute('aria-hidden','false'); }
-        function closeSwipe(){ if(mobileSwipe) mobileSwipe.setAttribute('aria-hidden','true'); }
+      document.addEventListener('click', function delegatedAboutClick(ev){
+        try{
+          // Only trigger when the click is inside the small 'about' control
+          var about = ev.target && ev.target.closest ? ev.target.closest('.about-label, .about-badge') : null;
+          if (!about) return;
+          if (window.innerWidth > 600) return; // only on mobile
+          ev.preventDefault && ev.preventDefault(); ev.stopPropagation && ev.stopPropagation();
+          // Try to discover the composer name from nearby DOM.
+          var composerName = '';
+          try{
+            var card = about.closest ? about.closest('.result-card') : null;
+            if (card){
+              var link = card.querySelector('.composer-link[data-name]') || card.querySelector('.composer-link');
+              if (link) composerName = (link.getAttribute && link.getAttribute('data-name')) || (link.textContent && link.textContent.trim()) || '';
+            }
+            // If not found in a result-card (React list), look for the composer-group heading
+            if (!composerName){
+              var group = about.closest ? about.closest('.composer-group') : null;
+              if (group){
+                var h = group.querySelector('h3'); if (h && h.textContent) composerName = h.textContent.trim();
+              }
+            }
+          }catch(_){ composerName = ''; }
 
-        if(mtbMenu) mtbMenu.addEventListener('click', function(e){ e.preventDefault(); openSwipe(); });
-        const swmClose = document.getElementById('swm-close');
-        if(swmClose) swmClose.addEventListener('click', function(){ closeSwipe(); });
-
-        if(mtbSearch) mtbSearch.addEventListener('click', function(e){ e.preventDefault(); const q = document.getElementById('qinput'); if(q){ q.focus(); window.scrollTo({ top: 0, behavior: 'smooth' }); } });
-
-        // Overlay helpers
-        function openOverlayWith(html){
-          if(!mobileOverlay) return;
-          mobileOverlay.classList.add('open');
-          mobileOverlay.setAttribute('aria-hidden','false');
-          const inner = mobileOverlay.querySelector('.overlay-inner');
-          if(inner){ inner.innerHTML = html; }
-        }
-        function closeOverlay(){ if(!mobileOverlay) return; mobileOverlay.classList.remove('open'); mobileOverlay.setAttribute('aria-hidden','true'); }
-        // wire any overlay-close buttons that may be dynamically created
-        document.addEventListener('click', function(ev){ if(ev.target && ev.target.matches && ev.target.matches('.overlay-close')){ ev.preventDefault(); closeOverlay(); } });
-
-        if(mfFilters) mfFilters.addEventListener('click', function(e){ e.preventDefault(); if(panelLeft) openOverlayWith(panelLeft.innerHTML); });
-        if(mfComposers) mfComposers.addEventListener('click', function(e){ e.preventDefault(); if(panelRight) openOverlayWith(panelRight.innerHTML); });
-
-        // quick menu inside swipe menu
-        const swmFilters = document.getElementById('swm-filters');
-        const swmComposers = document.getElementById('swm-composers');
-        if(swmFilters) swmFilters.addEventListener('click', function(e){ e.preventDefault(); closeSwipe(); if(panelLeft) openOverlayWith(panelLeft.innerHTML); });
-        if(swmComposers) swmComposers.addEventListener('click', function(e){ e.preventDefault(); closeSwipe(); if(panelRight) openOverlayWith(panelRight.innerHTML); });
-
-        // Keep mobile-topbar visible only on small screens
-        const mobileTopbar = document.querySelector('.mobile-topbar');
-        function updateMobileTopbar(){ if(!mobileTopbar) return; if(window.innerWidth <= 600){ mobileTopbar.setAttribute('aria-hidden','false'); } else { mobileTopbar.setAttribute('aria-hidden','true'); } }
-        updateMobileTopbar(); window.addEventListener('resize', updateMobileTopbar);
-
-      }catch(e){ console.warn('mobile wiring failed', e); }
-    });
+          // Prefer using the client helper if present so it populates real content.
+          if (composerName && window && typeof window.openComposerFromName === 'function'){
+            try{
+              var ok = window.openComposerFromName(composerName);
+              if (ok) return; // helper handled it
+            }catch(_){ }
+          }
+          // Fallback: open the empty overlay
+          openEmptyRightPanel();
+        }catch(_){ }
+      }, { capture: false });
+    })();
     </script>
+    
+    <!-- Hydrate the React ComposersPage client-side for debugging and to enable client-only behavior -->
+    <div id="composers-client-mount" style="display:none; visibility:hidden; width:0; height:0; overflow:hidden;">
+      <!-- This intentionally hydrates the React component offscreen so its useEffects run -->
+      <ComposersPage client:load />
+    </div>
+

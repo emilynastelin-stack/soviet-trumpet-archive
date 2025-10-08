@@ -42,7 +42,95 @@ function normalizeRow(raw){
 }
 export default function ComposersPage({ initialComposers = [], initialGender = 'Any' }){
   const [lang, setLang] = useState('en');
-  useEffect(() => { try { const v = window.localStorage.getItem('lang'); if (v) setLang(v); } catch (e) {} }, []);
+  // Local UI state for mobile composer panel (avoid relying only on globals)
+  const [composerPanel, setComposerPanel] = useState({ open: false, name: '' });
+  // track which composer button is being pressed for visual feedback
+  const [activeButton, setActiveButton] = useState(null);
+  // detect mobile on client only (avoid relying on window during SSR)
+  const [isMobile, setIsMobile] = useState(false);
+  // flag to indicate we are running on the client (hydration complete)
+  const [isClient, setIsClient] = useState(false);
+  useEffect(()=>{ try{ setIsClient(true); }catch(_){} }, []);
+  // Log when component hydrates on client so we can verify mounting
+  useEffect(()=>{
+    try{ console.log('[ComposersPage] mounted/hydrated, isClient=', isClient); }catch(_){}
+  }, [isClient]);
+  useEffect(() => {
+    if (!isClient) return;
+    function checkMobile(){ try{ setIsMobile(window.innerWidth <= 600); }catch(_){} }
+    try{ checkMobile(); window.addEventListener('resize', checkMobile); }catch(_){ }
+    return () => { try{ window.removeEventListener('resize', checkMobile); }catch(_){} };
+  }, []);
+
+  // Debug helper: capture-phase pointerdown logger to detect if taps are intercepted.
+  useEffect(()=>{
+    if (!isClient) return;
+    let calls = 0;
+    const maxCalls = 12;
+    let timeoutId = null;
+    function handler(e){
+      try{
+        calls += 1;
+        const el = e.target;
+        let outer = '';
+        try{ outer = el && el.outerHTML ? String(el.outerHTML).slice(0, 800) : String(el); }catch(_){ outer = String(el); }
+        // Use warn so it shows prominently in many consoles
+        console.warn('[composer-debug] pointerdown target snippet:', outer);
+        if (calls >= maxCalls){ document.removeEventListener('pointerdown', handler, true); console.warn('[composer-debug] removed pointerdown capture listener after max events'); if (timeoutId) clearTimeout(timeoutId); }
+      }catch(err){ console.warn('[composer-debug] handler error', err); }
+    }
+    try{
+      document.addEventListener('pointerdown', handler, true);
+      // safety: remove after 30s
+      timeoutId = setTimeout(()=>{ try{ document.removeEventListener('pointerdown', handler, true); console.warn('[composer-debug] removed pointerdown capture listener after timeout'); }catch(_){} }, 30000);
+    }catch(_){ }
+    return ()=>{ try{ document.removeEventListener('pointerdown', handler, true); if (timeoutId) clearTimeout(timeoutId); }catch(_){} };
+  }, []);
+  // Ensure global helper calls also open the React-managed composer panel.
+  // This wraps any existing `window.openComposerFromName` so third-party scripts
+  // (the heavier client runtime) can trigger the React overlay and we still
+  // preserve the original behavior.
+  useEffect(() => {
+    if (!isClient) return;
+    const orig = typeof window !== 'undefined' ? window.openComposerFromName : undefined;
+    // helper: wait for an element to exist (polling) before proceeding
+    function waitFor(selector, ms = 800){
+      const start = Date.now();
+      return new Promise((resolve) => {
+        (function check(){
+          try{ if (document.querySelector(selector)) return resolve(true); }catch(_){ }
+          if (Date.now() - start > ms) return resolve(false);
+          setTimeout(check, 40);
+        })();
+      });
+    }
+    try {
+      // install wrapper that opens the React panel then invokes original helper
+      window.openComposerFromName = function(name, row){
+        try{ setComposerPanel({ open: true, name: String(name || '') }); }catch(_){ }
+        // ensure the React-rendered #composer-content exists before calling the heavy runtime
+        (async function(){
+          try{
+            const ok = await waitFor('#composer-content', 1000);
+            if (ok && typeof orig === 'function') {
+              try{ orig(name, row); }catch(_){ }
+            } else if (!ok && typeof orig === 'function') {
+              // fallback: call after a short delay if element not found
+              try{ setTimeout(()=>{ try{ orig(name, row); }catch(_){} }, 120); }catch(_){}
+            }
+          }catch(_){ if (typeof orig === 'function') try{ orig(name, row); }catch(_){} }
+        })();
+        return true;
+      };
+    }catch(_){ }
+    return () => {
+      try{
+        if (typeof orig === 'function') window.openComposerFromName = orig;
+        else delete window.openComposerFromName;
+      }catch(_){ }
+    };
+  }, [isClient]);
+  useEffect(() => { if (!isClient) return; try { const v = window.localStorage.getItem('lang'); if (v) setLang(v); } catch (e) {} }, [isClient]);
   const translations = {
     en: { searchPlaceholder: 'Search (ignore diacritics)', showAll: 'Show all', compositions: 'Compositions', details: 'Details', all: 'All', unknown: 'Unknown' },
     ru: { searchPlaceholder: 'Поиск (игнорировать диакритику)', showAll: 'Показать все', compositions: 'Произведения', details: 'Подробнее', all: 'Все', unknown: 'Неизвестно' },
@@ -76,12 +164,13 @@ export default function ComposersPage({ initialComposers = [], initialGender = '
     return () => { mounted = false; };
   }, []);
   useEffect(()=>{
+    if (!isClient) return;
     function onPop(){
       try{ const u=new URL(window.location.href); setSelectedComposer(u.searchParams.get('composer')||''); setSelectedCountry(u.searchParams.get('country')||'All'); }catch(e){}
     }
     window.addEventListener('popstate', onPop);
     return ()=> window.removeEventListener('popstate', onPop);
-  },[]);
+  },[isClient]);
   const q = normalizeStr(query || '');
   const filtered = useMemo(() => data.filter(row => {
     if (selectedCountry && selectedCountry !== 'All') { const rc = normalizeStr(row.Country || ''); if (!rc.includes(normalizeStr(selectedCountry))) return false; }
@@ -97,6 +186,22 @@ export default function ComposersPage({ initialComposers = [], initialGender = '
     filtered.forEach(row => { const name = cleanCell(row.Composer || '') || t('unknown'); if (!map.has(name)) map.set(name, []); map.get(name).push(row); });
     return Array.from(map.entries()).map(([composer, rows]) => ({ composer, rows, titles: Array.from(new Set(rows.map(r => cleanCell(r['Title, Year'] || r.Title || '').trim()).filter(Boolean))) }));
   }, [filtered]);
+
+  // Selected group lookup using normalized comparison to avoid diacritics/spacing mismatches
+  const selectedGroup = useMemo(() => {
+    try{
+      if (!composerPanel || !composerPanel.name) return undefined;
+      const target = normalizeStr(composerPanel.name || '');
+      // Relax matching: allow partial/substring matches to handle diacritics,
+      // commas, and extra spacing (e.g. "Brandt" vs "Brandt, Vasily...")
+      const found = grouped.find(x => normalizeStr(x.composer || '').includes(target));
+      // Debugging aid when matching fails
+      if (!found) {
+        try{ console.debug('[ComposersPage] selectedGroup match failed', { requested: composerPanel.name, normalized: target, candidates: grouped.map(g=>g.composer).slice(0,30) }); }catch(_){}
+      }
+      return found;
+    }catch(_){ return undefined; }
+  }, [grouped, composerPanel?.name]);
   const composersList = useMemo(()=>{ const s=new Set(); data.forEach(r=>{ if(r.Composer) s.add(r.Composer); }); return ['All Composers', ...Array.from(s).sort((a,b)=>a.localeCompare(b))]; },[data]);
   const countriesList = useMemo(()=>{ const s=new Set(); data.forEach(r=>{ if(r.Country) s.add(r.Country); }); return ['All', ...Array.from(s).sort((a,b)=>a.localeCompare(b))]; },[data]);
   const genderList = ['Any', 'Male', 'Female', 'Other'];
@@ -122,6 +227,21 @@ export default function ComposersPage({ initialComposers = [], initialGender = '
     setTypeFilter('All');
     setShowAllTriggered(true);
   }
+
+  // Open composer page exactly like the desktop "More about this composer" link
+  function openComposerLink(composer) {
+    if (!composer) return;
+    const href = `/composer/${encodeURIComponent(composer)}`;
+    // Use a full navigation to match the anchor behavior exactly
+    window.location.href = href;
+  }
+  // Close mobile composer panel on Escape
+  useEffect(()=>{
+    if (!isClient) return;
+    function onKey(e){ if (e.key === 'Escape' && composerPanel.open) setComposerPanel({ open: false, name: '' }); }
+    try{ document.addEventListener('keydown', onKey); }catch(_){ }
+    return ()=>{ try{ document.removeEventListener('keydown', onKey); }catch(_){} };
+  }, [composerPanel.open, isClient]);
   return (
     <div>
       <SiteNavbar
@@ -152,10 +272,68 @@ export default function ComposersPage({ initialComposers = [], initialGender = '
             <h3>{g.composer}</h3>
             <p><strong>{t('compositions')}</strong></p>
             <ul>{g.titles.map((tt, i) => (<li key={i}>{tt}</li>))}</ul>
-            <p><a href={`/composer/${encodeURIComponent(g.composer)}`}>{t('details')}</a></p>
+            <p>
+              <button
+                type="button"
+                className="about-badge"
+                aria-label={`About ${g.composer}`}
+                style={{ marginLeft: 10, fontSize: '0.9em', padding: '2px 6px', borderRadius: 4, background: '#eee', border: 'none', cursor: 'pointer', color: 'inherit' }}
+                onPointerDown={() => { try{ setActiveButton(g.composer); console.debug('[composers] pointerdown badge', g.composer); }catch(_){} }}
+                onPointerUp={() => { try{ setActiveButton(null); console.debug('[composers] pointerup badge', g.composer); }catch(_){} }}
+                onPointerCancel={() => { try{ setActiveButton(null); }catch(_){} }}
+                onPointerLeave={() => { try{ setActiveButton(null); }catch(_){} }}
+                onClick={() => {
+                  console.debug('[composers] about-badge onClick', g.composer);
+                  setComposerPanel({ open: true, name: g.composer || '' });
+                }}
+              >
+                {t('details')}
+              </button>
+            </p>
           </div>
         ))}
       </div>
+      {/* Mobile composer panel rendered by React state to avoid relying only on global shims */}
+      {composerPanel.open && (
+        /* debug marker to confirm the panel renders */
+        <div style={{ position: 'fixed', top: 8, left: 8, width: 28, height: 28, background: 'red', zIndex: 99999, borderRadius: 4 }} />
+      )}
+      {composerPanel.open && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Composer details for ${composerPanel.name}`}
+          style={{
+            position: 'fixed', top: 0, right: 0, width: '92vw', maxWidth: 420, height: '100vh', background: '#fff', zIndex: 2200,
+            boxShadow: '-6px 0 18px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column',
+            transform: composerPanel.open ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 220ms ease'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid #eef2f6' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ fontSize: '0.85rem', color: '#6b7280', lineHeight: '1' }}>Composer</div>
+              <strong style={{ color: 'var(--accent)', fontSize: '1rem' }}>{composerPanel.name}</strong>
+            </div>
+            <button aria-label="Close composer panel" onClick={()=>setComposerPanel({ open: false, name: '' })} style={{ border: 0, background: 'transparent', fontSize: '1.1rem', cursor: 'pointer' }}>✕</button>
+          </div>
+          <div style={{ padding: 12, overflow: 'auto', flex: '1 1 auto' }}>
+              <div id="composer-content" style={{ color: '#111' }}>
+              {/* Minimal content: list composer titles if available */}
+              {selectedGroup ? (
+                <div>
+                  <h4 style={{ marginTop: 0 }}>Works</h4>
+                  <ul>
+                    { (selectedGroup.titles || []).slice(0,20).map((tt,i)=> (<li key={i}>{tt}</li>)) }
+                  </ul>
+                </div>
+              ) : (
+                <div style={{ color: '#6b7280' }}>Loading details…</div>
+              )}
+            </div>
+            <div id="more-from-composer" style={{ marginTop: 12 }} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
