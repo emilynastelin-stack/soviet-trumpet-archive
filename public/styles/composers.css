@@ -21,11 +21,45 @@ body{
   box-shadow: 0 1px 4px rgba(15,23,42,0.06);
   overflow: hidden;
   background: #fff;
+  /* add 15px inner spacing on all sides (was 5px; increased by 10px) */
+  padding: 15px;
+  box-sizing: border-box;
 }
 .result-card.empty{ background:#fff; }
 .result-card:hover{ box-shadow: 0 10px 24px rgba(15,23,42,0.12); transform: translateY(-4px); }
 .result-card .result-main{ transition: inherit; flex: 1 1 auto; }
 .result-card .result-right{ transition: inherit; }
+
+/* Reduce the top padding of each card by 10px (override client inline styles) */
+.result-card .result-main { padding-top: 10px !important; }
+
+/* About label: static maroon label displayed on the right side of each result */
+.about-label {
+  display: none; /* hidden by default; shown on small screens only */
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Remove the desktop "View" link — shown intentionally on mobile only */
+
+/* Ensure the server-rendered "View" link is hidden on desktop (strong rule so component CSS can't override) */
+@media (min-width: 601px) {
+  .result-card .result-right .details-link {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+  /* Hide mobile-only about badge and view label on desktop */
+  .result-card .about-badge {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+}
 
 .card-more-btn{
   position: relative;
@@ -66,20 +100,145 @@ body{
 #bg-overlay{ position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
 #bg-overlay img{ position:absolute; left:0; top:0; width:100vw; height:100vh; object-fit:cover; will-change:left,top,width,height; pointer-events:none; }
 
-/* Mobile-specific replacements: compact topbar and mobile toolbar (bottom) */
+/* Mobile topbar: simple white bar with left-aligned maroon title */
+.mobile-topbar { display: none; }
+.mobile-topbar .mobile-topbar-inner { max-width:1100px; margin:0 auto; padding: 0 12px; height:56px; display:flex; align-items:center; }
+.mobile-topbar .mobile-title { color: var(--accent); font-weight:800; font-size:16px; }
+
 @media (max-width:600px) {
-  .mobile-topbar { display: none; }
-  .mobile-topbar[aria-hidden="false"] { display:flex; }
-
-  /* Hide desktop/full-width header and footer on mobile; show compact controls instead */
+  /* show mobile topbar and hide the desktop header on small screens */
+  .mobile-topbar { display:flex; position:fixed; left:0; right:0; top:0; height:56px; z-index:1600; background:#fff; border-bottom:1px solid #eee; }
   header { display: none !important; }
-  #fixed-footer { display: none !important; }
+  /* ensure content is not hidden under the topbar */
+  body { padding-top: calc(56px + 20px); }
 
-  /* Ensure the mobile toolbar (bottom) is visible and floats above content */
-  .mobile-footer-toolbar { display:flex !important; position:fixed; left:0; right:0; bottom:0; box-sizing:border-box; height:56px; background:rgba(255,255,255,0.98); align-items:center; justify-content:space-between; padding:0 calc(12px + env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)); gap:12px; z-index:2000; box-shadow:0 -6px 18px rgba(11,15,30,0.08); backdrop-filter: blur(6px); margin:0; }
-  .mobile-footer-toolbar .mf-btn { flex:0 0 auto; border:1px solid #e6e9ef; background:#fff; padding:8px 12px; border-radius:10px; font-weight:700; color:var(--accent); }
-  .mobile-footer-toolbar .mf-center { position:static; transform:none; width:auto; height:auto; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; background:transparent; color:var(--accent); box-shadow:none; border:1px solid #e6e9ef; padding:8px 12px; }
+  /* Stack the action buttons in result cards vertically on mobile */
+  /* keep the main content full width, but make the actions compact and right-aligned */
+  /* stack content and pin children to the top so actions appear directly under the content */
+  .result-card { flex-direction: column; align-items: flex-start; }
+  /* keep the main content full width and prevent it from expanding to push actions down */
+  .result-card { position: relative; }
+  /* Keep the main content full width on mobile; do not add right padding that shrinks cards */
+  .result-card .result-main { width: 100%; flex: 0 0 auto; }
+  .result-card .result-right { position: static; display: flex; gap: 6px; margin-top: 8px; flex-direction: column; align-items: flex-end; width: auto; }
+  /* ensure children start at the top of the right column instead of being pushed to bottom */
+  .result-card .result-right { justify-content: flex-start; }
+  /* make the "View" link smaller and right-aligned, plain text-like */
+  .result-card .result-right .details-link {
+    text-align: right;
+    display: inline-block;
+    padding: 0;
+    margin: 0;
+    color: var(--accent);
+    font-weight:600;
+    font-size:0.9rem;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  /* make the button compact and limit width so it doesn't span full width */
+  /* make the button look like plain clickable text (no chrome) */
+  .result-card .result-right .more-composer-btn {
+    display: inline-block;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    color: var(--accent);
+    text-decoration: none;
+    font-weight:600;
+    font-size:0.9rem;
+    cursor: pointer;
+    align-self: flex-end;
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-  /* add top padding so content isn't hidden under mobile topbar and search strip */
-  body { padding-top: calc(56px + 64px); }
+  /* subtle hover underline to indicate clickability */
+  .result-card .result-right .details-link:hover,
+  .result-card .result-right .more-composer-btn:hover {
+    text-decoration: underline;
+  }
+
+  /* show the about label on mobile and align it right */
+  /* Pin the about-label to the top-right of the card so it doesn't get pushed to the bottom
+     when result-main grows. Keep it small and non-interactive. */
+  /* Move the about-label to the bottom-right of each card on mobile; don't alter card width */
+  /* grouped badge wrapper to hold interactive badges without affecting layout */
+  .result-card .about-badge {
+    position: absolute;
+    right: 12px;
+    bottom: 6px;
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    pointer-events: auto;
+    z-index: 2;
+  }
+
+  .result-card .about-badge .about-label {
+    display: inline-block;
+    margin: 0;
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 0.82rem;
+    user-select: none;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: transparent;
+  }
+
+  .result-card .about-badge .view-label {
+    display: inline-block;
+    color: #6b7280; /* muted gray */
+    font-weight: 600;
+    font-size: 0.82rem;
+    cursor: pointer;
+    user-select: none;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: transparent;
+  }
+
+  /* Remove actual button elements on mobile — keep only text links */
+  /* Hide any buttons rendered inside result cards (client injects them as direct children) */
+  #results-list .result-card button,
+  #results-list .result-card .card-more-btn,
+  #results-list .result-card .card-toggle-btn,
+  #results-list .result-card .more-composer-btn,
+  #results-list .result-card .card-toggle-btn {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+}
+
+/* Additional compacting rules for mobile to make cards vertically narrower */
+@media (max-width:600px) {
+  .result-card {
+    /* reduce internal padding to make cards shorter vertically */
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+    gap: 8px;
+  }
+
+  .result-card .result-main {
+    /* reduce spacing inside the main content */
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    font-size: 0.95rem;
+    line-height: 1.15;
+  }
+
+  .inline-details { margin: 6px 0 8px 0; }
+
+  /* slightly reduce the about-label offset so it sits neatly inside the smaller card */
+  .result-card .about-label { bottom: 8px; right: 10px; font-size: 0.8rem; }
+
+  /* ensure collapsed buttons remain hidden but spacing is compact */
+  #results-list .result-card button,
+  #results-list .result-card .card-more-btn,
+  #results-list .result-card .card-toggle-btn { display: none !important; }
 }

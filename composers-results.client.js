@@ -305,7 +305,7 @@
       const colJ = escapeHtml(getByLetterFromRow(r, 'J') || r['Composer'] || r.Composer || r.composer || '');
       const colK = escapeHtml(getByLetterFromRow(r, 'K') || r.Year || r.Published || r.Decade || r.year || '');
       const composerData = encodeURIComponent(String(getByLetterFromRow(r, 'J') || r['Composer'] || r.Composer || r.composer || ''));
-      div.innerHTML = `<div class="result-main"><b>${colA}</b><div style="margin-top:6px"><a href="#" class="composer-link" data-name="${composerData}">${colJ || 'Unknown'}</a> ${colK ? '(' + colK + ')' : ''}</div></div><div class="result-right"><a href="#" class="view-link">View</a></div>`;
+      div.innerHTML = `<div class="result-main"><b>${colA}</b><div style="margin-top:6px"><a href="#" class="composer-link" data-name="${composerData}">${colJ || 'Unknown'}</a> ${colK ? '(' + colK + ')' : ''}</div></div><div class="result-right"><div class="about-label" aria-hidden="true">About this composer</div><button class="more-composer-btn">More from this composer</button></div>`;
       container.appendChild(div);
       const link = div.querySelector('.composer-link');
       if (link){
@@ -318,8 +318,7 @@
           window.loadResults();
         });
       }
-      const view = div.querySelector('.view-link');
-      if (view){ view.addEventListener('click', (e)=>{ e.preventDefault(); const name = decodeURIComponent(composerData||''); window.selectedComposer = name || ''; populateComposerBox(name, r); }); }
+      // Note: desktop 'View' link removed; mobile badge/overlay handles composer details.
     });
     renderPagination(Math.ceil((window.lastFiltered || []).length / window.PAGE_SIZE), page);
   }

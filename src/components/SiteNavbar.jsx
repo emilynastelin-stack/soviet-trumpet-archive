@@ -36,7 +36,7 @@ export default function SiteNavbar(props){
           {decadeList.map((d,i)=>(<option key={i} value={d}>{d}</option>))}
         </select>
 
-        <input style={{flex:1,minWidth:200}} value={query || ''} onChange={e=>setQuery && setQuery(e.target.value)} placeholder="Search" />
+  <input id="q" name="q" type="search" style={{flex:1,minWidth:200}} value={query || ''} onChange={e=>setQuery && setQuery(e.target.value)} placeholder="Search" />
         <button onClick={()=>onSearch && onSearch()}>{'Search'}</button>
         <button onClick={()=>onShowAll && onShowAll()}>{'Show All'}</button>
       </div>

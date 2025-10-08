@@ -1,0 +1,220 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ComposersPage Preview</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; padding: 20px; }
+    .composers-list { display: grid; gap: 16px; }
+    .composer-group { padding: 12px; border: 1px solid #ddd; border-radius: 8px; }
+    .banner-placeholder { background: #efefef; height: 120px; margin-bottom: 16px; }
+    .site-navbar { display:flex; gap:8px; align-items:center; margin-bottom:12px; }
+    .site-navbar select, .site-navbar input { padding:6px 8px; }
+    .about-badge { margin-left: 10px; font-size:0.9em; padding:2px 6px; border-radius:4px; background:#eee; text-decoration:none; color:inherit }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React + Babel for in-browser JSX preview -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    // Prevent network fetches for preview (stub /api/sheets)
+    window.fetch = window.fetch || (async () => ({ json: async () => [] }));
+
+    const { useState, useEffect, useMemo } = React;
+
+    function normalizeStr(s) {
+      if (s === null || s === undefined) return '';
+      try {
+        return String(s).normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+      } catch (err) {
+        return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      }
+    }
+    function cleanCell(v) { if (v === undefined || v === null) return ''; return String(v).replace(/[\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim(); }
+    function findByNormalizedKey(row, wanted = []){
+      if (!row || typeof row !== 'object') return undefined;
+      const keys = Object.keys(row||{});
+      for (const k of keys){
+        const nk = String(k).trim().toLowerCase().replace(/\s+/g,'');
+        for (const w of wanted){ if (nk === String(w).toLowerCase().replace(/\s+/g,'')) return row[k]; }
+      }
+      return undefined;
+    }
+    function getLocalizedField(row, baseNames = ['Country','Nationality'], lang = 'en'){
+      if (!row) return '';
+      for (const base of baseNames){
+        const candidates = [base, `${base} (${lang})`, `${base}_${lang}`, `${base}-${lang}`].map(c=>c.toLowerCase().replace(/\s+/g,''));
+        const found = findByNormalizedKey(row, candidates);
+        if (found !== undefined) return cleanCell(found);
+        const direct = row[base] ?? row[base.toLowerCase()];
+        if (direct !== undefined && direct !== null) return cleanCell(direct);
+      }
+      return '';
+    }
+    function normalizeRow(raw){
+      const r = raw || {};
+      const composer = findByNormalizedKey(r, ['composer','композитор']) ?? r.Composer ?? '';
+      const composerRussian = findByNormalizedKey(r, ['композитор']) ?? r['Композитор'] ?? '';
+      const native = findByNormalizedKey(r, ['native']) ?? r.Native ?? '';
+      const title = r['Title, Year'] ?? r.Title ?? '';
+      const year = r.Year ?? r.year ?? '';
+      const country = getLocalizedField(r, ['Country','Nationality'], 'en') || r.Country || r.Nationality || '';
+      return { ...r, Composer: cleanCell(composer), Russian: cleanCell(composerRussian), Native: cleanCell(native), 'Title, Year': cleanCell(title), Title: cleanCell(title), Year: cleanCell(year), Country: cleanCell(country) };
+    }
+
+    // Very small SiteNavbar stub to control filters for the preview
+    function SiteNavbar(props){
+      const { composersList = [], countriesList = [], selectedComposer, setSelectedComposer, selectedCountry, setSelectedCountry, query, setQuery, onSearch, onShowAll, genderList = [], setGenderFilter, genderFilter } = props;
+      return (
+        <div className="site-navbar">
+          <label>Composer: <select value={selectedComposer||''} onChange={e=>setSelectedComposer(e.target.value)}>
+            <option value="">(all)</option>
+            {composersList.map((c,i)=> <option key={i} value={c}>{c}</option>)}
+          </select></label>
+          <label>Country: <select value={selectedCountry||'All'} onChange={e=>setSelectedCountry(e.target.value)}>
+            {countriesList.map((c,i)=> <option key={i} value={c}>{c}</option>)}
+          </select></label>
+          <label>Search: <input value={query||''} onChange={e=>setQuery(e.target.value)} placeholder="search" /></label>
+          <button onClick={onSearch}>Search</button>
+          <button onClick={onShowAll}>Show all</button>
+        </div>
+      );
+    }
+
+    function ComposersPage({ initialComposers = [], initialGender = 'Any' }){
+      const [lang, setLang] = useState('en');
+      useEffect(() => { try { const v = window.localStorage.getItem('lang'); if (v) setLang(v); } catch (e) {} }, []);
+      const translations = {
+        en: { searchPlaceholder: 'Search (ignore diacritics)', showAll: 'Show all', compositions: 'Compositions', details: 'Details', all: 'All', unknown: 'Unknown' }
+      };
+      const t = k => (translations[lang] && translations[lang][k]) ? translations[lang][k] : (translations.en[k] || k);
+      const [data, setData] = useState((initialComposers || []).map(normalizeRow));
+      const [loading, setLoading] = useState(false);
+      const [query, setQuery] = useState('');
+      const [tempSearch, setTempSearch] = useState('');
+      const [selectedCountry, setSelectedCountry] = useState('All');
+      const [selectedComposer, setSelectedComposer] = useState('');
+      const [showAllTriggered, setShowAllTriggered] = useState(false);
+      const [genderFilter, setGenderFilter] = useState(initialGender || 'Any');
+      const [decadeFilter, setDecadeFilter] = useState('All');
+      const [typeFilter, setTypeFilter] = useState('All');
+      const [openIndex, setOpenIndex] = useState(null);
+
+      // Skip remote fetching in this preview (we already have initialComposers)
+      useEffect(()=>{
+        // No-op for preview
+      }, []);
+
+      useEffect(()=>{
+        function onPop(){
+          try{ const u=new URL(window.location.href); setSelectedComposer(u.searchParams.get('composer')||''); setSelectedCountry(u.searchParams.get('country')||'All'); }catch(e){}
+        }
+        window.addEventListener('popstate', onPop);
+        return ()=> window.removeEventListener('popstate', onPop);
+      },[]);
+
+      const q = normalizeStr(query || '');
+      const filtered = useMemo(() => data.filter(row => {
+        if (selectedCountry && selectedCountry !== 'All') { const rc = normalizeStr(row.Country || ''); if (!rc.includes(normalizeStr(selectedCountry))) return false; }
+        if (selectedComposer && selectedComposer !== '' && selectedComposer !== 'All Composers') { const rc = normalizeStr(row.Composer || ''); if (!rc.includes(normalizeStr(selectedComposer))) return false; }
+        if (q && q.length > 0) { const joined = normalizeStr(Object.values(row||{}).join(' ')); if (!joined.includes(q)) return false; }
+        if (genderFilter && genderFilter !== 'Any') { const g = normalizeStr(row.Gender || row.gender || ''); if (!g.includes(normalizeStr(genderFilter))) return false; }
+        if (decadeFilter && decadeFilter !== 'All') { const yr = String(row.Year || '').trim(); const parsed = parseInt(yr,10); if (!isFinite(parsed)) return false; const d = Math.floor(parsed/10)*10; if (`${d}s` !== decadeFilter) return false; }
+        if (typeFilter && typeFilter !== 'All') { const tv = normalizeStr(row.Type || row.type || row.genre || ''); if (!tv.includes(normalizeStr(typeFilter))) return false; }
+        return true;
+      }), [data, selectedCountry, selectedComposer, q, genderFilter, decadeFilter, typeFilter]);
+
+      const grouped = useMemo(() => {
+        const map = new Map();
+        filtered.forEach(row => { const name = cleanCell(row.Composer || '') || t('unknown'); if (!map.has(name)) map.set(name, []); map.get(name).push(row); });
+        return Array.from(map.entries()).map(([composer, rows]) => ({ composer, rows, titles: Array.from(new Set(rows.map(r => cleanCell(r['Title, Year'] || r.Title || '').trim()).filter(Boolean))) }));
+      }, [filtered]);
+
+      const composersList = useMemo(()=>{ const s=new Set(); data.forEach(r=>{ if(r.Composer) s.add(r.Composer); }); return ['All Composers', ...Array.from(s).sort((a,b)=>a.localeCompare(b))]; },[data]);
+      const countriesList = useMemo(()=>{ const s=new Set(); data.forEach(r=>{ if(r.Country) s.add(r.Country); }); return ['All', ...Array.from(s).sort((a,b)=>a.localeCompare(b))]; },[data]);
+
+      function handleSearch() { setQuery(tempSearch); }
+      function handleShowAll() {
+        setQuery('');
+        setSelectedCountry('All');
+        setSelectedComposer('');
+        setGenderFilter('Any');
+        setDecadeFilter('All');
+        setTypeFilter('All');
+        setShowAllTriggered(true);
+      }
+
+      function openComposerLink(composer) {
+        if (!composer) return;
+        const href = `/composer/${encodeURIComponent(composer)}`;
+        // In preview we just show an alert
+        alert('Would open: ' + href);
+      }
+
+      return (
+        <div>
+          <SiteNavbar
+            composersList={composersList}
+            countriesList={countriesList}
+            genderList={['Any','Male','Female','Other']}
+            decadeList={[]}
+            typeList={[]}
+            selectedComposer={selectedComposer}
+            setSelectedComposer={setSelectedComposer}
+            selectedCountry={selectedCountry}
+            setSelectedCountry={setSelectedCountry}
+            genderFilter={genderFilter}
+            setGenderFilter={setGenderFilter}
+            decadeFilter={decadeFilter}
+            setDecadeFilter={setDecadeFilter}
+            typeFilter={typeFilter}
+            setTypeFilter={setTypeFilter}
+            query={tempSearch}
+            setQuery={setTempSearch}
+            onSearch={handleSearch}
+            onShowAll={handleShowAll}
+          />
+          <div className="banner-placeholder" style={{ width: '100%', maxWidth: 1920, height: 120, margin: '0 auto', background:'#efefef' }}></div>
+          <div className="composers-list">
+            {grouped.map((g, idx) => (
+              <div key={g.composer || idx} className="composer-group">
+                <h3>{g.composer}</h3>
+                <p><strong>{t('compositions')}</strong></p>
+                <ul>{g.titles.map((tt, i) => (<li key={i}>{tt}</li>))}</ul>
+                <p>
+                  <a href={`#/composer/${encodeURIComponent(g.composer)}`}>{t('details')}</a>
+                  <a
+                    className="about-badge"
+                    href={`#/composer/${encodeURIComponent(g.composer)}`}
+                    aria-label={`About ${g.composer}`}
+                    onClick={(e) => { try{ e && e.preventDefault && e.preventDefault(); e && e.stopPropagation && e.stopPropagation(); alert('Open composer overlay for: ' + g.composer); }catch(_){ } }}
+                    onKeyDown={(e) => { try{ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); alert('Open composer overlay for: ' + g.composer); } }catch(_){ } }}
+                  >
+                    {t('details')}
+                  </a>
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    // Sample data
+    const sample = [
+      { Composer: 'Dmitri Shostakovich', 'Title, Year': 'Symphony No.5, 1937', Year: '1937', Country: 'Russia', Gender: 'Male', Type: 'Symphony' },
+      { Composer: 'Sergei Prokofiev', 'Title, Year': 'Peter and the Wolf, 1936', Year: '1936', Country: 'Russia', Gender: 'Male', Type: 'Orchestral' },
+      { Composer: 'Aram Khachaturian', 'Title, Year': 'Sabre Dance, 1942', Year: '1942', Country: 'Armenia', Gender: 'Male', Type: 'Ballet' },
+      { Composer: 'Galina Ustvolskaya', 'Title, Year': 'Piano Sonata, 1970', Year: '1970', Country: 'Russia', Gender: 'Female', Type: 'Piano' }
+    ];
+
+    ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(ComposersPage, { initialComposers: sample }));
+  </script>
+</body>
+</html>

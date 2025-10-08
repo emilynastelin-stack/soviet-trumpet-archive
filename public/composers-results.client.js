@@ -208,14 +208,14 @@
         const val = canonical[i];
         const lab = (localized && localized[i]) ? localized[i] : val;
         const id = 'country_cb_' + i;
-        const wrapper = document.createElement('div');
-        wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" /> ${lab}</label>`;
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" name="country" data-val="${encodeURIComponent(val)}" id="${id}" /> ${lab}</label>`;
         container.appendChild(wrapper);
       }
   // wire up change handlers for checkboxes; no Select/Clear controls are created
   container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); window.lastAppliedFilter = { kind: 'country', value: val }; }catch(_){} window.currentPage = 1; window.loadResults(); }));
     }catch(e){
-      container.innerHTML = fallbackCountries.map((c,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(c)}" id="country_cb_f${i}" /> ${c}</label>`).join('');
+  container.innerHTML = fallbackCountries.map((c,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" name="country" data-val="${encodeURIComponent(c)}" id="country_cb_f${i}" /> ${c}</label>`).join('');
       const controlsWrap = document.createElement('div');
       controlsWrap.style.marginTop = '8px';
       controlsWrap.innerHTML = `<button id="country-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="country-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`;
@@ -244,8 +244,8 @@
         const val = canonical[i];
         const lab = (localized && localized[i]) ? localized[i] : val;
         const id = 'decade_cb_' + i;
-        const wrapper = document.createElement('div');
-        wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" /> ${lab}</label>`;
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" name="decade" data-val="${encodeURIComponent(val)}" id="${id}" /> ${lab}</label>`;
         container.appendChild(wrapper);
       }
   // wire up change handlers for checkboxes; no Select/Clear controls are created
@@ -255,7 +255,7 @@
       if (!hasDecadeHeading) {
         const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Decade'; container.appendChild(title);
       }
-      container.innerHTML += fallbackDecades.map((d,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(d)}" id="decade_cb_f${i}" /> ${d}</label>`).join('');
+  container.innerHTML += fallbackDecades.map((d,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" name="decade" data-val="${encodeURIComponent(d)}" id="decade_cb_f${i}" /> ${d}</label>`).join('');
       const controlsWrap = document.createElement('div'); controlsWrap.style.marginTop = '8px'; controlsWrap.innerHTML = `<button id="decade-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="decade-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controlsWrap);
       container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
     }
@@ -283,7 +283,7 @@
           const lab = localized && localized[i] ? localized[i] : val;
           const id = 'type_cb_' + i;
           const wrapper = document.createElement('div');
-          wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" /> ${lab}</label>`;
+          wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" name="type" data-val="${encodeURIComponent(val)}" id="${id}" /> ${lab}</label>`;
           container.appendChild(wrapper);
         });
   // wire up change handlers for checkboxes; no Select/Clear controls are created
@@ -305,7 +305,7 @@
       list.forEach((val,i)=>{
         const id = 'type_cb_dyn_' + i;
         const wrapper = document.createElement('div');
-        wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" /> ${val}</label>`;
+  wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" name="type" data-val="${encodeURIComponent(val)}" id="${id}" /> ${val}</label>`;
         container.appendChild(wrapper);
       });
     container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
@@ -347,7 +347,7 @@
       list.forEach((val,i)=>{
         const id = 'gender_cb_dyn_' + i;
         const label = document.createElement('label');
-        label.innerHTML = `<input type="checkbox" data-val="${encodeURIComponent(val)}" id="${id}" value="${escapeHtml(val)}"> ${escapeHtml(val)}`;
+  label.innerHTML = `<input type="checkbox" name="gender" data-val="${encodeURIComponent(val)}" id="${id}" value="${escapeHtml(val)}"> ${escapeHtml(val)}`;
         container.appendChild(label);
       });
       // ensure controls at bottom of gender area
@@ -449,8 +449,8 @@
       try{ div.style.minHeight = '72px'; }catch(_){ }
       // keep visuals consistent
       try{ div.style.borderBottom = '1px solid #eef2f6'; }catch(_){ }
-      // add the maroon 'More about this composer' button (no behavior yet)
-      try{
+        // add a right-side container with a non-clickable maroon label and the existing buttons
+        try{
         // collapse/expand toggle for inline details
         const tgl = document.createElement('button');
         tgl.type = 'button';
@@ -466,7 +466,7 @@
         btn.setAttribute('aria-label', 'More about this composer');
         // avoid focus-caused scroll by preventing default on mousedown
         try{ btn.addEventListener('mousedown', (e) => { try{ e.preventDefault(); }catch(_){ } }); }catch(_){ }
-  btn.addEventListener('click', (ev) => {
+        btn.addEventListener('click', (ev) => {
           ev.preventDefault();
           try{
             const idx = Number(div.dataset && div.dataset.index != null ? div.dataset.index : globalIndex);
@@ -481,9 +481,54 @@
             try{ if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation(); }catch(_){ }
           }catch(_){ }
         });
-        // append toggle first, then the more button
-        try{ div.appendChild(tgl); }catch(_){ }
-        div.appendChild(btn);
+    // create a right-side container and add a positioned badge that doesn't affect layout
+    const rightEl = document.createElement('div');
+    rightEl.className = 'result-right';
+
+    // badge wrapper holds small inline labels (View + About) and is absolutely positioned via CSS
+    const badge = document.createElement('div');
+    badge.className = 'about-badge';
+
+    // about label (small)
+    const aboutLabel = document.createElement('div');
+    aboutLabel.className = 'about-label';
+    aboutLabel.textContent = 'About this composer';
+    // visual positioning handled by CSS; do not set inline position/top here
+    // make it focusable and clickable (harmless no-op click)
+    aboutLabel.setAttribute('tabindex', '0');
+    aboutLabel.setAttribute('role', 'button');
+    aboutLabel.style.cursor = 'pointer';
+    aboutLabel.setAttribute('aria-hidden', 'false');
+    aboutLabel.addEventListener('click', (e)=>{ try{ e.preventDefault(); e.stopPropagation(); console.log('about-label clicked (no-op)'); }catch(_){ } });
+    aboutLabel.addEventListener('keydown', (e)=>{ if (e.key === 'Enter' || e.key === ' ') { try{ e.preventDefault(); e.stopPropagation(); console.log('about-label activated (no-op)'); }catch(_){ } } });
+        // Wire the about label to open the composer panel overlay on mobile
+        aboutLabel.addEventListener('click', (e)=>{
+          try{
+            e.preventDefault(); e.stopPropagation();
+            const idx = Number(div.dataset && div.dataset.index != null ? div.dataset.index : globalIndex);
+            const rowFor = (window.lastFiltered && window.lastFiltered[idx]) ? window.lastFiltered[idx] : null;
+            const name = rowFor ? (getByLetterFromRow(rowFor, 'A') || rowFor.A || rowFor.Composer || Object.values(rowFor)[0] || '') : '';
+            window.selectedComposer = String(name || '');
+            try{ populateComposerBox(window.selectedComposer, rowFor); }catch(_){ }
+            const existing = document.querySelector('.mobile-overlay.right');
+            if (window.innerWidth <= 600) {
+              if (existing) closeComposerOverlay(); else openComposerOverlay();
+            } else {
+              const el = document.getElementById('panel-right'); if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+            }
+          }catch(_){ }
+        });
+        aboutLabel.addEventListener('keydown', (e)=>{ if (e.key === 'Enter' || e.key === ' ') { try{ e.preventDefault(); e.stopPropagation(); aboutLabel.click(); }catch(_){ } } });
+
+  // Only append the about label; the small mobile "View" word is intentionally
+  // omitted at runtime to avoid desktop flashes or legacy duplicates.
+  badge.appendChild(aboutLabel);
+    rightEl.appendChild(badge);
+        // append toggle first, then the more button into the right container
+        try{ rightEl.appendChild(tgl); }catch(_){ }
+        rightEl.appendChild(btn);
+        // append the right container to the card
+        div.appendChild(rightEl);
         // toggle click: show/hide the inline details under this card
         try{
           tgl.addEventListener('click', (ev) => {
@@ -542,6 +587,64 @@
 
     // No event wiring for skeleton cards (they're inert). Render pagination.
     renderPagination(pageCount, page);
+    // Wire about-labels after the page is rendered so server placeholders
+    // and client-created labels both receive the same behavior.
+    try{ wireAboutLabels(); }catch(_){ }
+  }
+
+  // Wire `.about-label` nodes so they open the composer panel for the
+  // corresponding row. This handles both server-rendered placeholders
+  // (static HTML) and client-generated cards.
+  // Helper: open composer details for a given card element (centralized behavior)
+  function openComposerFromCard(card){
+    if (!card) return false;
+    let idx = null; let row = null; let name = '';
+    try{ if (card.dataset && card.dataset.index != null) idx = Number(card.dataset.index); }catch(_){ }
+    try{ if (typeof idx === 'number' && !Number.isNaN(idx) && window.lastFiltered && window.lastFiltered[idx]) row = window.lastFiltered[idx]; }catch(_){ }
+    try{
+      const link = card.querySelector && card.querySelector('.composer-link');
+      if (link && link.dataset && link.dataset.name) name = link.dataset.name;
+      if (!name && row) name = getByLetterFromRow(row, 'A') || row.A || row.Composer || Object.values(row || {})[0] || '';
+      if (!name){
+        const pEls = card.querySelectorAll && card.querySelectorAll('p');
+        for (let pi=0; pi < (pEls && pEls.length ? pEls.length : 0); pi++){
+          const p = pEls[pi]; const txt = p && p.textContent ? p.textContent.trim() : '';
+          const m = txt.match(/Composer:\s*(.+)$/i); if (m && m[1]){ name = m[1].trim(); break; }
+        }
+      }
+      if (!name){ const text = card.textContent || ''; const m2 = text.match(/([A-Z][a-z]+,\s*[A-Z][a-z]+(?:[\sA-Za-z.-]+)?)/); if (m2 && m2[1]) name = m2[1].trim(); }
+    }catch(_){ }
+    try{ console.debug('[openComposerFromCard] chosen', { idx: idx, name: name || '(none)', rowFound: !!row }); }catch(_){ }
+    window.selectedComposer = String((name || '')).trim();
+    try{ populateComposerBox(window.selectedComposer, row); }catch(_){ }
+    if (window.innerWidth <= 600){ try{ const existing = document.querySelector('.mobile-overlay.right'); if (!existing) openComposerOverlay(); }catch(_){ } }
+    else { try{ const elp = document.getElementById('panel-right'); if (elp) elp.scrollIntoView({ behavior: 'smooth', block: 'center' }); }catch(_){ } }
+    return true;
+  }
+  function wireAboutLabels(){
+    const list = document.querySelectorAll('.about-label');
+    if (!list || !list.length) return;
+    list.forEach(el => {
+      // avoid double-wiring
+      if (el.dataset.__wired === '1') return; el.dataset.__wired = '1';
+      el.setAttribute('tabindex','0');
+      el.setAttribute('role','button');
+      el.style.cursor = 'pointer';
+      const handler = function(e){
+        try{ e && e.preventDefault && e.preventDefault(); e && e.stopPropagation && e.stopPropagation(); const card = el.closest && el.closest('.result-card'); openComposerFromCard(card); }catch(_){ }
+      };
+      el.addEventListener('click', handler);
+      el.addEventListener('keydown', (e)=>{ if (e.key === 'Enter' || e.key === ' ') { try{ e.preventDefault(); handler(e); }catch(_){ } } });
+    });
+    // Wire any server-rendered "More from this composer" buttons that
+    // exist before client-rendered cards replace placeholders.
+    const moreBtns = document.querySelectorAll('.more-composer-btn');
+    if (moreBtns && moreBtns.length){
+      moreBtns.forEach(b => {
+        if (b.dataset.__wired_more === '1') return; b.dataset.__wired_more = '1';
+        b.addEventListener('click', (ev)=>{ try{ ev && ev.preventDefault && ev.preventDefault(); ev && ev.stopPropagation && ev.stopPropagation(); const card = b.closest && b.closest('.result-card'); openComposerFromCard(card); }catch(_){ } });
+      });
+    }
   }
 
 
@@ -985,10 +1088,21 @@
     if (clearBtn) { clearBtn.style.display = 'inline-block'; clearBtn.onclick = () => { window.selectedComposer = ''; if (clearBtn) clearBtn.style.display = 'none'; try{ const moreEl = document.getElementById('more-from-composer'); if (moreEl) { moreEl.style.display = 'none'; moreEl.innerHTML = ''; } }catch(_){ } populateComposerBox('', null); window.currentPage = 1; window.loadResults(); }; }
   }
   window.populateComposerBox = populateComposerBox;
+  // Expose a helper to open the composer panel by name (used by other scripts/components)
+  try{ window.openComposerFromName = function(name, row){
+    try{ if (!name) return false; window.selectedComposer = String(name || ''); try{ populateComposerBox(window.selectedComposer, row); }catch(_){ }
+      if (window.innerWidth <= 600){ try{ const existing = document.querySelector('.mobile-overlay.right'); if (!existing) openComposerOverlay(); }catch(_){ } }
+      else { try{ const elp = document.getElementById('panel-right'); if (elp) elp.scrollIntoView({ behavior: 'smooth', block: 'center' }); }catch(_){ } }
+      return true;
+    }catch(_){ return false; }
+  }; }catch(_){ }
 
   (async function init(){
     try{
-      const resultsList = document.getElementById('results-list'); if (resultsList) resultsList.innerHTML = '<div class="result-card"><em>Loading results…</em></div>';
+  const resultsList = document.getElementById('results-list'); if (resultsList) resultsList.innerHTML = '<div class="result-card"><em>Loading results…</em></div>';
+  // Wire about labels and buttons on server-rendered placeholders so they
+  // are interactive before the client fully renders results.
+  try{ wireAboutLabels(); }catch(_){ }
   const fc = document.getElementById('filter-country'); if (fc) fc.innerHTML = '<div style="color:#6b7280">Loading…</div>';
   const fd = document.getElementById('filter-decade'); if (fd) fd.innerHTML = '<div style="color:#6b7280">Loading…</div>';
   const ft = document.getElementById('filter-type'); if (ft) ft.innerHTML = '<div style="color:#6b7280">Loading…</div>';
@@ -997,170 +1111,240 @@
       const sbtn = document.getElementById('qbtn'); if (sbtn) sbtn.addEventListener('click', ()=>{ window.currentPage = 1; window.loadResults(); });
       const qinputEl = document.getElementById('qinput'); if (qinputEl) qinputEl.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { window.currentPage = 1; window.loadResults(); } });
       try{ window.populateComposerBox('', null); }catch(_){ }
-      await window.loadResults();
+  await window.loadResults();
+  // After initial load, re-wire labels to catch any client-rendered nodes
+  try{ wireAboutLabels(); }catch(_){ }
       // mobile footer toolbar wiring
       try{
         const mfFilters = document.getElementById('mf-filters');
         const mfCenter = document.getElementById('mf-center');
         const mfComposers = document.getElementById('mf-composers');
-        if (mfFilters) mfFilters.addEventListener('click', ()=>{ const el = document.getElementById('panel-left'); if (el) el.scrollIntoView({behavior:'smooth', block:'center'}); });
-          if (mfCenter) mfCenter.addEventListener('click', ()=>{ const el = document.getElementById('panel-center'); if (el) el.scrollIntoView({behavior:'smooth', block:'center'}); });
-          if (mfComposers) mfComposers.addEventListener('click', ()=>{ window.location.href = '/composers'; });
-          // Mobile overlay behavior (clone-based): on small screens, open panels as overlays
+
+        // Wire the mobile toolbar 'Sources' button to open the composer overlay
+        if (mfComposers) {
           try{
-            const overlays = new Map(); // which -> { overlay, trigger, clone }
-
-            const focusableSelector = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
-
-            const buildOverlay = (which, ariaLabel) => {
-              const overlayId = 'mobile-overlay-' + which;
-              let overlay = document.getElementById(overlayId);
-              if (overlay) return overlay;
-              overlay = document.createElement('div'); overlay.id = overlayId; overlay.className = 'mobile-overlay'; overlay.setAttribute('role','dialog'); overlay.setAttribute('aria-modal','true'); overlay.setAttribute('aria-label', ariaLabel || (which + ' panel'));
-              const inner = document.createElement('div'); inner.className = 'overlay-inner';
-              const closeBtn = document.createElement('button'); closeBtn.className = 'overlay-close'; closeBtn.type = 'button'; closeBtn.textContent = 'Close'; closeBtn.addEventListener('click', ()=>{ closeOverlay(which); });
-              overlay.appendChild(inner);
-              overlay.appendChild(closeBtn);
-              document.body.appendChild(overlay);
-              return overlay;
-            };
-
-            const clonePanelIntoOverlay = (which, triggerEl) => {
-              const panelId = which === 'filters' ? 'panel-left' : 'panel-right';
-              const panel = document.getElementById(panelId);
-              if (!panel) return null;
-              const overlay = buildOverlay(which, which === 'filters' ? 'Filters' : 'Composer information');
-              const inner = overlay.querySelector('.overlay-inner');
-              // remove any previous clone
-              const existing = overlays.get(which);
-              if (existing && existing.clone) { existing.clone.parentNode && existing.clone.parentNode.removeChild(existing.clone); }
-              // deep clone the panel content so original DOM is untouched
-              const clone = panel.cloneNode(true);
-              clone.classList.add('mobile-overlay-clone');
-              // Remove any IDs from clone to avoid duplicate IDs
-              Array.from(clone.querySelectorAll('[id]')).forEach(n => n.removeAttribute('id'));
-              // Append clone into inner
-              inner.innerHTML = ''; inner.appendChild(clone);
-              overlays.set(which, { overlay, trigger: triggerEl, clone, panel });
-              // sync initial focus
-              return { overlay, clone, panel };
-            };
-
-            const syncInputsBack = (clone, panel) => {
-              if (!clone || !panel) return;
-              const cloneInputs = Array.from(clone.querySelectorAll('input,textarea,select'));
-              cloneInputs.forEach(cn => {
-                // attempt to match by name, data-val or label text
-                const name = cn.name || cn.getAttribute('data-val') || cn.getAttribute('data-name') || cn.getAttribute('value') || null;
-                let target = null;
-                if (name) target = panel.querySelector(`[name="${CSS.escape(name)}"]`) || panel.querySelector(`[data-val="${CSS.escape(name)}"]`) || panel.querySelector(`[data-name="${CSS.escape(name)}"]`);
-                if (!target){
-                  // fallback: try to match by input type and index
-                  const inputs = Array.from(panel.querySelectorAll('input,textarea,select'));
-                  const idx = Array.from(clone.querySelectorAll('input,textarea,select')).indexOf(cn);
-                  if (inputs[idx]) target = inputs[idx];
-                }
-                if (!target) return;
-                try{
-                  if (target.type === 'checkbox' || target.type === 'radio') target.checked = cn.checked;
-                  else target.value = cn.value;
-                  // trigger input/change events on target so listeners react
-                  target.dispatchEvent(new Event('input', { bubbles: true }));
-                  target.dispatchEvent(new Event('change', { bubbles: true }));
-                }catch(_){ }
-              });
-            };
-
-            const trapFocus = (overlay) => {
-              if (!overlay) return null;
-              const inner = overlay.querySelector('.overlay-inner');
-              const focusable = Array.from(inner.querySelectorAll(focusableSelector)).filter(n => !n.hasAttribute('disabled'));
-              const first = focusable[0] || inner;
-              const last = focusable[focusable.length-1] || first;
-              const handler = (e) => {
-                if (e.key !== 'Tab') return;
-                if (focusable.length === 0){ e.preventDefault(); return; }
-                if (e.shiftKey){ if (document.activeElement === first){ e.preventDefault(); last.focus(); } }
-                else { if (document.activeElement === last){ e.preventDefault(); first.focus(); } }
-              };
-              document.addEventListener('keydown', handler);
-              return () => { document.removeEventListener('keydown', handler); };
-            };
-
-            const openOverlay = (which, triggerEl) => {
-              const { overlay, clone, panel } = clonePanelIntoOverlay(which, triggerEl) || {};
-              if (!overlay) return;
-              overlay.classList.add('open');
-              // remember previously focused element
-              const prevFocus = document.activeElement;
-              overlays.get(which).prevFocus = prevFocus;
-              // prevent background scroll
-              document.body.style.overflow = 'hidden';
-              // focus first focusable element inside
-              setTimeout(()=>{
-                try{ const inner = overlay.querySelector('.overlay-inner'); const focusable = inner.querySelectorAll(focusableSelector); if (focusable && focusable.length) focusable[0].focus(); else inner.focus(); }catch(_){ }
-              }, 60);
-              // install focus trap
-              const releaseTrap = trapFocus(overlay);
-              overlays.get(which).releaseTrap = releaseTrap;
-            };
-
-            const closeOverlay = (which) => {
-              const state = overlays.get(which);
-              if (!state) return;
-              const { overlay, clone, panel, trigger, prevFocus, releaseTrap } = state;
-              // copy input values from clone back to original panel
-              try{ syncInputsBack(clone, panel); }catch(_){ }
-              // run optional cleanup
-              try{ overlay.classList.remove('open'); }catch(_){ }
-              // allow body scroll again
-              try{ document.body.style.overflow = ''; }catch(_){ }
-              // remove clone after animation end
+            mfComposers.addEventListener('click', (e) => {
               try{
-                const inner = overlay.querySelector('.overlay-inner');
-                const onEnd = () => { try{ if (clone && clone.parentNode) clone.parentNode.removeChild(clone); }catch(_){} try{ if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); }catch(_){} if (releaseTrap) try{ releaseTrap(); }catch(_){ } if (prevFocus && prevFocus.focus) try{ prevFocus.focus(); }catch(_){ }; overlay.removeEventListener('transitionend', onEnd); };
-                overlay.addEventListener('transitionend', onEnd);
-                // fallback removal after 300ms
-                setTimeout(onEnd, 350);
-              }catch(_){ if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); if (releaseTrap) try{ releaseTrap(); }catch(_){ } if (prevFocus && prevFocus.focus) try{ prevFocus.focus(); }catch(_){ } }
-              overlays.delete(which);
-            };
-
-            const closeAllOverlays = ()=>{ Array.from(overlays.keys()).forEach(k=> closeOverlay(k)); };
-
-            // wire toolbar buttons
-            if (mfFilters) mfFilters.addEventListener('click', (ev)=>{ ev.preventDefault(); if (window.innerWidth <= 600) { openOverlay('filters', mfFilters); } else { const el = document.getElementById('panel-left'); if (el) el.scrollIntoView({behavior:'smooth', block:'center'}); } });
-            if (mfComposers) mfComposers.addEventListener('click', (ev)=>{ ev.preventDefault(); if (window.innerWidth <= 600){ openOverlay('composer', mfComposers); } else { window.location.href = '/composers'; } });
-
-            // close overlays on escape
-            document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape') closeAllOverlays(); });
-            // tap outside overlay inner to close (use capture to run before other handlers)
-            document.addEventListener('click', (e)=>{ const open = document.querySelector('.mobile-overlay.open'); if (!open) return; const inner = open.querySelector('.overlay-inner'); if (!inner) return; if (!inner.contains(e.target) && !e.target.classList.contains('mf-btn') && !e.target.classList.contains('mf-center')){ closeAllOverlays(); } }, true);
-
-            // Hamburger / swipe menu wiring
-            const hamburger = document.getElementById('mf-hamburger');
-            const swipeMenu = document.getElementById('mobile-swipe-menu');
-            const swmClose = document.getElementById('swm-close');
-            const swmFilters = document.getElementById('swm-filters');
-            const swmComposers = document.getElementById('swm-composers');
-            const swmHome = document.getElementById('swm-home');
-            function openSwipeMenu(){ if (!swipeMenu) return; swipeMenu.setAttribute('aria-hidden','false'); if (hamburger) hamburger.setAttribute('aria-expanded','true'); document.body.style.overflow='hidden'; }
-            function closeSwipeMenu(){ if (!swipeMenu) return; swipeMenu.setAttribute('aria-hidden','true'); if (hamburger) hamburger.setAttribute('aria-expanded','false'); document.body.style.overflow=''; }
-            if (hamburger) hamburger.addEventListener('click', (ev)=>{ ev.preventDefault(); if (window.innerWidth <= 600) { openSwipeMenu(); } else { /* noop on desktop */ } });
-            if (swmClose) swmClose.addEventListener('click', (ev)=>{ ev.preventDefault(); closeSwipeMenu(); });
-            if (swmFilters) swmFilters.addEventListener('click', (ev)=>{ ev.preventDefault(); closeSwipeMenu(); if (window.innerWidth <= 600) { openOverlay('filters', document.getElementById('mf-filters')); } else { const el = document.getElementById('panel-left'); if (el) el.scrollIntoView({behavior:'smooth', block:'center'}); } });
-            if (swmComposers) swmComposers.addEventListener('click', (ev)=>{ ev.preventDefault(); closeSwipeMenu(); if (window.innerWidth <= 600){ openOverlay('composer', document.getElementById('mf-composers')); } else { window.location.href = '/composers'; } });
-            if (swmHome) swmHome.addEventListener('click', (ev)=>{ ev.preventDefault(); window.location.href = '/'; });
-
-            // left-edge swipe to open filters: simple gesture detection
-            try{
-              let touchStartX = null; let touchStartY = null; let touchStartedAtEdge = false;
-              window.addEventListener('touchstart', (e)=>{ const t = e.touches && e.touches[0]; if (!t) return; touchStartX = t.clientX; touchStartY = t.clientY; touchStartedAtEdge = touchStartX <= 24; });
-              window.addEventListener('touchmove', (e)=>{ if (!touchStartedAtEdge) return; const t = e.touches && e.touches[0]; if (!t) return; const dx = t.clientX - touchStartX; const dy = Math.abs(t.clientY - touchStartY); if (dx > 60 && dy < 60){ // horizontal swipe right
-                openSwipeMenu(); touchStartedAtEdge = false; }
-              });
-            }catch(_){ }
+                e && e.preventDefault && e.preventDefault();
+                e && e.stopPropagation && e.stopPropagation();
+                const name = window.selectedComposer || '';
+                if (window && typeof window.openComposerFromName === 'function') {
+                  window.openComposerFromName(name);
+                } else {
+                  if (window.innerWidth <= 600) openComposerOverlay();
+                  else { const elp = document.getElementById('panel-right'); if (elp) elp.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                }
+              }catch(_){ }
+            });
           }catch(_){ }
+        }
+
+        // Delegated catch-all: if any anchor/button meant to open composers is still rendered
+        // as a link or has different markup, intercept clicks and open the composer overlay.
+        try{
+          document.addEventListener('click', function delegatedComposerClick(ev){
+            try{
+              const tgt = ev.target && (ev.target.closest ? ev.target.closest('#mf-composers, [data-action="composers"], a.about-badge, .mf-btn') : null);
+              if (!tgt) return;
+              // If it's a generic mf-btn but not intended for composers, ensure it's the composers one
+              if (tgt.id && tgt.id !== 'mf-composers' && !tgt.matches('[data-action="composers"]') && !tgt.classList.contains('about-badge')) return;
+              ev.preventDefault && ev.preventDefault(); ev.stopPropagation && ev.stopPropagation();
+              const name = window.selectedComposer || '';
+              if (window && typeof window.openComposerFromName === 'function') {
+                window.openComposerFromName(name);
+              } else {
+                if (window.innerWidth <= 600) openComposerOverlay();
+                else { const elp = document.getElementById('panel-right'); if (elp) elp.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+              }
+            }catch(_){ }
+          }, { capture: true });
+        }catch(_){ }
+
+        // Helper: open a left-side filter overlay (mobile only)
+        function openFilterOverlay(){
+          if (window.innerWidth > 600) return;
+          // if overlay already exists do nothing (toggle is handled by caller)
+          let overlay = document.querySelector('.mobile-overlay.left');
+          if (overlay) return;
+          overlay = document.createElement('div');
+          overlay.className = 'mobile-overlay left';
+          overlay.setAttribute('role','dialog');
+          overlay.setAttribute('aria-modal','true');
+          overlay.style.display = 'block';
+
+          // position the overlay flush to the viewport edges (left/top) so it deploys from the screen edge
+          try{
+            overlay.style.position = 'fixed';
+            overlay.style.left = '0px';
+            overlay.style.top = '0px';
+            overlay.style.width = '100vw';
+            overlay.style.height = '100vh';
+            // keep overlay under the mobile toolbar so the toolbar stays visible/clickable
+            overlay.style.zIndex = '1990';
+            overlay.style.background = 'rgba(0,0,0,0.18)';
+          }catch(_){ overlay.style.position = 'fixed'; overlay.style.inset = '0'; overlay.style.zIndex = '1990'; }
+
+          // backdrop inner to hold the left-panel
+          const inner = document.createElement('div');
+          inner.className = 'overlay-inner overlay-left-inner';
+          inner.style.position = 'absolute';
+          // the inner panel should fill the overlay vertically and be anchored to the left/top (flush left)
+          inner.style.top = '0';
+          inner.style.bottom = '0';
+          inner.style.left = '0';
+          inner.style.right = 'auto';
+          // width is relative to overlay width; cap at 380px or 84% of overlay
+          inner.style.width = 'min(84%, 380px)';
+          inner.style.maxWidth = '380px';
+          inner.style.zIndex = '1995';
+          inner.style.maxWidth = '380px';
+          inner.style.background = 'white';
+          inner.style.boxSizing = 'border-box';
+          inner.style.padding = '16px';
+          // slide in from the left so it's flush to the left/top when open
+          inner.style.transform = 'translateX(-8%)';
+          inner.style.opacity = '0';
+          inner.style.transition = 'transform 220ms ease, opacity 220ms ease';
+          inner.style.boxShadow = '6px 0 18px rgba(0,0,0,0.12)';
+          inner.style.borderTopRightRadius = '12px';
+          inner.style.borderBottomRightRadius = '12px';
+
+          // (no close button — toolbar toggles overlay; backdrop/Escape still close)
+
+          // clone the filter panel into the overlay so the original DOM stays in place
+          const panel = document.getElementById('panel-left');
+          if (panel){
+            const clone = panel.cloneNode(true);
+            clone.id = 'panel-left-mobile-clone';
+            clone.classList.add('mobile-overlay-clone');
+            // reset spacing for the clone
+            clone.style.margin = '0';
+            clone.style.padding = '0';
+            clone.style.width = '100%';
+            inner.appendChild(clone);
+          } else {
+            inner.innerHTML = '<div style="padding:12px">Filters</div>';
+          }
+
+          overlay.appendChild(inner);
+          document.body.appendChild(overlay);
+
+          // click outside to close (clicks on overlay but outside inner)
+          overlay.addEventListener('click', (ev)=>{ if (ev.target === overlay) closeFilterOverlay(); });
+
+          // close on escape (one-time listener)
+          document.addEventListener('keydown', function onEsc(e){ if (e.key === 'Escape'){ closeFilterOverlay(); document.removeEventListener('keydown', onEsc); } });
+
+          // animate in
+          requestAnimationFrame(()=>{ inner.style.transform = 'translateX(0)'; inner.style.opacity = '1'; });
+        }
+
+        function closeFilterOverlay(){
+          const overlay = document.querySelector('.mobile-overlay.left');
+          if (!overlay) return;
+          const inner = overlay.querySelector('.overlay-inner.overlay-left-inner');
+          if (inner){ inner.style.transform = 'translateX(-8%)'; inner.style.opacity = '0'; }
+          // animate out then copy user input state from the clone back to the real panel and remove overlay
+          setTimeout(()=>{
+            try{
+              const clone = document.getElementById('panel-left-mobile-clone');
+              const real = document.getElementById('panel-left');
+              if (clone && real){
+                // copy checkbox/radio states and text/select values by matching input name/value/data-val
+                const cloneInputs = clone.querySelectorAll('input, select, textarea');
+                cloneInputs.forEach(ci=>{
+                  try{
+                    let selector = '';
+                    if (ci.name) selector = '[name="' + ci.name + '"]';
+                    else if (ci.dataset && ci.dataset.val) selector = '[data-val="' + ci.dataset.val + '"]';
+                    else if (ci.value) selector = '[value="' + ci.value.replace(/"/g,'\"') + '"]';
+                    if (!selector) return;
+                    const orig = real.querySelector(selector);
+                    if (!orig) return;
+                    if (orig.type === 'checkbox' || orig.type === 'radio') orig.checked = ci.checked;
+                    else orig.value = ci.value;
+                  }catch(_){ }
+                });
+              }
+              overlay.remove();
+            }catch(_){ }
+          }, 260);
+        }
+
+        // Right-side composer overlay (mobile): mirror behavior of filters overlay
+        function openComposerOverlay(){
+          if (window.innerWidth > 600) return;
+          let overlay = document.querySelector('.mobile-overlay.right');
+          if (overlay) return;
+          overlay = document.createElement('div');
+          overlay.className = 'mobile-overlay right';
+          overlay.setAttribute('role','dialog'); overlay.setAttribute('aria-modal','true'); overlay.style.display = 'block';
+          try{ overlay.style.position = 'fixed'; overlay.style.left = '0px'; overlay.style.top = '0px'; overlay.style.width = '100vw'; overlay.style.height = '100vh'; overlay.style.zIndex = '1990'; overlay.style.background = 'rgba(0,0,0,0.18)'; }catch(_){ overlay.style.position='fixed'; overlay.style.inset='0'; overlay.style.zIndex='1990'; }
+
+          const inner = document.createElement('div');
+          inner.className = 'overlay-inner overlay-right-inner';
+          inner.style.position = 'absolute';
+          // anchor to right/top and slide in from the right
+          inner.style.top = '0'; inner.style.bottom = '0'; inner.style.right = '0'; inner.style.left = 'auto';
+          inner.style.width = 'min(92%, 420px)'; inner.style.maxWidth = '420px'; inner.style.zIndex = '1995'; inner.style.background = 'white'; inner.style.boxSizing = 'border-box'; inner.style.padding = '16px';
+          inner.style.transform = 'translateX(8%)'; inner.style.opacity = '0'; inner.style.transition = 'transform 220ms ease, opacity 220ms ease';
+          inner.style.boxShadow = '-6px 0 18px rgba(0,0,0,0.12)'; inner.style.borderTopLeftRadius = '12px'; inner.style.borderBottomLeftRadius = '12px';
+
+          const panel = document.getElementById('panel-right');
+          if (panel){ const clone = panel.cloneNode(true); clone.id = 'panel-right-mobile-clone'; clone.classList.add('mobile-overlay-clone'); clone.style.margin='0'; clone.style.padding='0'; clone.style.width='100%'; inner.appendChild(clone); }
+          else { inner.innerHTML = '<div style="padding:12px">Composer</div>'; }
+
+          overlay.appendChild(inner); document.body.appendChild(overlay);
+          overlay.addEventListener('click', (ev)=>{ if (ev.target === overlay) closeComposerOverlay(); });
+          document.addEventListener('keydown', function onEsc(e){ if (e.key === 'Escape'){ closeComposerOverlay(); document.removeEventListener('keydown', onEsc); } });
+          requestAnimationFrame(()=>{ inner.style.transform = 'translateX(0)'; inner.style.opacity = '1'; });
+        }
+
+        function closeComposerOverlay(){
+          const overlay = document.querySelector('.mobile-overlay.right'); if (!overlay) return;
+          const inner = overlay.querySelector('.overlay-inner.overlay-right-inner'); if (inner){ inner.style.transform = 'translateX(8%)'; inner.style.opacity = '0'; }
+          setTimeout(()=>{
+            try{
+              const clone = document.getElementById('panel-right-mobile-clone');
+              const real = document.getElementById('panel-right');
+              if (clone && real){
+                const cloneInputs = clone.querySelectorAll('input, select, textarea');
+                cloneInputs.forEach(ci=>{
+                  try{
+                    let selector = '';
+                    if (ci.name) selector = '[name="' + ci.name + '"]';
+                    else if (ci.dataset && ci.dataset.val) selector = '[data-val="' + ci.dataset.val + '"]';
+                    else if (ci.value) selector = '[value="' + ci.value.replace(/"/g,'\"') + '"]';
+                    if (!selector) return;
+                    const orig = real.querySelector(selector); if (!orig) return;
+                    if (orig.type === 'checkbox' || orig.type === 'radio') orig.checked = ci.checked; else orig.value = ci.value;
+                  }catch(_){ }
+                });
+              }
+              overlay.remove();
+            }catch(_){ }
+          }, 260);
+        }
+
+  // Wire the mobile filters button: toggle a left-side overlay on small screens; otherwise scroll the left panel into view
+  if (mfFilters) mfFilters.addEventListener('click', (ev)=>{ ev.preventDefault(); const existing = document.querySelector('.mobile-overlay.left'); if (window.innerWidth <= 600) { if (existing) closeFilterOverlay(); else openFilterOverlay(); } else { const el = document.getElementById('panel-left'); if (el) el.scrollIntoView({behavior:'smooth', block:'center'}); } });
+
+        if (mfCenter) mfCenter.addEventListener('click', ()=>{ const el = document.getElementById('panel-center'); if (el) el.scrollIntoView({behavior:'smooth', block:'center'}); });
+        // Ensure composers button opens the composer panel instead of navigating away.
+        if (mfComposers) mfComposers.addEventListener('click', (ev)=>{
+          try{
+            ev && ev.preventDefault && ev.preventDefault();
+            ev && ev.stopPropagation && ev.stopPropagation();
+            const name = window.selectedComposer || '';
+            if (window && typeof window.openComposerFromName === 'function') {
+              window.openComposerFromName(name);
+            } else {
+              if (window.innerWidth <= 600) openComposerOverlay();
+              else { const elp = document.getElementById('panel-right'); if (elp) elp.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+            }
+          }catch(_){ }
+        });
+            // Mobile UI removed: no-op for mobile-specific overlays and swipe menus
       }catch(_){ }
       // no autotest/debug behavior in production
     }catch(e){ const resultsEl = document.getElementById('results'); if (resultsEl) resultsEl.innerText = 'Initialization failed: ' + String(e); console.error('Initialization failed', e); }
