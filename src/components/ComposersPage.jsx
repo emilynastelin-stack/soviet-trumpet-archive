@@ -192,9 +192,23 @@ export default function ComposersPage({ initialComposers = [], initialGender = '
     try{
       if (!composerPanel || !composerPanel.name) return undefined;
       const target = normalizeStr(composerPanel.name || '');
-      // Relax matching: allow partial/substring matches to handle diacritics,
-      // commas, and extra spacing (e.g. "Brandt" vs "Brandt, Vasily...")
-      const found = grouped.find(x => normalizeStr(x.composer || '').includes(target));
+      // Relax matching: allow partial/substring matches and token intersection
+      // to handle diacritics, commas, ordering and extra spacing
+      function tokensOf(s){ return (s||'').split(/[^\p{L}\p{N}]+/u).map(tt=>normalizeStr(tt)).filter(Boolean); }
+      const targetTokens = tokensOf(target);
+      const found = grouped.find(x => {
+        const cand = normalizeStr(x.composer || '');
+        if (!cand) return false;
+        if (cand === target) return true;
+        if (cand.includes(target) || target.includes(cand)) return true;
+        // token intersection: if at least one meaningful token overlaps, consider it a match
+        try{
+          const ct = tokensOf(cand);
+          const intersection = ct.filter(t => targetTokens.includes(t));
+          if (intersection.length >= 1) return true;
+        }catch(_){ }
+        return false;
+      });
       // Debugging aid when matching fails
       if (!found) {
         try{ console.debug('[ComposersPage] selectedGroup match failed', { requested: composerPanel.name, normalized: target, candidates: grouped.map(g=>g.composer).slice(0,30) }); }catch(_){}
@@ -283,8 +297,22 @@ export default function ComposersPage({ initialComposers = [], initialGender = '
                 onPointerCancel={() => { try{ setActiveButton(null); }catch(_){} }}
                 onPointerLeave={() => { try{ setActiveButton(null); }catch(_){} }}
                 onClick={() => {
-                  console.debug('[composers] about-badge onClick', g.composer);
-                  setComposerPanel({ open: true, name: g.composer || '' });
+                  try{ console.debug('[composers] about-badge onClick', g.composer); }catch(_){ }
+                  try{ setComposerPanel({ open: true, name: g.composer || '' }); }catch(_){ }
+                  // Attempt to invoke the authoritative client runtime so it can
+                  // populate #composer-content. The runtime typically exposes
+                  // `openComposerFromName` and/or `populateComposerBox`.
+                  try{
+                    if (typeof window !== 'undefined' && typeof window.openComposerFromName === 'function'){
+                      // call the wrapped helper; it will forward to the original runtime when available
+                      try{ window.openComposerFromName(g.composer); }catch(_){}
+                    }
+                    // as a fallback, call the populate helper directly if present
+                    if (typeof window !== 'undefined' && typeof window.populateComposerBox === 'function'){
+                      // give the React panel a moment to render its DOM
+                      setTimeout(()=>{ try{ window.populateComposerBox(g.composer); }catch(_){} }, 80);
+                    }
+                  }catch(_){ }
                 }}
               >
                 {t('details')}
