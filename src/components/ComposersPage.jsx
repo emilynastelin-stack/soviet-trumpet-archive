@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import SiteNavbar from './SiteNavbar.jsx';
 
 function normalizeStr(s) {
@@ -10,6 +10,7 @@ function normalizeStr(s) {
   }
 }
 function cleanCell(v) { if (v === undefined || v === null) return ''; return String(v).replace(/[\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim(); }
+
 function findByNormalizedKey(row, wanted = []){
   if (!row || typeof row !== 'object') return undefined;
   const keys = Object.keys(row||{});
@@ -41,7 +42,12 @@ function normalizeRow(raw){
   return { ...r, Composer: cleanCell(composer), Russian: cleanCell(composerRussian), Native: cleanCell(native), 'Title, Year': cleanCell(title), Title: cleanCell(title), Year: cleanCell(year), Country: cleanCell(country) };
 }
 export default function ComposersPage({ initialComposers = [], initialGender = 'Any' }){
+  // Toggle to control whether the legacy in-page runtime should be allowed
+  // to populate the composer panel. Set to `false` to disable any runtime
+  // population while we iterate on the React panel and deploy safely.
+  const RUNTIME_POPULATE_ENABLED = false;
   const [lang, setLang] = useState('en');
+  const panelRef = useRef(null);
   // Local UI state for mobile composer panel (avoid relying only on globals)
   const [composerPanel, setComposerPanel] = useState({ open: false, name: '' });
   // track which composer button is being pressed for visual feedback
@@ -62,30 +68,7 @@ export default function ComposersPage({ initialComposers = [], initialGender = '
     return () => { try{ window.removeEventListener('resize', checkMobile); }catch(_){} };
   }, []);
 
-  // Debug helper: capture-phase pointerdown logger to detect if taps are intercepted.
-  useEffect(()=>{
-    if (!isClient) return;
-    let calls = 0;
-    const maxCalls = 12;
-    let timeoutId = null;
-    function handler(e){
-      try{
-        calls += 1;
-        const el = e.target;
-        let outer = '';
-        try{ outer = el && el.outerHTML ? String(el.outerHTML).slice(0, 800) : String(el); }catch(_){ outer = String(el); }
-        // Use warn so it shows prominently in many consoles
-        console.warn('[composer-debug] pointerdown target snippet:', outer);
-        if (calls >= maxCalls){ document.removeEventListener('pointerdown', handler, true); console.warn('[composer-debug] removed pointerdown capture listener after max events'); if (timeoutId) clearTimeout(timeoutId); }
-      }catch(err){ console.warn('[composer-debug] handler error', err); }
-    }
-    try{
-      document.addEventListener('pointerdown', handler, true);
-      // safety: remove after 30s
-      timeoutId = setTimeout(()=>{ try{ document.removeEventListener('pointerdown', handler, true); console.warn('[composer-debug] removed pointerdown capture listener after timeout'); }catch(_){} }, 30000);
-    }catch(_){ }
-    return ()=>{ try{ document.removeEventListener('pointerdown', handler, true); if (timeoutId) clearTimeout(timeoutId); }catch(_){} };
-  }, []);
+  // NOTE: removed temporary pointerdown debug listener to avoid noisy console output in production.
   // Ensure global helper calls also open the React-managed composer panel.
   // This wraps any existing `window.openComposerFromName` so third-party scripts
   // (the heavier client runtime) can trigger the React overlay and we still
@@ -107,19 +90,24 @@ export default function ComposersPage({ initialComposers = [], initialGender = '
     try {
       // install wrapper that opens the React panel then invokes original helper
       window.openComposerFromName = function(name, row){
-        try{ setComposerPanel({ open: true, name: String(name || '') }); }catch(_){ }
-        // ensure the React-rendered #composer-content exists before calling the heavy runtime
-        (async function(){
-          try{
-            const ok = await waitFor('#composer-content', 1000);
-            if (ok && typeof orig === 'function') {
-              try{ orig(name, row); }catch(_){ }
-            } else if (!ok && typeof orig === 'function') {
-              // fallback: call after a short delay if element not found
-              try{ setTimeout(()=>{ try{ orig(name, row); }catch(_){} }, 120); }catch(_){}
-            }
-          }catch(_){ if (typeof orig === 'function') try{ orig(name, row); }catch(_){} }
-        })();
+          try{ setComposerPanel({ open: true, name: String(name || '') }); }catch(_){ }
+          // Only invoke the legacy runtime if explicitly enabled. When disabled
+          // we intentionally avoid calling the original `openComposerFromName`
+          // so the panel stays controlled solely by React and does not get
+          // overwritten or populated by legacy scripts.
+          if (RUNTIME_POPULATE_ENABLED) {
+            (async function(){
+              try{
+                const ok = await waitFor('#composer-content', 1000);
+                if (ok && typeof orig === 'function') {
+                  try{ orig(name, row); }catch(_){ }
+                } else if (!ok && typeof orig === 'function') {
+                  // fallback: call after a short delay if element not found
+                  try{ setTimeout(()=>{ try{ orig(name, row); }catch(_){} }, 120); }catch(_){ }
+                }
+              }catch(_){ if (typeof orig === 'function') try{ orig(name, row); }catch(_){} }
+            })();
+          }
         return true;
       };
     }catch(_){ }
@@ -249,6 +237,34 @@ export default function ComposersPage({ initialComposers = [], initialGender = '
     // Use a full navigation to match the anchor behavior exactly
     window.location.href = href;
   }
+
+  // Try to invoke the heavy client runtime to populate the composer content.
+  // The runtime may load after this component hydrates, so retry briefly.
+  // Accepts an optional `row` to forward to the runtime helper. Passing the
+  // row helps the runtime find the exact composer match in the sheet data.
+  function tryPopulateComposerRuntime(name, row){
+    if (!name) return;
+    // If runtime population is disabled, do nothing (keep panel React-only)
+    if (!RUNTIME_POPULATE_ENABLED) return;
+    try{ if (typeof window !== 'undefined') window.selectedComposer = String(name || ''); }catch(_){ }
+    let attempts = 0;
+    const maxAttempts = 50; // ~5s with 100ms interval (more tolerant)
+    const interval = 100;
+    const iv = setInterval(()=>{
+      attempts += 1;
+      try{
+        if (typeof window === 'undefined') return;
+        // prefer the canonical openComposerFromName which also sets selectedComposer
+        if (typeof window.openComposerFromName === 'function'){
+          try{ window.openComposerFromName(name, row); clearInterval(iv); return; }catch(_){ }
+        }
+        if (typeof window.populateComposerBox === 'function'){
+          try{ window.populateComposerBox(name, row); clearInterval(iv); return; }catch(_){ }
+        }
+      }catch(_){ }
+      if (attempts >= maxAttempts) { try{ clearInterval(iv); }catch(_){} }
+    }, interval);
+  }
   // Close mobile composer panel on Escape
   useEffect(()=>{
     if (!isClient) return;
@@ -256,6 +272,72 @@ export default function ComposersPage({ initialComposers = [], initialGender = '
     try{ document.addEventListener('keydown', onKey); }catch(_){ }
     return ()=>{ try{ document.removeEventListener('keydown', onKey); }catch(_){} };
   }, [composerPanel.open, isClient]);
+
+  // If the panel opens but the runtime hasn't populated #composer-content,
+  // retry a couple times and show a fallback message so the panel is never blank.
+  useEffect(()=>{
+    if (!isClient) return;
+    let cancelled = false;
+    if (!composerPanel.open) return;
+    (async function(){
+      // short initial wait to allow original call to proceed
+      await new Promise(r=>setTimeout(r, 140));
+      try{
+        const el = document.querySelector('#composer-content');
+        if (el && el.innerHTML && String(el.innerHTML).trim().length > 10) return; // already populated
+        // retry runtime a couple times
+        for (let i=0;i<3 && !cancelled;i++){
+          tryPopulateComposerRuntime(composerPanel.name, null);
+          await new Promise(r=>setTimeout(r, 220));
+          const now = document.querySelector('#composer-content');
+          if (now && now.innerHTML && String(now.innerHTML).trim().length > 10) return;
+        }
+        // still empty: insert a helpful fallback message
+        try{
+          const fallback = document.querySelector('#composer-content');
+          if (fallback) fallback.innerHTML = `<div style="color:#f3e8ff;padding:6px;border-radius:6px;background:rgba(255,255,255,0.02)">No extra details available right now. Try again or open the full composer page.</div>`;
+        }catch(_){}
+      }catch(_){}
+    })();
+    return ()=>{ cancelled = true; };
+  }, [composerPanel.open, composerPanel.name, isClient]);
+
+  // Hide legacy runtime overlays on mobile so they don't show when React panel is hidden
+  useEffect(() => {
+    if (!isClient) return;
+    function hideLegacyOverlays() {
+      try {
+        document.querySelectorAll('.overlay, .overlay-right-inner, .mobile-overlay.right').forEach(el => {
+          try {
+            el.style.setProperty('display', 'none', 'important');
+            el.style.setProperty('visibility', 'hidden', 'important');
+            el.style.setProperty('pointer-events', 'none', 'important');
+          } catch (_) { }
+        });
+      } catch (_) { }
+    }
+
+    function onResize() {
+      try {
+        if (window.innerWidth <= 600) hideLegacyOverlays();
+      } catch (_) { }
+    }
+
+    // initial hide on mount if mobile
+    try { if (window.innerWidth <= 600) hideLegacyOverlays(); } catch (_) { }
+    window.addEventListener('resize', onResize);
+
+    // Observe DOM mutations and re-hide overlays if they are re-inserted
+    const mo = new MutationObserver(() => {
+      try { if (window.innerWidth <= 600) hideLegacyOverlays(); } catch (_) { }
+    });
+    try { mo.observe(document.body, { childList: true, subtree: true }); } catch (_) { }
+
+    return () => {
+      try { window.removeEventListener('resize', onResize); } catch (_) { }
+      try { mo.disconnect(); } catch (_) { }
+    };
+  }, [isClient]);
   return (
     <div>
       <SiteNavbar
@@ -282,7 +364,15 @@ export default function ComposersPage({ initialComposers = [], initialGender = '
       <div className="banner-placeholder" style={{ width: '100%', maxWidth: 1920, height: 350, margin: '0 auto', background:'#efefef' }}></div>
       <div className="composers-list">
         {grouped.map((g, idx) => (
-          <div key={g.composer || idx} className="composer-group">
+          <div
+            key={g.composer || idx}
+            className="composer-group"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e)=>{ try{ if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setComposerPanel({ open: true, name: g.composer || '' }); const representative = (g.rows && g.rows.length) ? g.rows[0] : null; tryPopulateComposerRuntime(g.composer, representative); } }catch(_){} }}
+            onClick={() => { try{ setComposerPanel({ open: true, name: g.composer || '' }); const representative = (g.rows && g.rows.length) ? g.rows[0] : null; tryPopulateComposerRuntime(g.composer, representative); }catch(_){} }}
+            style={{ cursor: 'pointer' }}
+          >
             <h3>{g.composer}</h3>
             <p><strong>{t('compositions')}</strong></p>
             <ul>{g.titles.map((tt, i) => (<li key={i}>{tt}</li>))}</ul>
@@ -296,22 +386,17 @@ export default function ComposersPage({ initialComposers = [], initialGender = '
                 onPointerUp={() => { try{ setActiveButton(null); console.debug('[composers] pointerup badge', g.composer); }catch(_){} }}
                 onPointerCancel={() => { try{ setActiveButton(null); }catch(_){} }}
                 onPointerLeave={() => { try{ setActiveButton(null); }catch(_){} }}
-                onClick={() => {
+                onClick={(e) => {
+                  try{ e.stopPropagation(); }catch(_){}
                   try{ console.debug('[composers] about-badge onClick', g.composer); }catch(_){ }
                   try{ setComposerPanel({ open: true, name: g.composer || '' }); }catch(_){ }
                   // Attempt to invoke the authoritative client runtime so it can
                   // populate #composer-content. The runtime typically exposes
                   // `openComposerFromName` and/or `populateComposerBox`.
                   try{
-                    if (typeof window !== 'undefined' && typeof window.openComposerFromName === 'function'){
-                      // call the wrapped helper; it will forward to the original runtime when available
-                      try{ window.openComposerFromName(g.composer); }catch(_){}
-                    }
-                    // as a fallback, call the populate helper directly if present
-                    if (typeof window !== 'undefined' && typeof window.populateComposerBox === 'function'){
-                      // give the React panel a moment to render its DOM
-                      setTimeout(()=>{ try{ window.populateComposerBox(g.composer); }catch(_){} }, 80);
-                    }
+                    // Try to find a representative row to forward to the runtime.
+                    const representative = (g.rows && g.rows.length) ? g.rows[0] : null;
+                    tryPopulateComposerRuntime(g.composer, representative);
                   }catch(_){ }
                 }}
               >
@@ -321,31 +406,33 @@ export default function ComposersPage({ initialComposers = [], initialGender = '
           </div>
         ))}
       </div>
-      {/* Mobile composer panel rendered by React state to avoid relying only on global shims */}
-      {composerPanel.open && (
-        /* debug marker to confirm the panel renders */
-        <div style={{ position: 'fixed', top: 8, left: 8, width: 28, height: 28, background: 'red', zIndex: 99999, borderRadius: 4 }} />
-      )}
-      {composerPanel.open && (
+    {/* Mobile composer panel rendered by React state to avoid relying only on global shims */}
+    {/* removed debug marker */}
+  {composerPanel.open && (
         <div
+          data-react-panel="1"
           role="dialog"
           aria-modal="true"
           aria-label={`Composer details for ${composerPanel.name}`}
+          ref={panelRef}
           style={{
-            position: 'fixed', top: 0, right: 0, width: '92vw', maxWidth: 420, height: '100vh', background: '#fff', zIndex: 2200,
-            boxShadow: '-6px 0 18px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column',
+              position: 'fixed', top: 0, right: 0, width: '92vw', maxWidth: 420, height: '100vh', background: '#6b21a8', zIndex: 2147483647,
+            boxShadow: '-6px 0 18px rgba(0,0,0,0.20)', display: 'flex', flexDirection: 'column', color: '#ffffff',
             transform: composerPanel.open ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 220ms ease'
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid #eef2f6' }}>
+          {/* Static header styled like filter panel */}
+          <div style={{ padding: '12px 16px', background: '#6b21a8', borderBottom: '1px solid rgba(255,255,255,0.08)', color: '#ffffff', fontWeight: 600 }}>
+            Composer
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <div style={{ fontSize: '0.85rem', color: '#6b7280', lineHeight: '1' }}>Composer</div>
               <strong style={{ color: 'var(--accent)', fontSize: '1rem' }}>{composerPanel.name}</strong>
             </div>
-            <button aria-label="Close composer panel" onClick={()=>setComposerPanel({ open: false, name: '' })} style={{ border: 0, background: 'transparent', fontSize: '1.1rem', cursor: 'pointer' }}>✕</button>
+            <button aria-label="Close composer panel" onClick={()=>setComposerPanel({ open: false, name: '' })} style={{ border: 0, background: 'transparent', fontSize: '1.1rem', cursor: 'pointer', color: '#ffffff' }}>✕</button>
           </div>
-          <div style={{ padding: 12, overflow: 'auto', flex: '1 1 auto' }}>
-              <div id="composer-content" style={{ color: '#111' }}>
+      <div style={{ padding: 12, overflow: 'auto', flex: '1 1 auto' }}>
+        <div id="composer-content" style={{ color: '#ffffff', minHeight: '40vh', background: 'transparent' }}>
               {/* Minimal content: list composer titles if available */}
               {selectedGroup ? (
                 <div>
@@ -362,6 +449,7 @@ export default function ComposersPage({ initialComposers = [], initialGender = '
           </div>
         </div>
       )}
+  {/* Composer mobile panel: React panel now renders on all viewports. */}
     </div>
   );
 }
