@@ -979,6 +979,14 @@ import ComposersPage from "../components/ComposersPage.jsx";
               p.style.display = 'block';
               // remove aria-hidden and move focus into the panel for accessibility
               try{ p.setAttribute('aria-hidden','false'); }catch(_){ }
+              // When opening, attempt to copy any existing desktop composer HTML into the mobile panel
+              try{
+                var mobileInner = document.getElementById('composer-content-mobile-clone') || document.getElementById('mobilePanelContent');
+                var desktopInner = document.getElementById('composer-content');
+                if (mobileInner && desktopInner && desktopInner.innerHTML && String(desktopInner.innerHTML).trim().length > 10){
+                  try{ mobileInner.innerHTML = desktopInner.innerHTML; }catch(_){ }
+                }
+              }catch(_){ }
               // small timeout to ensure element is visible before focusing
               setTimeout(function(){ try{ var closeBtn = document.getElementById('closePanelBtn'); if (closeBtn && typeof closeBtn.focus === 'function'){ closeBtn.focus({ preventScroll: true }); } }catch(_){ } }, 20);
               // scroll main content slightly so panel appears visually above
@@ -1061,6 +1069,16 @@ import ComposersPage from "../components/ComposersPage.jsx";
                   // replace mobilePanelContent with the clone
                   content.innerHTML = '';
                   content.appendChild(clone);
+
+                  // Defensive immediate copy: if desktop #composer-content already has populated HTML,
+                  // copy it into the mobile clone right away so user doesn't see the placeholder.
+                  try{
+                    var desktopNowInit = document.getElementById('composer-content');
+                    var mobileContentInit = document.getElementById('composer-content-mobile-clone');
+                    if (desktopNowInit && mobileContentInit && desktopNowInit.innerHTML && String(desktopNowInit.innerHTML).trim().length > 10){
+                      try{ mobileContentInit.innerHTML = desktopNowInit.innerHTML; }catch(_){ }
+                    }
+                  }catch(_){ }
 
                   // If the client runtime can populate the desktop composer panel, use it
                   if (title && window && typeof window.populateComposerBox === 'function'){
