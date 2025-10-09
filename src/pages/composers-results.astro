@@ -1031,11 +1031,11 @@ import ComposersPage from "../components/ComposersPage.jsx";
               var title = '';
               try{ var b = main && main.querySelector('b'); if(b) title = (b.textContent || '').trim(); }catch(_){}
 
-              // Prefer client helper if available
+              // Prefer client helper if available. Call it but continue so the
+              // mobile clone + event listener logic runs and can sync content.
               if (title && window && typeof window.openComposerFromName === 'function'){
                 try{
-                  var ok = window.openComposerFromName(title, card);
-                  if (ok) return; // client handled opening/population
+                  try{ window.openComposerFromName(title, card); }catch(_){ }
                 }catch(_){ }
               }
 
