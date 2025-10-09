@@ -698,7 +698,7 @@
     } else if (typeof matchRow === 'object' && matchRow){ rowObj = matchRow; }
     const desired = ['Composer','Lifespan','Country','Soviet republic','Nationality','Language','Notes','Learn more'];
     const normMap = {};
-    Object.keys(rowObj || {}).forEach(k => { try { normMap[normalizeKey(k)] = rowObj[k]; } catch { normMap[String(k||'')] = rowObj[k]; } });
+  Object.keys(rowObj || {}).forEach(k => { try { normMap[normalizeKey(k)] = rowObj[k]; } catch (e) { normMap[String(k||'')] = rowObj[k]; } });
     const getValForLabels = (labels) => {
       for (const lab of labels){ const nk = normalizeKey(lab); if (nk && (nk in normMap) && normMap[nk] !== undefined && normMap[nk] !== null && String(normMap[nk]).trim() !== '') { return String(normMap[nk]); } }
       const allValues = Object.values(normMap||{}).map(v => v==null? '': String(v));
