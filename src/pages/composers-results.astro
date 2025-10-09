@@ -412,7 +412,7 @@ import ComposersPage from "../components/ComposersPage.jsx";
   /* Toggle button - only show on mobile */
   .mobile-toggle { display: none; border:0; background:transparent; font-size:16px; cursor:pointer; padding:6px 8px; }
   /* On small screens make the mobile panel a right-side sliding panel matching the filter width (270px) */
-  @media (max-width: 600px) {
+      @media (max-width: 600px) {
     #mobileSidePanel {
       display: block;
       top: 64px; /* below the header */
@@ -420,14 +420,18 @@ import ComposersPage from "../components/ComposersPage.jsx";
       right: 0;
       left: auto;
       width: 270px; /* match filter panel width */
-      max-width: 84%;
+      max-width: 92%;
+      /* match filter panel styling */
+      background: #f9fafb;
+      padding: 20px;
       border-left: 1px solid #e5e7eb;
       border-top: none;
-      box-shadow: -6px 0 18px rgba(0,0,0,0.08);
-      border-top-left-radius: 12px;
-      border-bottom-left-radius: 12px;
+      box-shadow: none;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
       overflow: auto;
       z-index: 2200;
+      font-family: Inter, system-ui, sans-serif;
     }
     .mobile-toggle { display: inline-block; }
   }
