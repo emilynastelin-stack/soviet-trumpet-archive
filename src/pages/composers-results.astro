@@ -1019,11 +1019,32 @@ import ComposersPage from "../components/ComposersPage.jsx";
                 }catch(_){ }
               }
 
-              // Fallback: copy visible card content into mobile panel and show it
+              // Fallback: prefer cloning the desktop right-hand panel so mobile matches desktop
               var content = document.getElementById('mobilePanelContent');
-              if (content){
-                if (main){ content.innerHTML = main.innerHTML; }
-                else if (title) { content.textContent = title; }
+              var panelRight = document.getElementById('panel-right');
+              try{
+                if (panelRight && content){
+                  // clone the panel-right to preserve structure, but avoid duplicate IDs
+                  var clone = panelRight.cloneNode(true);
+                  // remove or rename IDs inside clone that would conflict
+                  try{
+                    if (clone.id) clone.id = 'panel-right-mobile-clone';
+                    var innerIds = ['composer-content','more-from-composer','clear-composer'];
+                    innerIds.forEach(function(id){
+                      var el = clone.querySelector('#'+id);
+                      if (el) { el.id = id + '-mobile-clone'; }
+                    });
+                  }catch(_){ }
+                  // replace mobilePanelContent with the clone
+                  content.innerHTML = '';
+                  content.appendChild(clone);
+                } else if (content){
+                  if (main){ content.innerHTML = main.innerHTML; }
+                  else if (title) { content.textContent = title; }
+                }
+              }catch(e){
+                // fallback to minimal content on error
+                if (content){ if (main){ content.innerHTML = main.innerHTML; } else if (title) { content.textContent = title; } }
               }
               showPanel();
             }catch(e){ console.warn('populateFromCard failed', e); }
