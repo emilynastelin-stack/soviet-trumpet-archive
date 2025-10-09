@@ -946,12 +946,56 @@ import ComposersPage from "../components/ComposersPage.jsx";
           function hidePanel(){
             try{ var p = document.getElementById('mobileSidePanel'); if(!p) return; p.style.display='none'; p.setAttribute('aria-hidden','true'); }catch(e){}
           }
+
+          // Try to populate the mobile panel from a result-card element
+          function populateAndShowFromCard(card){
+            try{
+              if(!card) return;
+              var main = card.querySelector('.result-main');
+              var title = '';
+              try{ var b = main && main.querySelector('b'); if(b) title = (b.textContent || '').trim(); }catch(_){}
+
+              // Prefer client helper if available
+              if (title && window && typeof window.openComposerFromName === 'function'){
+                try{
+                  var ok = window.openComposerFromName(title, card);
+                  if (ok) return; // client handled opening/population
+                }catch(_){ }
+              }
+
+              // Fallback: copy visible card content into mobile panel and show it
+              var content = document.getElementById('mobilePanelContent');
+              if (content){
+                if (main){ content.innerHTML = main.innerHTML; }
+                else if (title) { content.textContent = title; }
+              }
+              showPanel();
+            }catch(e){ console.warn('populateFromCard failed', e); }
+          }
+
           document.addEventListener('DOMContentLoaded', function(){
             var t = document.getElementById('togglePanelBtn'); if(t) t.addEventListener('click', function(ev){ ev.preventDefault && ev.preventDefault(); showPanel(); });
             var c = document.getElementById('closePanelBtn'); if(c) c.addEventListener('click', function(ev){ ev.preventDefault && ev.preventDefault(); hidePanel(); });
+
+            // Delegated click handler for result cards; wire the first card to open the mobile panel
+            var results = document.getElementById('results-list');
+            if (results){
+              results.addEventListener('click', function(ev){
+                try{
+                  var card = ev.target && ev.target.closest ? ev.target.closest('.result-card') : null;
+                  if (!card) return;
+                  var first = results.querySelector('.result-card');
+                  if (first && first === card){
+                    ev.preventDefault && ev.preventDefault(); ev.stopPropagation && ev.stopPropagation();
+                    populateAndShowFromCard(card);
+                  }
+                }catch(e){ /* ignore */ }
+              }, true);
+            }
           });
+
           // expose to other scripts
-          window.showMobileComposerPanel = showPanel; window.hideMobileComposerPanel = hidePanel;
+          window.showMobileComposerPanel = showPanel; window.hideMobileComposerPanel = hidePanel; window.populateMobilePanelFromCard = populateAndShowFromCard;
         })();
       </script>
 
