@@ -1040,12 +1040,41 @@ import ComposersPage from "../components/ComposersPage.jsx";
               var title = '';
               try{ var b = main && main.querySelector('b'); if(b) title = (b.textContent || '').trim(); }catch(_){}
 
-              // Prefer client helper if available. Call it but continue so the
-              // mobile clone + event listener logic runs and can sync content.
-              if (title && window && typeof window.openComposerFromName === 'function'){
+              // try to extract a composer name robustly from the card
+              function extractComposerFromCard(c){
                 try{
-                  try{ window.openComposerFromName(title, card); }catch(_){ }
+                  if (!c) return '';
+                  // look for p elements that include 'Composer:' label
+                  var ps = c.querySelectorAll('p');
+                  for (var i=0;i<ps.length;i++){
+                    try{
+                      var txt = (ps[i].textContent || '').trim();
+                      var m = txt.match(/Composer[:\s]*\s*(.+)/i);
+                      if (m && m[1]){
+                        var name = m[1].trim();
+                        // strip trailing 'Published' or 'About this composer' fragments
+                        name = name.replace(/\s*[Pp]ublished[:\s].*$/,'');
+                        name = name.replace(/\s*About this composer.*$/i,'');
+                        return name.trim();
+                      }
+                    }catch(_){ }
+                  }
+                  // fallback: look for a line that contains a comma (Lastname, Firstname)
+                  var lines = (c.innerText || '').split(/[\r\n]+/).map(function(s){ return (s||'').trim(); }).filter(Boolean);
+                  for (var j=0;j<lines.length;j++){
+                    if (/,/.test(lines[j]) && /[A-Za-z]/.test(lines[j])) return lines[j];
+                  }
                 }catch(_){ }
+                return '';
+              }
+              var composerName = '';
+              try{ composerName = extractComposerFromCard(card) || ''; }catch(_){ composerName = ''; }
+              try{ console.debug && console.debug('[page] extracted composer name:', composerName); }catch(_){ }
+
+              // Prefer client helper if available. Use composerName if we have it; otherwise fall back to title.
+              var nameToUse = (composerName && String(composerName).trim()) ? String(composerName).trim() : String(title || '').trim();
+              if (nameToUse && window && typeof window.openComposerFromName === 'function'){
+                try{ window.openComposerFromName(nameToUse, card); }catch(_){ }
               }
 
               // Fallback: prefer cloning the desktop right-hand panel so mobile matches desktop
@@ -1081,14 +1110,14 @@ import ComposersPage from "../components/ComposersPage.jsx";
                   }catch(_){ }
 
                   // If the client runtime can populate the desktop composer panel, use it
-                  if (title && window && typeof window.populateComposerBox === 'function'){
+      if (nameToUse && window && typeof window.populateComposerBox === 'function'){
                     try{
-                          try{ console.debug && console.debug('[page] invoking runtime.populateComposerBox for:', title); }catch(_){ }
-                          window.selectedComposer = title;
-                          // call runtime to populate the desktop panel; it will fill #composer-content
-                          window.populateComposerBox(title, null);
+        try{ console.debug && console.debug('[page] invoking runtime.populateComposerBox for:', nameToUse); }catch(_){ }
+        window.selectedComposer = nameToUse;
+        // call runtime to populate the desktop panel; it will fill #composer-content
+        window.populateComposerBox(nameToUse, null);
                           // also try the canonical helper if present (some runtimes populate via this)
-                          try{ if (typeof window.openComposerFromName === 'function') { console.debug && console.debug('[page] also calling openComposerFromName for:', title); window.openComposerFromName(title, null); } }catch(_){ }
+        try{ if (typeof window.openComposerFromName === 'function') { console.debug && console.debug('[page] also calling openComposerFromName for:', nameToUse); window.openComposerFromName(nameToUse, null); } }catch(_){ }
 
                       // wait for #composer-content to be populated, then copy into mobile clone
                       var waited = 0;
