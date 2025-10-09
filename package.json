@@ -16,6 +16,7 @@
     "react-dom": "^19.2.0"
   },
   "devDependencies": {
-    "@astrojs/vercel": "^8.2.8"
+    "@astrojs/vercel": "^8.2.8",
+    "puppeteer": "^21.3.6"
   }
 }

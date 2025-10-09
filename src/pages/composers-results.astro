@@ -398,6 +398,27 @@ import ComposersPage from "../components/ComposersPage.jsx";
   /* background overlay removed for now */
   /* background overlay: ensure it sits behind content and doesn't intercept clicks */
   #bg-overlay { position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
+
+  /* Mobile-only side panel styles (hidden by default, shown on small viewports) */
+  #mobileSidePanel { 
+    display: none; /* hidden by default */
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    padding: 16px;
+    position: fixed;
+    bottom: 64px; /* above the fixed footer */
+    left: 0;
+    right: 0;
+    z-index: 1300;
+    box-shadow: 0 -6px 18px rgba(0,0,0,0.08);
+    font-size: 15px;
+  }
+  /* Toggle button - only show on mobile */
+  .mobile-toggle { display: none; border:0; background:transparent; font-size:16px; cursor:pointer; padding:6px 8px; }
+  @media (max-width: 600px) {
+    #mobileSidePanel { display: block; }
+    .mobile-toggle { display: inline-block; }
+  }
   #bg-overlay img { position:absolute; left:0; top:0; width:100vw; height:100vh; object-fit:cover; will-change:left,top,width,height; pointer-events:none; }
   .search-panel, .search-panel.fixed, .search-cta, .search-input, .cta-row a, .lang-btn, .lang-dropdown, .filters select, .small-btn, .reset-btn { position:relative; z-index:2000; pointer-events:auto; }
     </style>
@@ -419,6 +440,10 @@ import ComposersPage from "../components/ComposersPage.jsx";
           <div class="lang-option" data-locale="en">English</div>
           <div class="lang-option" data-locale="de">Deutsch</div>
         </div>
+      </div>
+      <!-- Mobile panel toggle (moved from composers.astro) -->
+      <div style="display:inline-block; margin-left:8px;">
+        <button id="togglePanelBtn" class="mobile-toggle" aria-label="Open mobile panel">☰</button>
       </div>
     </div>
   </header>
@@ -898,4 +923,35 @@ import ComposersPage from "../components/ComposersPage.jsx";
       <!-- This intentionally hydrates the React component offscreen so its useEffects run -->
       <ComposersPage client:load />
     </div>
+    
+      <!-- Mobile side panel markup (moved from composers.astro) -->
+      <div id="mobileSidePanel" aria-hidden="true" role="region">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:700;color:var(--accent)">Composer details</div>
+          <button id="closePanelBtn" aria-label="Close" style="border:0;background:transparent;font-size:18px;cursor:pointer;">✕</button>
+        </div>
+        <div id="mobilePanelContent" style="margin-top:12px">Select a composer to view details.</div>
+      </div>
+
+      <script>
+        (function(){
+          function showPanel(){
+            try{
+              var p = document.getElementById('mobileSidePanel'); if(!p) return;
+              p.style.display = 'block'; p.setAttribute('aria-hidden','false');
+              // scroll main content slightly so panel appears visually above
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }catch(e){console.warn(e)}
+          }
+          function hidePanel(){
+            try{ var p = document.getElementById('mobileSidePanel'); if(!p) return; p.style.display='none'; p.setAttribute('aria-hidden','true'); }catch(e){}
+          }
+          document.addEventListener('DOMContentLoaded', function(){
+            var t = document.getElementById('togglePanelBtn'); if(t) t.addEventListener('click', function(ev){ ev.preventDefault && ev.preventDefault(); showPanel(); });
+            var c = document.getElementById('closePanelBtn'); if(c) c.addEventListener('click', function(ev){ ev.preventDefault && ev.preventDefault(); hidePanel(); });
+          });
+          // expose to other scripts
+          window.showMobileComposerPanel = showPanel; window.hideMobileComposerPanel = hidePanel;
+        })();
+      </script>
 
