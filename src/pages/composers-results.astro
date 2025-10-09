@@ -963,14 +963,28 @@ import ComposersPage from "../components/ComposersPage.jsx";
               // close swipe menu if open
               try{ var sm = document.getElementById('mobile-swipe-menu'); if (sm && sm.getAttribute('aria-hidden') === 'false'){ sm.setAttribute('aria-hidden','true'); } }catch(_){ }
 
-              p.style.display = 'block'; p.setAttribute('aria-hidden','false');
+              p.style.display = 'block';
+              // remove aria-hidden and move focus into the panel for accessibility
+              try{ p.setAttribute('aria-hidden','false'); }catch(_){ }
+              // small timeout to ensure element is visible before focusing
+              setTimeout(function(){ try{ var closeBtn = document.getElementById('closePanelBtn'); if (closeBtn && typeof closeBtn.focus === 'function'){ closeBtn.focus({ preventScroll: true }); } }catch(_){ } }, 20);
               // scroll main content slightly so panel appears visually above
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }catch(e){console.warn(e)}
           }
           function hidePanel(){
             try{
-              var p = document.getElementById('mobileSidePanel'); if(!p) return; p.style.display='none'; p.setAttribute('aria-hidden','true');
+              var p = document.getElementById('mobileSidePanel'); if(!p) return;
+              // move focus back to the toggle button before hiding to avoid aria-hidden-on-focused-element
+              try{
+                var tbtn = document.getElementById('togglePanelBtn');
+                if (tbtn && typeof tbtn.focus === 'function'){
+                  tbtn.focus({ preventScroll: true });
+                }
+              }catch(_){ }
+              // now hide and mark aria-hidden
+              try{ p.setAttribute('aria-hidden','true'); }catch(_){ }
+              p.style.display='none';
               // restore left filter panel display
               try{ var left = document.getElementById('panel-left'); if (left && _panelLeftPrevDisplay !== null){ left.style.display = _panelLeftPrevDisplay || ''; _panelLeftPrevDisplay = null; } }catch(_){ }
             }catch(e){}
