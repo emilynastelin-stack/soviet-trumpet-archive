@@ -426,9 +426,9 @@ import ComposersPage from "../components/ComposersPage.jsx";
       padding: 20px;
       border-left: 1px solid #e5e7eb;
       border-top: none;
-      box-shadow: none;
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
+      /* match panel corner radius and shadow used by .three-panels .panel */
+      border-radius: 8px 0 0 8px; /* rounded left corners only to match layout */
+      box-shadow: 0 6px 12px rgba(15,23,42,0.06);
       overflow: auto;
       z-index: 2200;
       font-family: Inter, system-ui, sans-serif;
