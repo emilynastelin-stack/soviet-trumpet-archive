@@ -79,13 +79,30 @@ import ComposersPage from "../components/ComposersPage.jsx";
     the left panel sits 20px from the left edge and the right
     panel sits 20px from the right edge. Left/right panels
     use fixed widths; center panel is fluid. */
-  .three-panels { display:flex; gap:16px; width:100%; margin:45px 0 0 0; padding:0 20px; box-sizing:border-box; }
+    .three-panels { display:flex; gap:16px; width:100%; margin:45px 0 0 0; padding:0 20px; box-sizing:border-box; overflow-x:hidden; align-items:stretch; }
   /* left filter panel (anchored 20px from left) */
   .three-panels .panel:first-child { width:270px; flex:0 0 270px; }
   /* center results panel (flexible) */
   .three-panels .panel:nth-child(2) { flex:1 1 auto; min-width:0; }
   /* right composer panel (anchored 20px from right) */
   .three-panels .panel:last-child { width:345px; flex:0 0 345px; }
+    /* Ensure panels constrain overflowing children and allow flex shrinking properly */
+    .three-panels .panel {
+      max-width: 100%;
+      min-width: 0; /* allow flex children to shrink and respect container */
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+
+    /* Prevent long inline content inside cards from breaking layout */
+    .result-card,
+    .result-main,
+    .result-right {
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: normal; /* allow wrapping, avoid nowrap from injected content */
+    }
   .three-panels .panel { background:white; border-radius:8px; padding:16px; box-shadow:0 6px 12px rgba(15,23,42,0.06); min-height:140px; box-sizing:border-box; position:relative; z-index:1; }
   /* Results item styling: separator line between entries and right-side details column */
   .result-item { padding:12px 0; border-bottom:1px solid #e6e9ef; display:flex; justify-content:space-between; align-items:center; gap:12px; }
