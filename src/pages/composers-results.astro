@@ -399,24 +399,36 @@ import ComposersPage from "../components/ComposersPage.jsx";
   /* background overlay: ensure it sits behind content and doesn't intercept clicks */
   #bg-overlay { position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; }
 
-  /* Mobile-only side panel styles (hidden by default, shown on small viewports) */
+  /* Mobile-only side panel styles (hidden by default) */
   #mobileSidePanel { 
     display: none; /* hidden by default */
     background: white;
-    border-top: 1px solid #e5e7eb;
     padding: 16px;
     position: fixed;
-    bottom: 64px; /* above the fixed footer */
-    left: 0;
-    right: 0;
     z-index: 1300;
     box-shadow: 0 -6px 18px rgba(0,0,0,0.08);
     font-size: 15px;
   }
   /* Toggle button - only show on mobile */
   .mobile-toggle { display: none; border:0; background:transparent; font-size:16px; cursor:pointer; padding:6px 8px; }
+  /* On small screens make the mobile panel a right-side sliding panel matching the filter width (270px) */
   @media (max-width: 600px) {
-    #mobileSidePanel { display: block; }
+    #mobileSidePanel {
+      display: block;
+      top: 64px; /* below the header */
+      bottom: 56px; /* above mobile toolbar/footer */
+      right: 0;
+      left: auto;
+      width: 270px; /* match filter panel width */
+      max-width: 84%;
+      border-left: 1px solid #e5e7eb;
+      border-top: none;
+      box-shadow: -6px 0 18px rgba(0,0,0,0.08);
+      border-top-left-radius: 12px;
+      border-bottom-left-radius: 12px;
+      overflow: auto;
+      z-index: 2200;
+    }
     .mobile-toggle { display: inline-block; }
   }
   #bg-overlay img { position:absolute; left:0; top:0; width:100vw; height:100vh; object-fit:cover; will-change:left,top,width,height; pointer-events:none; }
