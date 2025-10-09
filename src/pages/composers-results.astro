@@ -415,23 +415,26 @@ import ComposersPage from "../components/ComposersPage.jsx";
       @media (max-width: 600px) {
     #mobileSidePanel {
       display: block;
-      top: 64px; /* below the header */
-      bottom: 56px; /* above mobile toolbar/footer */
+      /* span the full viewport vertically */
+      top: 0; /* extend to very top */
+      bottom: 0; /* extend to very bottom */
       right: 0;
       left: auto;
       width: 270px; /* match filter panel width */
       max-width: 92%;
       /* match filter panel styling */
       background: #f9fafb;
-      padding: 20px;
+      /* include safe-area padding so content doesn't collide with device insets */
+      padding: calc(20px + env(safe-area-inset-top, 0px)) 20px calc(20px + env(safe-area-inset-bottom, 0px));
       border-left: 1px solid #e5e7eb;
       border-top: none;
-      /* match panel corner radius and shadow used by .three-panels .panel */
-      border-radius: 8px 0 0 8px; /* rounded left corners only to match layout */
+      /* rounded left corners, subtle shadow like filter panel */
+      border-radius: 8px 0 0 8px;
       box-shadow: 0 6px 12px rgba(15,23,42,0.06);
       overflow: auto;
       z-index: 2200;
       font-family: Inter, system-ui, sans-serif;
+      height: 100vh; /* ensure it fills the viewport */
     }
     .mobile-toggle { display: inline-block; }
   }
