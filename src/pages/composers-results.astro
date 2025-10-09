@@ -962,6 +962,8 @@ import ComposersPage from "../components/ComposersPage.jsx";
           var _filterBtnPrevDisabled = null;
           function showPanel(){
             try{
+              // Only operate on small screens; avoid changing desktop layout
+              try{ if (typeof window !== 'undefined' && window.innerWidth > 600) { console.debug && console.debug('[page] showPanel ignored on desktop'); return; } }catch(_){ }
               var p = document.getElementById('mobileSidePanel'); if(!p) return;
               // collapse left filter panel if present
               try{
@@ -1023,6 +1025,8 @@ import ComposersPage from "../components/ComposersPage.jsx";
           // Try to populate the mobile panel from a result-card element
           function populateAndShowFromCard(card){
             try{
+              // This operation is mobile-only; ignore attempts on desktop to avoid collapsing panels
+              try{ if (typeof window !== 'undefined' && window.innerWidth > 600) { console.debug && console.debug('[page] populateAndShowFromCard ignored on desktop'); return; } }catch(_){ }
               try{ console.debug && console.debug('[page] populateAndShowFromCard called for card:', card); }catch(_){ }
               // guard against re-entrant calls which were creating duplicate clones
               if (window.__mobilePanelPopulating) return;
@@ -1191,15 +1195,51 @@ import ComposersPage from "../components/ComposersPage.jsx";
                   if (targetButton){
                     try{ console.debug && console.debug('[page] composer button clicked', targetButton); }catch(_){ }
                     var cardFromBtn = targetButton.closest ? targetButton.closest('.result-card') : null;
-                    if (cardFromBtn){ ev.preventDefault && ev.preventDefault(); ev.stopPropagation && ev.stopPropagation(); populateAndShowFromCard(cardFromBtn); return; }
+                    if (cardFromBtn){
+                      ev.preventDefault && ev.preventDefault(); ev.stopPropagation && ev.stopPropagation();
+                      // Mobile behavior: show the sliding right-side panel. Desktop should populate the
+                      // existing right-hand panel instead of triggering the mobile clone.
+                      if (typeof window !== 'undefined' && window.innerWidth > 600){
+                        // Desktop: try to call the runtime helper (preferred) or fallback to simple population
+                        try{
+                          var composerName = '';
+                          try{
+                            var link = cardFromBtn.querySelector('.composer-link[data-name]') || cardFromBtn.querySelector('.composer-link');
+                            if (link) composerName = (link.getAttribute && link.getAttribute('data-name')) || (link.textContent && link.textContent.trim()) || '';
+                          }catch(_){ }
+                          if (!composerName){
+                            try{ var p = cardFromBtn.querySelector('p'); if (p && /Composer/i.test(p.textContent || '')) composerName = p.textContent.replace(/.*Composer[:\s]*/i,'').trim(); }catch(_){ }
+                          }
+                          if (composerName && typeof window.openComposerFromName === 'function'){
+                            try{ window.openComposerFromName(composerName, cardFromBtn); }catch(_){ }
+                          } else {
+                            try{ var elp = document.getElementById('panel-right'); if (elp) elp.scrollIntoView({behavior:'smooth', block:'center'}); var content = document.getElementById('composer-content'); if (content) content.textContent = composerName || ''; }catch(_){ }
+                        }catch(_){ }
+                        return;
+                      }
+                      // Mobile: proceed with mobile panel population and show
+                      populateAndShowFromCard(cardFromBtn);
+                      return;
+                    }
                   }
                   // still ignore generic anchors, but allow clicks on card body
                   if (ev.target && ev.target.closest && ev.target.closest('a')) return;
                   var card = ev.target && ev.target.closest ? ev.target.closest('.result-card') : null;
                   if (!card) return;
                   ev.preventDefault && ev.preventDefault(); ev.stopPropagation && ev.stopPropagation();
-                  try{ console.debug && console.debug('[page] result-card clicked - opening mobile panel'); }catch(_){ }
-                  populateAndShowFromCard(card);
+                  try{ console.debug && console.debug('[page] result-card clicked - opening panel'); }catch(_){ }
+                  // Decide behavior by viewport: desktop -> open/populate right panel; mobile -> show mobile overlay
+                  if (typeof window !== 'undefined' && window.innerWidth > 600){
+                    try{
+                      var composerName2 = '';
+                      try{ var link2 = card.querySelector('.composer-link[data-name]') || card.querySelector('.composer-link'); if (link2) composerName2 = (link2.getAttribute && link2.getAttribute('data-name')) || (link2.textContent && link2.textContent.trim()) || ''; }catch(_){ }
+                      if (!composerName2){ try{ var p2 = card.querySelector('p'); if (p2 && /Composer/i.test(p2.textContent || '')) composerName2 = p2.textContent.replace(/.*Composer[:\s]*/i,'').trim(); }catch(_){ } }
+                      if (composerName2 && typeof window.openComposerFromName === 'function'){ try{ window.openComposerFromName(composerName2, card); }catch(_){ } }
+                      else { try{ var elp2 = document.getElementById('panel-right'); if (elp2) elp2.scrollIntoView({behavior:'smooth', block:'center'}); var content2 = document.getElementById('composer-content'); if (content2) content2.textContent = composerName2 || ''; }catch(_){ } }
+                    }catch(_){ }
+                  } else {
+                    populateAndShowFromCard(card);
+                  }
                 }catch(e){ /* ignore */ }
               }, true);
             }
