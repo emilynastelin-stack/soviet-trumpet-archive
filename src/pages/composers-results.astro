@@ -951,16 +951,29 @@ import ComposersPage from "../components/ComposersPage.jsx";
 
       <script>
         (function(){
+          var _panelLeftPrevDisplay = null;
           function showPanel(){
             try{
               var p = document.getElementById('mobileSidePanel'); if(!p) return;
+              // collapse left filter panel if present
+              try{
+                var left = document.getElementById('panel-left');
+                if (left){ _panelLeftPrevDisplay = left.style.display || ''; left.style.display = 'none'; }
+              }catch(_){ }
+              // close swipe menu if open
+              try{ var sm = document.getElementById('mobile-swipe-menu'); if (sm && sm.getAttribute('aria-hidden') === 'false'){ sm.setAttribute('aria-hidden','true'); } }catch(_){ }
+
               p.style.display = 'block'; p.setAttribute('aria-hidden','false');
               // scroll main content slightly so panel appears visually above
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }catch(e){console.warn(e)}
           }
           function hidePanel(){
-            try{ var p = document.getElementById('mobileSidePanel'); if(!p) return; p.style.display='none'; p.setAttribute('aria-hidden','true'); }catch(e){}
+            try{
+              var p = document.getElementById('mobileSidePanel'); if(!p) return; p.style.display='none'; p.setAttribute('aria-hidden','true');
+              // restore left filter panel display
+              try{ var left = document.getElementById('panel-left'); if (left && _panelLeftPrevDisplay !== null){ left.style.display = _panelLeftPrevDisplay || ''; _panelLeftPrevDisplay = null; } }catch(_){ }
+            }catch(e){}
           }
 
           // Try to populate the mobile panel from a result-card element
