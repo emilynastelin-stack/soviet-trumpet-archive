@@ -977,18 +977,17 @@ import ComposersPage from "../components/ComposersPage.jsx";
             var t = document.getElementById('togglePanelBtn'); if(t) t.addEventListener('click', function(ev){ ev.preventDefault && ev.preventDefault(); showPanel(); });
             var c = document.getElementById('closePanelBtn'); if(c) c.addEventListener('click', function(ev){ ev.preventDefault && ev.preventDefault(); hidePanel(); });
 
-            // Delegated click handler for result cards; wire the first card to open the mobile panel
+            // Delegated click handler for result cards; wire every card to open the mobile panel
             var results = document.getElementById('results-list');
             if (results){
               results.addEventListener('click', function(ev){
                 try{
+                  // ignore clicks on interactive controls (links/buttons) so we don't double-handle them
+                  if (ev.target && ev.target.closest && ev.target.closest('a, button')) return;
                   var card = ev.target && ev.target.closest ? ev.target.closest('.result-card') : null;
                   if (!card) return;
-                  var first = results.querySelector('.result-card');
-                  if (first && first === card){
-                    ev.preventDefault && ev.preventDefault(); ev.stopPropagation && ev.stopPropagation();
-                    populateAndShowFromCard(card);
-                  }
+                  ev.preventDefault && ev.preventDefault(); ev.stopPropagation && ev.stopPropagation();
+                  populateAndShowFromCard(card);
                 }catch(e){ /* ignore */ }
               }, true);
             }
