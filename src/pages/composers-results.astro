@@ -993,6 +993,13 @@ import ComposersPage from "../components/ComposersPage.jsx";
                   tbtn.focus({ preventScroll: true });
                 }
               }catch(_){ }
+              // If the panel still contains the active element, blur it to ensure it's not focused when aria-hidden is applied
+              try{
+                var active = document.activeElement;
+                if (active && p.contains(active)){
+                  try{ active.blur(); }catch(_){ }
+                }
+              }catch(_){ }
               // now hide and mark aria-hidden
               try{ p.setAttribute('aria-hidden','true'); }catch(_){ }
               p.style.display='none';
