@@ -1013,6 +1013,9 @@ import ComposersPage from "../components/ComposersPage.jsx";
           // Try to populate the mobile panel from a result-card element
           function populateAndShowFromCard(card){
             try{
+              // guard against re-entrant calls which were creating duplicate clones
+              if (window.__mobilePanelPopulating) return;
+              window.__mobilePanelPopulating = true;
               // Ensure there is only one mobileSidePanel in the DOM (remove accidental duplicates)
               try{
                 var panels = document.querySelectorAll('#mobileSidePanel');
@@ -1093,8 +1096,10 @@ import ComposersPage from "../components/ComposersPage.jsx";
                 // fallback to minimal content on error
                 if (content){ if (main){ content.innerHTML = main.innerHTML; } else if (title) { content.textContent = title; } }
               }
+              // reset guard and show
+              try{ window.__mobilePanelPopulating = false; }catch(_){ }
               showPanel();
-            }catch(e){ console.warn('populateFromCard failed', e); }
+            }catch(e){ try{ window.__mobilePanelPopulating = false; }catch(_){ } console.warn('populateFromCard failed', e); }
           }
 
           document.addEventListener('DOMContentLoaded', function(){
