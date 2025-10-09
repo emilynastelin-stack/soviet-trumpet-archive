@@ -1139,10 +1139,19 @@ import ComposersPage from "../components/ComposersPage.jsx";
               results.addEventListener('click', function(ev){
                 try{
                   // ignore clicks on interactive controls (links/buttons) so we don't double-handle them
-                  if (ev.target && ev.target.closest && ev.target.closest('a, button')) return;
+                  var targetButton = ev.target && ev.target.closest ? ev.target.closest('.more-composer-btn, .about-label') : null;
+                  // If the click was on the specific composer buttons, treat them as triggers
+                  if (targetButton){
+                    try{ console.debug && console.debug('[page] composer button clicked', targetButton); }catch(_){ }
+                    var cardFromBtn = targetButton.closest ? targetButton.closest('.result-card') : null;
+                    if (cardFromBtn){ ev.preventDefault && ev.preventDefault(); ev.stopPropagation && ev.stopPropagation(); populateAndShowFromCard(cardFromBtn); return; }
+                  }
+                  // still ignore generic anchors, but allow clicks on card body
+                  if (ev.target && ev.target.closest && ev.target.closest('a')) return;
                   var card = ev.target && ev.target.closest ? ev.target.closest('.result-card') : null;
                   if (!card) return;
                   ev.preventDefault && ev.preventDefault(); ev.stopPropagation && ev.stopPropagation();
+                  try{ console.debug && console.debug('[page] result-card clicked - opening mobile panel'); }catch(_){ }
                   populateAndShowFromCard(card);
                 }catch(e){ /* ignore */ }
               }, true);
