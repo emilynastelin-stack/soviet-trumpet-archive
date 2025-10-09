@@ -1044,7 +1044,9 @@ import ComposersPage from "../components/ComposersPage.jsx";
                     try{
                       window.selectedComposer = title;
                       // call runtime to populate the desktop panel; it will fill #composer-content
-                      window.populateComposerBox(title, row || null);
+                      window.populateComposerBox(title, null);
+                      // also try the canonical helper if present (some runtimes populate via this)
+                      try{ if (typeof window.openComposerFromName === 'function') window.openComposerFromName(title, null); }catch(_){ }
 
                       // wait for #composer-content to be populated, then copy into mobile clone
                       var waited = 0;
@@ -1060,7 +1062,7 @@ import ComposersPage from "../components/ComposersPage.jsx";
                             return;
                           }
                           waited += 100;
-                          if (waited > 1200){ clearInterval(interval); }
+                          if (waited > 3000){ clearInterval(interval); }
                         }catch(_){ clearInterval(interval); }
                       }, 100);
                     }catch(e){ /* ignore runtime errors and leave clone as-is */ }
