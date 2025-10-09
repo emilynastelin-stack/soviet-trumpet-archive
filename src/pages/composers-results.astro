@@ -734,13 +734,15 @@ import ComposersPage from "../components/ComposersPage.jsx";
           window.openComposerFromName = function(name, row){
             try{
               window.selectedComposer = String(name || '');
-              // populate a minimal composer-content if present
+              // populate a minimal composer-content if present (desktop)
               var content = document.getElementById('composer-content');
               if (content) {
                 content.textContent = String(name || '');
               }
-              // If small screen, clone/right-panel into a mobile overlay similar to client behavior
+              // If small screen, still allow page-level logic to run so mobile clone can be created.
+              // Do not return early — allow other handlers (including page fallback) to run.
               if (window.innerWidth <= 600){
+                // If the full client runtime isn't loaded yet, create a minimal overlay so user sees feedback.
                 if (!document.querySelector('.mobile-overlay.right')){
                   var overlay = document.createElement('div');
                   overlay.className = 'mobile-overlay right';
@@ -1087,6 +1089,28 @@ import ComposersPage from "../components/ComposersPage.jsx";
                       }, 100);
                     }catch(e){ /* ignore runtime errors and leave clone as-is */ }
                   }
+
+                  // Listen for an explicit composerPopulated event from the client runtime
+                  try{
+                    var onPopulated = function(ev){
+                      try{
+                        var mobileContentNow = document.getElementById('composer-content-mobile-clone');
+                        if (mobileContentNow && ev && ev.detail && ev.detail.html){
+                          mobileContentNow.innerHTML = ev.detail.html;
+                        } else {
+                          // as a fallback, copy whatever desktop content currently exists
+                          var desktopNow = document.getElementById('composer-content');
+                          if (mobileContentNow && desktopNow) mobileContentNow.innerHTML = desktopNow.innerHTML;
+                        }
+                        // also copy 'more-from-composer'
+                        try{ var more = document.getElementById('more-from-composer'); var moreM2 = document.getElementById('more-from-composer-mobile-clone'); if (more && moreM2) moreM2.innerHTML = more.innerHTML; }catch(_){ }
+                      }catch(_){ }
+                    };
+                    document.removeEventListener('composerPopulated', onPopulated);
+                    document.addEventListener('composerPopulated', onPopulated);
+                    // Also expose a legacy hook if other code prefers window.onComposerPopulated
+                    try{ window.onComposerPopulated = function(name){ try{ var ev2 = { detail: { name: name, html: (document.getElementById('composer-content')||{}).innerHTML || '' } }; onPopulated(ev2); }catch(_){ } }; }catch(_){ }
+                  }catch(_){ }
 
                 } else if (content){
                   if (main){ content.innerHTML = main.innerHTML; }

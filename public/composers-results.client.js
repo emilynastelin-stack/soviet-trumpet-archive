@@ -1085,6 +1085,13 @@
       }catch(_){ try{ const lw = moreEl.querySelector('#more-works-list'); if (lw) lw.innerHTML = '<div style="color:#6b7280">Failed to load works.</div>'; }catch(_){ } }
     }
   }catch(_){ }
+    // Notify other UI code (for example the mobile-side panel) that composer content was populated.
+    try{
+      var ev = new CustomEvent('composerPopulated', { detail: { name: dispFound, html: (content && content.innerHTML) ? content.innerHTML : '' } });
+      document.dispatchEvent(ev);
+    }catch(_){ }
+    try{ if (typeof window.onComposerPopulated === 'function') { try{ window.onComposerPopulated(dispFound); }catch(_){ } } }catch(_){ }
+
     if (clearBtn) { clearBtn.style.display = 'inline-block'; clearBtn.onclick = () => { window.selectedComposer = ''; if (clearBtn) clearBtn.style.display = 'none'; try{ const moreEl = document.getElementById('more-from-composer'); if (moreEl) { moreEl.style.display = 'none'; moreEl.innerHTML = ''; } }catch(_){ } populateComposerBox('', null); window.currentPage = 1; window.loadResults(); }; }
   }
   window.populateComposerBox = populateComposerBox;
