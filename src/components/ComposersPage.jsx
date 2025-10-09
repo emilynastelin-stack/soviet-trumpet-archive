@@ -47,6 +47,10 @@ export default function ComposersPage({ initialComposers = [], initialGender = '
   // population while we iterate on the React panel and deploy safely.
   const RUNTIME_POPULATE_ENABLED = false;
   const [lang, setLang] = useState('en');
+  // When true, the React panel will only be active when the site is
+  // served from a deployed host (not localhost) and the viewport is mobile.
+  const ENABLE_PANEL_DEPLOYED_MOBILE_ONLY = true;
+  const [isDeployed, setIsDeployed] = useState(false);
   const panelRef = useRef(null);
   // Local UI state for mobile composer panel (avoid relying only on globals)
   const [composerPanel, setComposerPanel] = useState({ open: false, name: '' });
@@ -153,6 +157,7 @@ export default function ComposersPage({ initialComposers = [], initialGender = '
   }, []);
   useEffect(()=>{
     if (!isClient) return;
+    try{ const host = window.location.hostname || ''; setIsDeployed(!/^(localhost|127\.0\.0\.1)$/.test(host)); }catch(_){ setIsDeployed(false); }
     function onPop(){
       try{ const u=new URL(window.location.href); setSelectedComposer(u.searchParams.get('composer')||''); setSelectedCountry(u.searchParams.get('country')||'All'); }catch(e){}
     }
@@ -408,7 +413,7 @@ export default function ComposersPage({ initialComposers = [], initialGender = '
       </div>
     {/* Mobile composer panel rendered by React state to avoid relying only on global shims */}
     {/* removed debug marker */}
-  {composerPanel.open && (
+  {composerPanel.open && (!ENABLE_PANEL_DEPLOYED_MOBILE_ONLY || (isDeployed && isMobile)) && (
         <div
           data-react-panel="1"
           role="dialog"
