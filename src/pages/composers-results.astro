@@ -1038,6 +1038,34 @@ import ComposersPage from "../components/ComposersPage.jsx";
                   // replace mobilePanelContent with the clone
                   content.innerHTML = '';
                   content.appendChild(clone);
+
+                  // If the client runtime can populate the desktop composer panel, use it
+                  if (title && window && typeof window.populateComposerBox === 'function'){
+                    try{
+                      window.selectedComposer = title;
+                      // call runtime to populate the desktop panel; it will fill #composer-content
+                      window.populateComposerBox(title, row || null);
+
+                      // wait for #composer-content to be populated, then copy into mobile clone
+                      var waited = 0;
+                      var interval = setInterval(function(){
+                        try{
+                          var desktopContent = document.getElementById('composer-content');
+                          var mobileContent = document.getElementById('composer-content-mobile-clone');
+                          if (desktopContent && desktopContent.innerHTML && String(desktopContent.innerHTML).trim().length > 10){
+                            if (mobileContent) mobileContent.innerHTML = desktopContent.innerHTML;
+                            // also copy 'more-from-composer' if present
+                            try{ var more = document.getElementById('more-from-composer'); var moreM = document.getElementById('more-from-composer-mobile-clone'); if (more && moreM) moreM.innerHTML = more.innerHTML; }catch(_){ }
+                            clearInterval(interval);
+                            return;
+                          }
+                          waited += 100;
+                          if (waited > 1200){ clearInterval(interval); }
+                        }catch(_){ clearInterval(interval); }
+                      }, 100);
+                    }catch(e){ /* ignore runtime errors and leave clone as-is */ }
+                  }
+
                 } else if (content){
                   if (main){ content.innerHTML = main.innerHTML; }
                   else if (title) { content.textContent = title; }
