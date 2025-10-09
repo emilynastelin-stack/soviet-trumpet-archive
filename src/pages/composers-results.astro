@@ -1013,6 +1013,14 @@ import ComposersPage from "../components/ComposersPage.jsx";
           // Try to populate the mobile panel from a result-card element
           function populateAndShowFromCard(card){
             try{
+              // Ensure there is only one mobileSidePanel in the DOM (remove accidental duplicates)
+              try{
+                var panels = document.querySelectorAll('#mobileSidePanel');
+                if (panels && panels.length > 1){
+                  for (var pi = 1; pi < panels.length; pi++){ try{ panels[pi].remove(); }catch(_){ } }
+                }
+              }catch(_){ }
+
               if(!card) return;
               var main = card.querySelector('.result-main');
               var title = '';
@@ -1042,6 +1050,8 @@ import ComposersPage from "../components/ComposersPage.jsx";
                       if (el) { el.id = id + '-mobile-clone'; }
                     });
                   }catch(_){ }
+                  // remove any existing mobile clone inside the content to avoid duplicates
+                  try{ var existingClone = content.querySelector('#panel-right-mobile-clone'); if (existingClone) existingClone.remove(); }catch(_){ }
                   // replace mobilePanelContent with the clone
                   content.innerHTML = '';
                   content.appendChild(clone);
