@@ -924,6 +924,7 @@
     update this function.
   --------------------------------------------------------------------------- */
   async function populateComposerBox(name, row){
+    try{ console.debug && console.debug('[client] populateComposerBox called for:', name); }catch(_){ }
     const content = document.getElementById('composer-content');
     const clearBtn = document.getElementById('clear-composer');
     if (!content) return;
@@ -1086,11 +1087,12 @@
     }
   }catch(_){ }
     // Notify other UI code (for example the mobile-side panel) that composer content was populated.
+    try{ console.debug && console.debug('[client] composer populated, dispatching event for:', dispFound); }catch(_){ }
     try{
       var ev = new CustomEvent('composerPopulated', { detail: { name: dispFound, html: (content && content.innerHTML) ? content.innerHTML : '' } });
       document.dispatchEvent(ev);
     }catch(_){ }
-    try{ if (typeof window.onComposerPopulated === 'function') { try{ window.onComposerPopulated(dispFound); }catch(_){ } } }catch(_){ }
+    try{ if (typeof window.onComposerPopulated === 'function') { try{ console.debug && console.debug('[client] calling window.onComposerPopulated for:', dispFound); window.onComposerPopulated(dispFound); }catch(_){ } } }catch(_){ }
 
     if (clearBtn) { clearBtn.style.display = 'inline-block'; clearBtn.onclick = () => { window.selectedComposer = ''; if (clearBtn) clearBtn.style.display = 'none'; try{ const moreEl = document.getElementById('more-from-composer'); if (moreEl) { moreEl.style.display = 'none'; moreEl.innerHTML = ''; } }catch(_){ } populateComposerBox('', null); window.currentPage = 1; window.loadResults(); }; }
   }

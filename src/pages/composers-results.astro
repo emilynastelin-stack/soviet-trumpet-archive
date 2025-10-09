@@ -1015,6 +1015,7 @@ import ComposersPage from "../components/ComposersPage.jsx";
           // Try to populate the mobile panel from a result-card element
           function populateAndShowFromCard(card){
             try{
+              try{ console.debug && console.debug('[page] populateAndShowFromCard called for card:', card); }catch(_){ }
               // guard against re-entrant calls which were creating duplicate clones
               if (window.__mobilePanelPopulating) return;
               window.__mobilePanelPopulating = true;
@@ -1064,11 +1065,12 @@ import ComposersPage from "../components/ComposersPage.jsx";
                   // If the client runtime can populate the desktop composer panel, use it
                   if (title && window && typeof window.populateComposerBox === 'function'){
                     try{
-                      window.selectedComposer = title;
-                      // call runtime to populate the desktop panel; it will fill #composer-content
-                      window.populateComposerBox(title, null);
-                      // also try the canonical helper if present (some runtimes populate via this)
-                      try{ if (typeof window.openComposerFromName === 'function') window.openComposerFromName(title, null); }catch(_){ }
+                          try{ console.debug && console.debug('[page] invoking runtime.populateComposerBox for:', title); }catch(_){ }
+                          window.selectedComposer = title;
+                          // call runtime to populate the desktop panel; it will fill #composer-content
+                          window.populateComposerBox(title, null);
+                          // also try the canonical helper if present (some runtimes populate via this)
+                          try{ if (typeof window.openComposerFromName === 'function') { console.debug && console.debug('[page] also calling openComposerFromName for:', title); window.openComposerFromName(title, null); } }catch(_){ }
 
                       // wait for #composer-content to be populated, then copy into mobile clone
                       var waited = 0;
@@ -1092,8 +1094,9 @@ import ComposersPage from "../components/ComposersPage.jsx";
 
                   // Listen for an explicit composerPopulated event from the client runtime
                   try{
-                    var onPopulated = function(ev){
+        var onPopulated = function(ev){
                       try{
+          try{ console.debug && console.debug('[page] composerPopulated event received for:', ev && ev.detail && ev.detail.name); }catch(_){ }
                         var mobileContentNow = document.getElementById('composer-content-mobile-clone');
                         if (mobileContentNow && ev && ev.detail && ev.detail.html){
                           mobileContentNow.innerHTML = ev.detail.html;
