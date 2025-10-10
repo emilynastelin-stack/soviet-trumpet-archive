@@ -1230,13 +1230,43 @@
             clone.style.margin = '0';
             clone.style.padding = '0';
             clone.style.width = '100%';
-            inner.appendChild(clone);
+              // ensure clone is positioned/scrollable on mobile
+              try{ clone.style.position = 'relative'; clone.style.overflow = 'auto'; clone.style.maxHeight = '100%'; clone.style.height = '100%'; }catch(_){ }
+              inner.appendChild(clone);
+              try{
+                const fb = clone.querySelector && clone.querySelector('.filter-box');
+                if (fb){
+                  fb.style.position = 'absolute';
+                  fb.style.top = '60px';
+                  fb.style.bottom = '0';
+                  fb.style.left = '0';
+                  fb.style.right = '0';
+                  fb.style.overflowY = 'auto';
+                  fb.style.webkitOverflowScrolling = 'touch';
+                  fb.style.padding = '0 16px';
+                  fb.style.boxSizing = 'border-box';
+                }
+              }catch(_){ }
           } else {
             inner.innerHTML = '<div style="padding:12px">Filters</div>';
           }
 
           overlay.appendChild(inner);
           document.body.appendChild(overlay);
+          // mark that a filter overlay is active
+          try{ window.__mobileOverlayLock = 'filters'; }catch(_){ }
+          // Robust body scroll lock: store scroll position and fix body to viewport
+          try{
+            var _savedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+            overlay.__savedScrollY = _savedScrollY;
+            document.body.style.position = 'fixed';
+            document.body.style.top = '-' + _savedScrollY + 'px';
+            document.body.style.left = '0';
+            document.body.style.right = '0';
+            document.body.style.width = '100%';
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden';
+          }catch(_){ }
 
           // click outside to close (clicks on overlay but outside inner)
           overlay.addEventListener('click', (ev)=>{ if (ev.target === overlay) closeFilterOverlay(); });
@@ -1275,6 +1305,21 @@
                   }catch(_){ }
                 });
               }
+              // restore body scroll and clear lock before removing overlay
+              try{
+                if (window.__mobileOverlayLock === 'filters') window.__mobileOverlayLock = null;
+              }catch(_){ }
+              try{
+                var saved = overlay.__savedScrollY || 0;
+                document.body.style.position = '';
+                document.body.style.top = '';
+                document.body.style.left = '';
+                document.body.style.right = '';
+                document.body.style.width = '';
+                document.documentElement.style.overflow = '';
+                document.body.style.overflow = '';
+                if (saved) { window.scrollTo(0, saved); }
+              }catch(_){ }
               overlay.remove();
             }catch(_){ }
           }, 260);
@@ -1300,10 +1345,22 @@
           inner.style.boxShadow = '-6px 0 18px rgba(0,0,0,0.12)'; inner.style.borderTopLeftRadius = '12px'; inner.style.borderBottomLeftRadius = '12px';
 
           const panel = document.getElementById('panel-right');
-          if (panel){ const clone = panel.cloneNode(true); clone.id = 'panel-right-mobile-clone'; clone.classList.add('mobile-overlay-clone'); clone.style.margin='0'; clone.style.padding='0'; clone.style.width='100%'; inner.appendChild(clone); }
+          if (panel){
+            const clone = panel.cloneNode(true);
+            clone.id = 'panel-right-mobile-clone'; clone.classList.add('mobile-overlay-clone'); clone.style.margin='0'; clone.style.padding='0'; clone.style.width='100%';
+            try{ clone.style.position = 'relative'; clone.style.overflow = 'auto'; clone.style.maxHeight = '100%'; clone.style.height = '100%'; }catch(_){ }
+            inner.appendChild(clone);
+            try{
+              const fb = clone.querySelector && clone.querySelector('.filter-box');
+              if (fb){ fb.style.overflowY = 'auto'; fb.style.webkitOverflowScrolling = 'touch'; }
+            }catch(_){ }
+          }
           else { inner.innerHTML = '<div style="padding:12px">Composer</div>'; }
 
           overlay.appendChild(inner); document.body.appendChild(overlay);
+          // mark lock & body scroll lock so right overlay inner can scroll independently
+          try{ window.__mobileOverlayLock = 'composer'; }catch(_){ }
+          try{ var _saved = window.scrollY || document.documentElement.scrollTop || 0; overlay.__savedScrollY = _saved; document.body.style.position = 'fixed'; document.body.style.top = '-' + _saved + 'px'; document.body.style.left = '0'; document.body.style.right = '0'; document.body.style.width = '100%'; document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden'; }catch(_){ }
           overlay.addEventListener('click', (ev)=>{ if (ev.target === overlay) closeComposerOverlay(); });
           document.addEventListener('keydown', function onEsc(e){ if (e.key === 'Escape'){ closeComposerOverlay(); document.removeEventListener('keydown', onEsc); } });
           requestAnimationFrame(()=>{ inner.style.transform = 'translateX(0)'; inner.style.opacity = '1'; });
@@ -1330,6 +1387,8 @@
                   }catch(_){ }
                 });
               }
+              try{ if (window.__mobileOverlayLock === 'composer') window.__mobileOverlayLock = null; }catch(_){ }
+              try{ var saved = overlay.__savedScrollY || 0; document.body.style.position = ''; document.body.style.top = ''; document.body.style.left = ''; document.body.style.right = ''; document.body.style.width = ''; document.documentElement.style.overflow = ''; document.body.style.overflow = ''; if (saved) window.scrollTo(0, saved); }catch(_){ }
               overlay.remove();
             }catch(_){ }
           }, 260);
