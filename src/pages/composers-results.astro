@@ -734,27 +734,63 @@ import ComposersPage from "../components/ComposersPage.jsx";
     </div>
 
     <script>
-      // Lock body scroll when mobile swipe menu is open so the panel can scroll independently on touch devices
+      // Mobile overlay helpers: lock body scroll and allow independent scrolling in overlay panels.
       (function(){
-        var menu = document.getElementById('mobile-swipe-menu');
-        var openButtons = [document.getElementById('mf-filters')];
-        var closeBtn = document.getElementById('swm-close');
-        function lockBody(){
-          try{ document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden'; }catch(_){ }
+        var quickMenu = document.getElementById('mobile-swipe-menu');
+        var quickClose = document.getElementById('swm-close');
+        var mfFiltersBtn = document.getElementById('mf-filters');
+
+        function lockBody(){ try{ document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden'; }catch(_){ } }
+        function unlockBody(){ try{ document.documentElement.style.overflow = ''; document.body.style.overflow = ''; }catch(_){ } }
+
+        // Quick menu open/close
+        function openQuickMenu(){ if (!quickMenu) return; quickMenu.setAttribute('aria-hidden','false'); var si = quickMenu.querySelector('.swipe-inner'); try{ si && si.focus && si.focus(); }catch(_){ } lockBody(); }
+        function closeQuickMenu(){ if (!quickMenu) return; quickMenu.setAttribute('aria-hidden','true'); unlockBody(); }
+
+        try{ if (quickClose) quickClose.addEventListener('click', function(e){ e && e.preventDefault && e.preventDefault(); closeQuickMenu(); }); }catch(_){ }
+        try{ quickMenu && quickMenu.addEventListener('click', function(e){ if (e.target === quickMenu) closeQuickMenu(); }); }catch(_){ }
+
+        // Filter overlay (clones #panel-left into a mobile-friendly overlay)
+        function openFilterOverlay(){
+          // if already open, do nothing
+          if (document.getElementById('mobile-filter-overlay')) return;
+          var left = document.getElementById('panel-left');
+          if (!left) return;
+          var overlay = document.createElement('div'); overlay.id = 'mobile-filter-overlay'; overlay.className = 'mobile-swipe-menu'; overlay.setAttribute('aria-hidden','false');
+          var inner = document.createElement('div'); inner.className = 'swipe-inner'; inner.setAttribute('role','menu'); inner.setAttribute('aria-label','Filters');
+          // add a close control
+          var close = document.createElement('button'); close.className = 'swm-close'; close.textContent = 'Close'; close.addEventListener('click', function(e){ e && e.preventDefault && e.preventDefault(); closeFilterOverlay(); });
+          inner.appendChild(close);
+          // clone the panel-left content
+          try{
+            var clone = left.cloneNode(true);
+            clone.id = 'panel-left-mobile-clone'; clone.classList.add('mobile-overlay-clone'); clone.style.margin = '0'; clone.style.width = '100%';
+            // remove any inline positioning that may conflict
+            clone.style.position = 'static';
+            inner.appendChild(clone);
+          }catch(_){ inner.appendChild(left); }
+          overlay.appendChild(inner);
+          document.body.appendChild(overlay);
+          lockBody();
+          // focus the inner area for accessibility
+          try{ inner.focus && inner.focus(); }catch(_){ }
+          // closing by tapping backdrop
+          overlay.addEventListener('click', function(e){ if (e.target === overlay) closeFilterOverlay(); });
         }
-        function unlockBody(){
-          try{ document.documentElement.style.overflow = ''; document.body.style.overflow = ''; }catch(_){ }
-        }
-        function openMenu(){ if (!menu) return; menu.setAttribute('aria-hidden','false'); menu.querySelector('.swipe-inner') && menu.querySelector('.swipe-inner').focus && menu.querySelector('.swipe-inner').focus(); lockBody(); }
-        function closeMenu(){ if (!menu) return; menu.setAttribute('aria-hidden','true'); unlockBody(); }
-        try{
-          if (openButtons && openButtons[0]) openButtons.forEach(b => { if (!b) return; b.addEventListener('click', function(e){ e.preventDefault && e.preventDefault(); openMenu(); }); });
-        }catch(_){ }
-        try{ if (closeBtn) closeBtn.addEventListener('click', function(e){ e.preventDefault && e.preventDefault(); closeMenu(); }); }catch(_){ }
-        // close when tapping outside the swipe-inner
-        try{ menu && menu.addEventListener('click', function(e){ if (e.target === menu) { closeMenu(); } }); }catch(_){ }
-        // prevent touch move on body when menu is open but allow it inside the swipe-inner
-        document.addEventListener('touchmove', function(e){ if (!menu) return; if (menu.getAttribute('aria-hidden') === 'false'){ var si = menu.querySelector('.swipe-inner'); if (si && si.contains(e.target)) { return; } e.preventDefault && e.preventDefault(); } }, { passive: false });
+        function closeFilterOverlay(){ var ov = document.getElementById('mobile-filter-overlay'); if (!ov) return; ov.remove(); unlockBody(); }
+
+        try{ if (mfFiltersBtn) mfFiltersBtn.addEventListener('click', function(e){ e && e.preventDefault && e.preventDefault(); openFilterOverlay(); }); }catch(_){ }
+
+        // Prevent touchmove on document when either overlay is open; allow it inside any .swipe-inner
+        document.addEventListener('touchmove', function(e){
+          var qmOpen = quickMenu && quickMenu.getAttribute('aria-hidden') === 'false';
+          var fo = document.getElementById('mobile-filter-overlay'); var foOpen = !!fo;
+          if (!qmOpen && !foOpen) return; // no overlays open
+          var allow = false;
+          try{ var target = e.target; if (target){ if (qmOpen){ var si = quickMenu.querySelector('.swipe-inner'); if (si && si.contains(target)) allow = true; } if (!allow && foOpen){ var si2 = fo.querySelector('.swipe-inner'); if (si2 && si2.contains(target)) allow = true; } } }catch(_){ }
+          if (!allow){ e.preventDefault && e.preventDefault(); }
+        }, { passive: false });
+
       })();
     </script>
 
