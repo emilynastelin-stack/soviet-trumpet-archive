@@ -1026,22 +1026,68 @@ import ComposersPage from "../components/ComposersPage.jsx";
               if(!card) return;
               var main = card.querySelector('.result-main');
               var title = '';
-              try{ var b = main && main.querySelector('b'); if(b) title = (b.textContent || '').trim(); }catch(_){}
+              try{ var b = main && main.querySelector('b'); if(b) title = (b.textContent || '').trim(); }catch(_){ }
 
-              // Prefer client helper if available
-              if (title && window && typeof window.openComposerFromName === 'function'){
+              // helper to copy the desktop #composer-content into the mobile panel
+              function copyComposerContentToMobile(){
                 try{
-                  var ok = window.openComposerFromName(title, card);
-                  if (ok) return; // client handled opening/population
+                  var content = document.getElementById('composer-content');
+                  var mobile = document.getElementById('mobilePanelContent');
+                  if (!mobile) return;
+                  // If the client has populated the desktop composer panel, prefer that HTML
+                  if (content && content.innerHTML && content.innerHTML.indexOf('Select a result') === -1){
+                    mobile.innerHTML = content.innerHTML;
+                    return;
+                  }
+                  // Otherwise copy the card's visible main area or the title
+                  if (main && main.innerHTML){ mobile.innerHTML = main.innerHTML; return; }
+                  if (title) { mobile.textContent = title; }
                 }catch(_){ }
               }
 
-              // Fallback: copy visible card content into mobile panel and show it
-              var content = document.getElementById('mobilePanelContent');
-              if (content){
-                if (main){ content.innerHTML = main.innerHTML; }
-                else if (title) { content.textContent = title; }
+              // If client helper exists, call it and then copy populated content when available.
+              // Prefer openComposerFromName (returns truthy if it handled the UI).
+              var helperTried = false;
+              if (title && window && typeof window.openComposerFromName === 'function'){
+                helperTried = true;
+                try{
+                  var ok = window.openComposerFromName(title, card);
+                  if (ok){
+                    // Listen once for a composerPopulated event (client may emit this)
+                    var handled = false;
+                    var onPop = function(e){
+                      handled = true;
+                      try{
+                        var mobile = document.getElementById('mobilePanelContent');
+                        if (mobile){
+                          if (e && e.detail && e.detail.html){ mobile.innerHTML = e.detail.html; }
+                          else { copyComposerContentToMobile(); }
+                        }
+                      }catch(_){ }
+                      document.removeEventListener('composerPopulated', onPop);
+                    };
+                    document.addEventListener('composerPopulated', onPop);
+                    // Fallback: if event doesn't fire within 600ms, copy whatever is available
+                    setTimeout(function(){ if (!handled) copyComposerContentToMobile(); }, 600);
+                    showPanel();
+                    return;
+                  }
+                }catch(_){ }
               }
+
+              // Another possible helper: populateComposerBox
+              if (!helperTried && title && window && typeof window.populateComposerBox === 'function'){
+                try{
+                  window.populateComposerBox(title, card);
+                  // allow a short delay for the client to populate desktop panel, then copy
+                  setTimeout(function(){ copyComposerContentToMobile(); }, 300);
+                  showPanel();
+                  return;
+                }catch(_){ }
+              }
+
+              // Final fallback: copy card content immediately and show
+              copyComposerContentToMobile();
               showPanel();
             }catch(e){ console.warn('populateFromCard failed', e); }
           }
