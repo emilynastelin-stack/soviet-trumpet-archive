@@ -407,7 +407,7 @@ import ComposersPage from "../components/ComposersPage.jsx";
     /* swipe menu (left-side sliding) */
     .mobile-swipe-menu { display:none; position:fixed; inset:0; z-index:2100; pointer-events:none; }
     .mobile-swipe-menu[aria-hidden="false"] { display:block; pointer-events:auto; }
-  .mobile-swipe-menu .swipe-inner { position:absolute; left:0; top:64px; bottom:56px; width:84%; max-width:380px; background:white; transform:translateX(-8%); opacity:0; transition:transform 220ms ease, opacity 220ms ease; box-shadow: 6px 0 18px rgba(0,0,0,0.12); border-top-right-radius:12px; border-bottom-right-radius:12px; overflow:auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+  .mobile-swipe-menu .swipe-inner { position:absolute; left:0; top:64px; bottom:56px; width:84%; max-width:380px; background:white; transform:translateX(-8%); opacity:0; transition:transform 220ms ease, opacity 220ms ease; box-shadow: 6px 0 18px rgba(0,0,0,0.12); border-top-right-radius:12px; border-bottom-right-radius:12px; overflow:auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; }
     .mobile-swipe-menu[aria-hidden="false"] .swipe-inner { transform:translateX(0); opacity:1; }
     .swm-close { position:absolute; right:10px; top:8px; }
     .swm-item { display:block; width:100%; text-align:left; margin:8px 0; padding:10px 12px; border-radius:8px; border:1px solid #e6e9ef; background:#fff; }
@@ -425,6 +425,13 @@ import ComposersPage from "../components/ComposersPage.jsx";
     z-index: 1300;
     box-shadow: 0 -6px 18px rgba(0,0,0,0.08);
     font-size: 15px;
+  }
+
+  /* Disable background scrolling when a full-screen mobile panel is open
+     Use overflow:hidden only — do NOT apply position:fixed here, it prevents
+     the fixed-position mobile panel from scrolling independently. */
+  body.no-scroll, html.no-scroll {
+    overflow: hidden 
   }
   /* Toggle button - only show on mobile */
   .mobile-toggle { display: none; border:0; background:transparent; font-size:16px; cursor:pointer; padding:6px 8px; }
@@ -450,6 +457,8 @@ import ComposersPage from "../components/ComposersPage.jsx";
       border-radius: 8px 0 0 8px;
       box-shadow: 0 6px 12px rgba(15,23,42,0.06);
       overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
       z-index: 2200;
       font-family: Inter, system-ui, sans-serif;
   height: 100vh; /* ensure it fills the viewport */
@@ -761,12 +770,20 @@ import ComposersPage from "../components/ComposersPage.jsx";
           // add a close control
           var close = document.createElement('button'); close.className = 'swm-close'; close.textContent = 'Close'; close.addEventListener('click', function(e){ e && e.preventDefault && e.preventDefault(); closeFilterOverlay(); });
           inner.appendChild(close);
+          // ensure inner is sized and scrollable on mobile
+          try{
+            inner.style.overflow = 'auto';
+            inner.style.height = 'calc(100vh - 120px)'; // account for topbar (64px) + footer toolbar (56px)
+            inner.style.webkitOverflowScrolling = 'touch';
+          }catch(_){ }
           // clone the panel-left content
           try{
             var clone = left.cloneNode(true);
             clone.id = 'panel-left-mobile-clone'; clone.classList.add('mobile-overlay-clone'); clone.style.margin = '0'; clone.style.width = '100%';
             // remove any inline positioning that may conflict
             clone.style.position = 'static';
+            // make cloned content independently scrollable inside the inner container
+            try{ clone.style.overflow = 'auto'; clone.style.maxHeight = '100%'; }catch(_){ }
             inner.appendChild(clone);
           }catch(_){ inner.appendChild(left); }
           overlay.appendChild(inner);
@@ -1058,6 +1075,8 @@ import ComposersPage from "../components/ComposersPage.jsx";
               // small timeout to ensure element is visible before focusing
               setTimeout(function(){ try{ var closeBtn = document.getElementById('closePanelBtn'); if (closeBtn && typeof closeBtn.focus === 'function'){ closeBtn.focus({ preventScroll: true }); } }catch(_){ } }, 20);
               // scroll main content slightly so panel appears visually above
+              // prevent background scrolling while mobile panel is open
+              try{ document.body.classList.add('no-scroll'); document.documentElement.classList.add('no-scroll'); }catch(_){ }
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }catch(e){console.warn(e)}
           }
@@ -1074,6 +1093,7 @@ import ComposersPage from "../components/ComposersPage.jsx";
               // now hide and mark aria-hidden
               try{ p.setAttribute('aria-hidden','true'); }catch(_){ }
               p.style.display='none';
+              try{ document.body.classList.remove('no-scroll'); document.documentElement.classList.remove('no-scroll'); }catch(_){ }
               // restore left filter panel display
               try{ var left = document.getElementById('panel-left'); if (left && _panelLeftPrevDisplay !== null){ left.style.display = _panelLeftPrevDisplay || ''; _panelLeftPrevDisplay = null; } }catch(_){ }
               // restore mobile filter button disabled state
