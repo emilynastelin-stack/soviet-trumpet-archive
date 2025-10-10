@@ -1278,6 +1278,30 @@
           requestAnimationFrame(()=>{ inner.style.transform = 'translateX(0)'; inner.style.opacity = '1'; });
         }
 
+        // Helper: restore body scroll and clear mobile overlay locks when removing an overlay
+        function clientRestoreBodyFromOverlay(overlay){
+          try{
+            if (!overlay) return;
+            // If there are still overlays present, don't unlock the body yet.
+            try{
+              var stillOpen = !!document.querySelector('.mobile-overlay, .mobile-swipe-menu, #mobileSidePanel');
+              if (stillOpen) return;
+            }catch(_){ }
+            try{ if (window.__mobileOverlayLock === 'filters' || window.__mobileOverlayLock === 'composer') window.__mobileOverlayLock = null; }catch(_){ }
+            try{
+              var saved = overlay.__savedScrollY || 0;
+              document.body.style.position = '';
+              document.body.style.top = '';
+              document.body.style.left = '';
+              document.body.style.right = '';
+              document.body.style.width = '';
+              document.documentElement.style.overflow = '';
+              document.body.style.overflow = '';
+              if (saved) { try{ window.scrollTo(0, saved); }catch(_){ } }
+            }catch(_){ try{ document.documentElement.style.overflow = ''; document.body.style.overflow = ''; }catch(__){} }
+          }catch(_){ }
+        }
+
         function closeFilterOverlay(){
           const overlay = document.querySelector('.mobile-overlay.left');
           if (!overlay) return;
@@ -1320,7 +1344,8 @@
                 document.body.style.overflow = '';
                 if (saved) { window.scrollTo(0, saved); }
               }catch(_){ }
-              overlay.remove();
+              try{ clientRestoreBodyFromOverlay(overlay); }catch(_){ }
+              try{ overlay.remove(); }catch(_){ }
             }catch(_){ }
           }, 260);
         }
@@ -1389,7 +1414,8 @@
               }
               try{ if (window.__mobileOverlayLock === 'composer') window.__mobileOverlayLock = null; }catch(_){ }
               try{ var saved = overlay.__savedScrollY || 0; document.body.style.position = ''; document.body.style.top = ''; document.body.style.left = ''; document.body.style.right = ''; document.body.style.width = ''; document.documentElement.style.overflow = ''; document.body.style.overflow = ''; if (saved) window.scrollTo(0, saved); }catch(_){ }
-              overlay.remove();
+              try{ clientRestoreBodyFromOverlay(overlay); }catch(_){ }
+              try{ overlay.remove(); }catch(_){ }
             }catch(_){ }
           }, 260);
         }
