@@ -231,9 +231,23 @@
                 } else {
                   inner.innerHTML = '<div style="padding:12px">Composer</div>';
                 }
-                overlay.appendChild(inner);
-                document.body.appendChild(overlay);
-                overlay.addEventListener('click', function(ev){ if (ev.target === overlay) overlay.remove(); });
+            overlay.appendChild(inner);
+            document.body.appendChild(overlay);
+            try{ window.__mobileOverlayLock = 'filters'; }catch(_){ }
+            // robust body lock
+            try{
+              var _s = window.scrollY || document.documentElement.scrollTop || 0;
+              overlay.__savedScrollY = _s;
+              document.body.style.position = 'fixed';
+              document.body.style.top = '-' + _s + 'px';
+              document.body.style.left = '0';
+              document.body.style.right = '0';
+              document.body.style.width = '100%';
+              document.documentElement.style.overflow = 'hidden';
+              document.body.style.overflow = 'hidden';
+            }catch(_){ }
+            try{ var c = document.getElementById('panel-left-mobile-clone'); if (c){ var fb = c.querySelector && c.querySelector('.filter-box'); if (fb){ fb.style.position='absolute'; fb.style.top='60px'; fb.style.bottom='0'; fb.style.left='0'; fb.style.right='0'; fb.style.overflowY='auto'; fb.style.webkitOverflowScrolling='touch'; fb.style.padding='0 16px'; fb.style.boxSizing='border-box'; } } }catch(_){ }
+            overlay.addEventListener('click', function(ev){ if (ev.target === overlay) { overlay.remove(); try{ if (window.__mobileOverlayLock === 'filters') window.__mobileOverlayLock = null; }catch(_){ } } });
               }
             } else {
               var elp = document.getElementById('panel-right'); if (elp) elp.scrollIntoView({behavior:'smooth', block:'center'});
@@ -337,9 +351,10 @@
       header.appendChild(title); header.appendChild(closeBtn);
       inner.appendChild(header);
       var body = document.createElement('div'); body.style.minHeight = '40vh'; body.style.color = '#111'; inner.appendChild(body);
-      overlay.appendChild(inner);
-      document.body.appendChild(overlay);
-      overlay.addEventListener('click', function(ev){ if (ev.target === overlay) overlay.remove(); });
+  overlay.appendChild(inner);
+  document.body.appendChild(overlay);
+  try{ window.__mobileOverlayLock = 'composer'; }catch(_){ }
+  overlay.addEventListener('click', function(ev){ if (ev.target === overlay) { overlay.remove(); try{ if (window.__mobileOverlayLock === 'composer') window.__mobileOverlayLock = null; }catch(_){ } } });
     }
 
     document.addEventListener('click', function delegatedAboutClick(ev){

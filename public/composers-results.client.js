@@ -1237,6 +1237,25 @@
 
           overlay.appendChild(inner);
           document.body.appendChild(overlay);
+          try{ window.__mobileOverlayLock = 'filters'; }catch(_){ }
+          // robust body scroll lock: save scrollY and fix body so background cannot scroll
+          try{
+            var _sv = window.scrollY || document.documentElement.scrollTop || 0;
+            overlay.__savedScrollY = _sv;
+            document.body.style.position = 'fixed';
+            document.body.style.top = '-' + _sv + 'px';
+            document.body.style.left = '0';
+            document.body.style.right = '0';
+            document.body.style.width = '100%';
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden';
+          }catch(_){ }
+
+          // ensure cloned filter-box inside the clone is positioned and scrollable
+          try{
+            var cclone = document.getElementById('panel-left-mobile-clone');
+            if (cclone){ var fbb = cclone.querySelector && cclone.querySelector('.filter-box'); if (fbb){ fbb.style.position = 'absolute'; fbb.style.top='60px'; fbb.style.bottom='0'; fbb.style.left='0'; fbb.style.right='0'; fbb.style.overflowY='auto'; fbb.style.webkitOverflowScrolling='touch'; fbb.style.padding='0 16px'; fbb.style.boxSizing='border-box'; } }
+          }catch(_){ }
 
           // click outside to close (clicks on overlay but outside inner)
           overlay.addEventListener('click', (ev)=>{ if (ev.target === overlay) closeFilterOverlay(); });
@@ -1275,7 +1294,22 @@
                   }catch(_){ }
                 });
               }
-              overlay.remove();
+                  try{
+                    var saved = overlay.__savedScrollY || 0;
+                    overlay.remove();
+                    try{ if (window.__mobileOverlayLock === 'filters') window.__mobileOverlayLock = null; }catch(_){ }
+                    // restore body positioning and scroll
+                    try{
+                      document.body.style.position = '';
+                      document.body.style.top = '';
+                      document.body.style.left = '';
+                      document.body.style.right = '';
+                      document.body.style.width = '';
+                      document.documentElement.style.overflow = '';
+                      document.body.style.overflow = '';
+                      if (saved) { window.scrollTo(0, saved); }
+                    }catch(_){ }
+                  }catch(_){ }
             }catch(_){ }
           }, 260);
         }
@@ -1283,6 +1317,8 @@
         // Right-side composer overlay (mobile): mirror behavior of filters overlay
         function openComposerOverlay(){
           if (window.innerWidth > 600) return;
+          // avoid creating a right overlay while the filter overlay is active
+          try{ if (window.__mobileOverlayLock === 'filters') return; }catch(_){ }
           let overlay = document.querySelector('.mobile-overlay.right');
           if (overlay) return;
           overlay = document.createElement('div');
@@ -1304,6 +1340,7 @@
           else { inner.innerHTML = '<div style="padding:12px">Composer</div>'; }
 
           overlay.appendChild(inner); document.body.appendChild(overlay);
+          try{ window.__mobileOverlayLock = 'composer'; }catch(_){ }
           overlay.addEventListener('click', (ev)=>{ if (ev.target === overlay) closeComposerOverlay(); });
           document.addEventListener('keydown', function onEsc(e){ if (e.key === 'Escape'){ closeComposerOverlay(); document.removeEventListener('keydown', onEsc); } });
           requestAnimationFrame(()=>{ inner.style.transform = 'translateX(0)'; inner.style.opacity = '1'; });
@@ -1331,6 +1368,7 @@
                 });
               }
               overlay.remove();
+              try{ if (window.__mobileOverlayLock === 'composer') window.__mobileOverlayLock = null; }catch(_){ }
             }catch(_){ }
           }, 260);
         }

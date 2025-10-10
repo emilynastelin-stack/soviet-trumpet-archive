@@ -775,36 +775,150 @@ import ComposersPage from "../components/ComposersPage.jsx";
             inner.style.overflow = 'auto';
             inner.style.height = 'calc(100vh - 120px)'; // account for topbar (64px) + footer toolbar (56px)
             inner.style.webkitOverflowScrolling = 'touch';
+            // make overlay explicitly fixed/inset so it sits above the page and doesn't alter layout
+            try{ overlay.style.position = 'fixed'; overlay.style.inset = '0'; overlay.style.background = 'rgba(0,0,0,0.45)'; }catch(_){ }
+            // size the inner panel to match mobileSidePanel behavior (right-side panel)
+            try{ inner.style.position = 'absolute'; inner.style.top = '64px'; inner.style.bottom = '56px'; inner.style.right = '0'; inner.style.left = 'auto'; inner.style.width = 'calc(100vw - 60px)'; inner.style.maxWidth = '92%'; inner.style.boxSizing = 'border-box'; inner.style.borderRadius = '8px 0 0 8px'; }catch(_){ }
           }catch(_){ }
+          // remove any right-side mobile overlays so they don't cover the filter overlay
+          try{ document.querySelectorAll('.mobile-overlay.right').forEach(function(el){ try{ el.remove(); }catch(_){ } }); }catch(_){ }
           // clone the panel-left content
           try{
             var clone = left.cloneNode(true);
             clone.id = 'panel-left-mobile-clone'; clone.classList.add('mobile-overlay-clone'); clone.style.margin = '0'; clone.style.width = '100%';
-            // remove any inline positioning that may conflict
-            clone.style.position = 'static';
-            // make cloned content independently scrollable inside the inner container
-            try{ clone.style.overflow = 'auto'; clone.style.maxHeight = '100%'; }catch(_){ }
+            // ensure clone is positioned relative inside the overlay and can scroll
+            clone.style.position = 'relative';
+            try{ clone.style.overflow = 'auto'; clone.style.maxHeight = '100%'; clone.style.height = '100%'; }catch(_){ }
             inner.appendChild(clone);
-          }catch(_){ inner.appendChild(left); }
+            // Ensure the inner filter-box inside the clone is positioned and scrollable
+            try{
+              var fb = clone.querySelector && clone.querySelector('.filter-box');
+              if (fb){
+                fb.style.position = 'absolute';
+                fb.style.top = '60px'; // matches header + small offset — adjust if needed
+                fb.style.bottom = '0';
+                fb.style.left = '0';
+                fb.style.right = '0';
+                fb.style.overflowY = 'auto';
+                fb.style.webkitOverflowScrolling = 'touch';
+                fb.style.padding = '0 16px';
+                fb.style.boxSizing = 'border-box';
+              }
+            }catch(_){ }
+          }catch(_){
+            // Do NOT move the original node out of the main layout. Instead copy its markup
+            try{
+              var fallbackClone = document.createElement('div');
+              fallbackClone.id = 'panel-left-mobile-clone';
+              fallbackClone.classList.add('mobile-overlay-clone');
+              fallbackClone.style.margin = '0';
+              fallbackClone.style.width = '100%';
+              fallbackClone.style.position = 'static';
+              fallbackClone.style.overflow = 'auto';
+              fallbackClone.style.maxHeight = '100%';
+              fallbackClone.innerHTML = left.innerHTML || '';
+              inner.appendChild(fallbackClone);
+              // Apply same portable styles to the fallback clone's .filter-box so it scrolls
+              try{
+                var fb2 = fallbackClone.querySelector && fallbackClone.querySelector('.filter-box');
+                if (fb2){
+                  fb2.style.position = 'absolute';
+                  fb2.style.top = '60px';
+                  fb2.style.bottom = '0';
+                  fb2.style.left = '0';
+                  fb2.style.right = '0';
+                  fb2.style.overflowY = 'auto';
+                  fb2.style.webkitOverflowScrolling = 'touch';
+                  fb2.style.padding = '0 16px';
+                  fb2.style.boxSizing = 'border-box';
+                }
+              }catch(_){ }
+            }catch(_2){
+              try{ var ph = document.createElement('div'); ph.textContent = 'Filters'; inner.appendChild(ph); }catch(_3){}
+            }
+          }
+          // ensure overlay sits above other fixed UI (header/footer)
+          try{ overlay.style.zIndex = '100000'; overlay.style.pointerEvents = 'auto'; }catch(_){ }
+          try{ inner.style.zIndex = '100001'; }catch(_){ }
           overlay.appendChild(inner);
           document.body.appendChild(overlay);
-          lockBody();
+          // mark that a filter overlay is active so other overlay creators
+          // (right-side composer overlays) can avoid creating competing panels
+          try{ window.__mobileOverlayLock = 'filters'; }catch(_){ }
+          // Robust body scroll lock: store scroll position and fix body to viewport
+          try{
+            var _savedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+            // store on overlay so close can restore
+            overlay.__savedScrollY = _savedScrollY;
+            // apply fixed positioning to body to prevent background scroll while allowing overlay inner to scroll
+            document.body.style.position = 'fixed';
+            document.body.style.top = '-' + _savedScrollY + 'px';
+            document.body.style.left = '0';
+            document.body.style.right = '0';
+            document.body.style.width = '100%';
+            // also set overflow hidden as a fallback
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden';
+          }catch(_){ try{ lockBody(); }catch(__){} }
           // focus the inner area for accessibility
           try{ inner.focus && inner.focus(); }catch(_){ }
           // closing by tapping backdrop
           overlay.addEventListener('click', function(e){ if (e.target === overlay) closeFilterOverlay(); });
         }
-        function closeFilterOverlay(){ var ov = document.getElementById('mobile-filter-overlay'); if (!ov) return; ov.remove(); unlockBody(); }
+    function closeFilterOverlay(){ var ov = document.getElementById('mobile-filter-overlay'); if (!ov) return; 
+        try{
+          // restore scroll position if we saved one
+          var saved = ov.__savedScrollY || 0;
+          ov.remove();
+          // clear lock
+          try{ if (window.__mobileOverlayLock === 'filters') window.__mobileOverlayLock = null; }catch(_){ }
+          // restore body positioning and scroll
+          try{
+            // remove fixed positioning
+            document.body.style.position = '';
+            var top = document.body.style.top || '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
+            document.body.style.width = '';
+            // clear overflow overrides
+            document.documentElement.style.overflow = '';
+            document.body.style.overflow = '';
+            // scroll back to where we were
+            if (saved) { window.scrollTo(0, saved); }
+          }catch(_){ try{ unlockBody(); }catch(__){} }
+        }catch(e){ try{ ov.remove(); }catch(_){ } try{ unlockBody(); }catch(__){} }
+      }
 
-        try{ if (mfFiltersBtn) mfFiltersBtn.addEventListener('click', function(e){ e && e.preventDefault && e.preventDefault(); openFilterOverlay(); }); }catch(_){ }
+    try{ if (mfFiltersBtn) mfFiltersBtn.addEventListener('click', function(e){ e && e.preventDefault && e.preventDefault();
+      try{ if (window.__mobileOverlayLock === 'filters') return; }catch(_){ }
+      try{ if (document.querySelector('.mobile-overlay.left') || document.querySelector('.mobile-swipe-menu') || document.getElementById('mobile-filter-overlay')) return; }catch(_){ }
+      openFilterOverlay();
+    }); }catch(_){ }
 
-        // Prevent touchmove on document when either overlay is open; allow it inside any .swipe-inner
+        // Prevent touchmove on document when an overlay is open; allow it when the
+        // touchstart/target is inside a known scrollable overlay region so that
+        // inner panels (filters, composer panel, cloned overlays) can scroll.
         document.addEventListener('touchmove', function(e){
           var qmOpen = quickMenu && quickMenu.getAttribute('aria-hidden') === 'false';
           var fo = document.getElementById('mobile-filter-overlay'); var foOpen = !!fo;
-          if (!qmOpen && !foOpen) return; // no overlays open
+          // If no overlays we care about are present, don't intervene
+          if (!qmOpen && !foOpen && !document.querySelector('.mobile-overlay') && !document.getElementById('mobileSidePanel')) return;
           var allow = false;
-          try{ var target = e.target; if (target){ if (qmOpen){ var si = quickMenu.querySelector('.swipe-inner'); if (si && si.contains(target)) allow = true; } if (!allow && foOpen){ var si2 = fo.querySelector('.swipe-inner'); if (si2 && si2.contains(target)) allow = true; } } }catch(_){ }
+          try{
+            var target = e.target;
+            if (target){
+              // allow inside the quick-menu swipe-inner
+              if (qmOpen){ var si = quickMenu.querySelector('.swipe-inner'); if (si && si.contains(target)) allow = true; }
+              // allow inside the filter-overlay swipe-inner (our cloned filter panel)
+              if (!allow && foOpen){ var si2 = fo.querySelector('.swipe-inner'); if (si2 && si2.contains(target)) allow = true; }
+              // allow inside common overlay inner containers (right panels, generic overlays)
+              if (!allow){
+                var nodes = document.querySelectorAll('.swipe-inner, .overlay-inner, .overlay-right-inner, .mobile-overlay-clone, #mobileSidePanel');
+                for (var i=0;i<nodes.length && !allow;i++){ try{ if (nodes[i] && nodes[i].contains(target)) allow = true; }catch(_){ } }
+              }
+            }
+          }catch(_){ }
           if (!allow){ e.preventDefault && e.preventDefault(); }
         }, { passive: false });
 
@@ -836,6 +950,10 @@ import ComposersPage from "../components/ComposersPage.jsx";
               }
               // If small screen, clone/right-panel into a mobile overlay similar to client behavior
               if (window.innerWidth <= 600){
+                // if a filter overlay is active, don't create an additional right overlay
+                try{ if (window.__mobileOverlayLock === 'filters') return true; }catch(_){ }
+                // remove any open filter overlay so the right-side panel is not behind it
+                try{ var fo = document.getElementById('mobile-filter-overlay'); if (fo) fo.remove(); }catch(_){ }
                 if (!document.querySelector('.mobile-overlay.right')){
                   var overlay = document.createElement('div');
                   overlay.className = 'mobile-overlay right';
@@ -856,6 +974,8 @@ import ComposersPage from "../components/ComposersPage.jsx";
                   }
                   overlay.appendChild(inner);
                   document.body.appendChild(overlay);
+                  // lock body when this right-side overlay is open so inner scroll works
+                  try{ document.body.style.overflow = 'hidden'; document.documentElement.style.overflow = 'hidden'; }catch(_){ }
                   overlay.addEventListener('click', function(ev){ if (ev.target === overlay) overlay.remove(); });
                 }
               } else {
