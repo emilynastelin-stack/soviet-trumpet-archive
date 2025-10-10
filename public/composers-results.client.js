@@ -913,6 +913,16 @@
   }
   window.loadResults = loadResults;
 
+  // Defensive export: in some hydration setups loadResults may not be
+  // globally reachable. If it's defined in this module, ensure a
+  // window-level reference exists so UI controls can call it.
+  try{
+    if (typeof window.loadResults !== 'function' && typeof loadResults === 'function'){
+      window.loadResults = loadResults;
+      console.debug && console.debug('[client] attached loadResults to window');
+    }
+  }catch(_){ }
+
   /* ---------------------------------------------------------------------------
     RIGHT PANEL: populateComposerBox
     -----------------------------------------------------------
@@ -1223,6 +1233,52 @@
           // clone the filter panel into the overlay so the original DOM stays in place
           const panel = document.getElementById('panel-left');
           if (panel){
+            // build a small header bar for the overlay with Clear all / Apply buttons
+            try{
+              const hdr = document.createElement('div');
+              hdr.style.display = 'flex';
+              hdr.style.alignItems = 'center';
+              hdr.style.justifyContent = 'space-between';
+              hdr.style.gap = '8px';
+              hdr.style.margin = '0 0 8px 0';
+              hdr.style.padding = '0 4px';
+
+              const title = document.createElement('div');
+              title.textContent = 'Filters';
+              title.style.fontWeight = '700';
+              title.style.fontSize = '1.05rem';
+              title.style.color = 'var(--accent, #8b0000)';
+              hdr.appendChild(title);
+
+              const actions = document.createElement('div');
+              actions.style.display = 'flex';
+              actions.style.gap = '10px';
+
+              const clearBtn = document.createElement('button');
+              clearBtn.type = 'button';
+              clearBtn.textContent = 'Clear all';
+              clearBtn.style.background = 'transparent';
+              clearBtn.style.border = 'none';
+              clearBtn.style.color = 'var(--accent, #8b0000)';
+              clearBtn.style.fontWeight = '600';
+              clearBtn.style.cursor = 'pointer';
+              actions.appendChild(clearBtn);
+
+              const applyBtn = document.createElement('button');
+              applyBtn.type = 'button';
+              applyBtn.textContent = 'Apply';
+              applyBtn.style.background = 'var(--accent, #8b0000)';
+              applyBtn.style.color = '#fff';
+              applyBtn.style.border = 'none';
+              applyBtn.style.padding = '6px 10px';
+              applyBtn.style.borderRadius = '8px';
+              applyBtn.style.cursor = 'pointer';
+              actions.appendChild(applyBtn);
+
+              hdr.appendChild(actions);
+              inner.appendChild(hdr);
+            }catch(_){ }
+
             const clone = panel.cloneNode(true);
             clone.id = 'panel-left-mobile-clone';
             clone.classList.add('mobile-overlay-clone');
@@ -1247,12 +1303,206 @@
                   fb.style.boxSizing = 'border-box';
                 }
               }catch(_){ }
+              // If we have previously saved filter selections, restore them into the clone so
+              // the overlay shows the last-applied filters even if the DOM was re-rendered.
+              try{
+                const saved = Array.isArray(window.__savedFilterSelections) ? window.__savedFilterSelections : null;
+                if (saved && clone){
+                  const inputs = clone.querySelectorAll && clone.querySelectorAll('input[type="checkbox"], input[type="radio"]');
+                  if (inputs && inputs.length){
+                    inputs.forEach(ii => {
+                      try{
+                        const val = (ii.dataset && ii.dataset.val) ? ii.dataset.val : (ii.value != null ? String(ii.value) : '');
+                        const should = saved.indexOf(val) !== -1;
+                        // only toggle and dispatch change for inputs that should be checked;
+                        // dispatching ensures any listeners react to restored state
+                        if (should) {
+                          ii.checked = true;
+                          try{ ii.dispatchEvent(new Event('change', { bubbles: true })); }catch(_){ }
+                        } else {
+                          // explicitly clear unchecked inputs to keep clone deterministic
+                          ii.checked = false;
+                        }
+                      }catch(_){ }
+                    });
+                  }
+                  // restore qinput if present in saved map
+                  try{
+                    if (window.__savedQInputValue && typeof window.__savedQInputValue === 'string'){
+                      const qclone = clone.querySelector && (clone.querySelector('input#qinput') || clone.querySelector('input[name="q"]'));
+                      if (qclone) qclone.value = window.__savedQInputValue;
+                    }
+                  }catch(_){ }
+                }
+              }catch(_){ }
+
+            // wire header buttons (clear/apply) to interact with the clone
+            try{
+              clearBtn.addEventListener('click', function(){
+                try{
+                  // clear inputs inside the clone only (do not persist until Apply is pressed)
+                  const inputs = clone.querySelectorAll('input, select, textarea');
+                  inputs.forEach(i => {
+                    try{
+                      if (i.type === 'checkbox' || i.type === 'radio') i.checked = false;
+                      else i.value = '';
+                    }catch(_){ }
+                  });
+                }catch(_){ }
+              });
+
+              applyBtn.addEventListener('click', function(ev) {
+                try {
+                  ev && ev.preventDefault && ev.preventDefault();
+                  console.debug && console.debug('[mobile overlay] Apply clicked');
+
+                  const real = document.getElementById('panel-left');
+                  const cloneEl = document.getElementById('panel-left-mobile-clone');
+                  if (!cloneEl || !real) return;
+
+                  // Copy filter state from clone -> real
+                  const cloneInputs = cloneEl.querySelectorAll('input, select, textarea');
+                  let touched = 0;
+                  cloneInputs.forEach(ci => {
+                    try{
+                      let orig = null;
+                      if (ci.name) orig = real.querySelector('[name="' + ci.name + '"]');
+                      if (!orig && ci.dataset && ci.dataset.val) orig = real.querySelector('[data-val="' + ci.dataset.val + '"]');
+                      if (!orig && ci.id) orig = real.querySelector('#' + ci.id);
+                      if (!orig) return;
+
+                      if (orig.type === 'checkbox' || orig.type === 'radio') {
+                        orig.checked = !!ci.checked;
+                      } else {
+                        orig.value = ci.value;
+                      }
+                      try{ orig.dispatchEvent(new Event('change', { bubbles: true })); }catch(_){ }
+                      touched++;
+                    }catch(_){ }
+                  });
+
+                  console.debug && console.debug('[mobile overlay] Applied ' + touched + ' filters');
+
+                  // Save for next open
+                  try{
+                    const saved = Array.from(cloneEl.querySelectorAll('input[type="checkbox"]:checked, input[type="radio"]:checked')).map(cb => (cb.dataset && cb.dataset.val) ? cb.dataset.val : cb.value);
+                    window.__savedFilterSelections = saved;
+                  }catch(_){ }
+
+                  // Persist q input
+                  try{
+                    const qclone = cloneEl.querySelector('input#qinput') || cloneEl.querySelector('input[name="q"]');
+                    if (qclone) try{ window.__savedQInputValue = String(qclone.value || ''); }catch(_){ }
+                  }catch(_){ }
+
+                  // Trigger reload
+                  try{ if (typeof window.loadResults === 'function'){ window.currentPage = 1; window.loadResults(); } else { console.warn && console.warn('window.loadResults not found'); } }catch(_){ }
+
+                  try{ closeFilterOverlay(); }catch(_){ }
+                }catch(_){ }
+              });
+            }catch(_){ }
           } else {
             inner.innerHTML = '<div style="padding:12px">Filters</div>';
           }
 
           overlay.appendChild(inner);
           document.body.appendChild(overlay);
+          // When opening the overlay (or when it's re-rendered), re-apply any
+          // saved selections to both the real panel and the overlay clone so
+          // the UI is consistent. Dispatch change/input events so listeners run.
+          try {
+            const saved = Array.isArray(window.__savedFilterSelections) ? window.__savedFilterSelections : null;
+            // restore into the overlay clone (so the user sees their saved choices)
+            try{
+              if (saved && saved.length && clone){
+                const clonecb = clone.querySelectorAll && clone.querySelectorAll('input[type="checkbox"], input[type="radio"]');
+                if (clonecb && clonecb.length){
+                  clonecb.forEach(cb => {
+                    try{
+                      const val = (cb.dataset && cb.dataset.val) ? cb.dataset.val : String(cb.value || '');
+                      if (saved.indexOf(val) !== -1){
+                        cb.checked = true;
+                        try{ cb.dispatchEvent(new Event('change', { bubbles: true })); }catch(_){ }
+                      } else {
+                        cb.checked = false;
+                      }
+                    }catch(_){ }
+                  });
+                }
+                // restore search input inside clone
+                try{
+                  if (typeof window.__savedQInputValue === 'string'){
+                    const qclone = clone.querySelector && (clone.querySelector('input#qinput') || clone.querySelector('input[name="q"]'));
+                    if (qclone){ qclone.value = window.__savedQInputValue; try{ qclone.dispatchEvent(new Event('input', { bubbles: true })); }catch(_){ } }
+                  }
+                }catch(_){ }
+              }
+            }catch(_){ }
+
+            // Also restore to the real left panel so desktop UI reflects saved state
+            try{
+              if (saved && saved.length){
+                const realcb = document.querySelectorAll && document.querySelectorAll('#panel-left input[type="checkbox"], #panel-left input[type="radio"]');
+                if (realcb && realcb.length){
+                  realcb.forEach(cb => {
+                    try{
+                      const val = (cb.dataset && cb.dataset.val) ? cb.dataset.val : String(cb.value || '');
+                      if (saved.indexOf(val) !== -1){ cb.checked = true; try{ cb.dispatchEvent(new Event('change', { bubbles: true })); }catch(_){ } }
+                    }catch(_){ }
+                  });
+                }
+                try{
+                  if (typeof window.__savedQInputValue === 'string'){
+                    const qreal = document.getElementById('qinput');
+                    if (qreal){ qreal.value = window.__savedQInputValue; try{ qreal.dispatchEvent(new Event('input', { bubbles: true })); }catch(_){ } }
+                  }
+                }catch(_){ }
+              }
+            }catch(_){ }
+          } catch (_) { }
+
+          // Also bind an Apply handler to any Apply button inside the clone
+          // (some markup may render an internal Apply). Guard so we don't bind twice.
+          try{
+            if (clone && clone.querySelector){
+              const applyFromClone = clone.querySelector('button[type="button"]');
+              if (applyFromClone && !applyFromClone.dataset.__applied){
+                console.debug && console.debug('[mobile overlay] binding apply handler on clone');
+                applyFromClone.addEventListener('click', function(){
+                  try{
+                    // Persist checkbox/radio selections
+                    const savedVals = [];
+                    const inputs = clone.querySelectorAll && clone.querySelectorAll('input[type="checkbox"], input[type="radio"]');
+                    if (inputs && inputs.length){
+                      inputs.forEach(cb => {
+                        try{
+                          if (cb.checked){
+                            const v = (cb.dataset && cb.dataset.val) ? cb.dataset.val : (cb.value != null ? String(cb.value) : '');
+                            if (v) savedVals.push(v);
+                          }
+                        }catch(_){ }
+                      });
+                    }
+                    try{ window.__savedFilterSelections = savedVals; }catch(_){ }
+
+                    // Persist q input
+                    try{
+                      const qclone = clone.querySelector && (clone.querySelector('input#qinput') || clone.querySelector('input[name="q"]'));
+                      if (qclone) try{ window.__savedQInputValue = String(qclone.value || ''); }catch(_){ }
+                    }catch(_){ }
+
+                    // Trigger results reload
+                    try{ if (typeof window.loadResults === 'function'){ window.currentPage = 1; window.loadResults(); } }catch(_){ }
+
+                    // Close overlay
+                    try{ closeFilterOverlay(); }catch(_){ }
+                    try{ applyFromClone.dataset.__applied = '1'; }catch(_){ }
+                  }catch(_){ }
+                });
+              }
+            }
+          }catch(_){ }
           // mark that a filter overlay is active
           try{ window.__mobileOverlayLock = 'filters'; }catch(_){ }
           // Robust body scroll lock: store scroll position and fix body to viewport
