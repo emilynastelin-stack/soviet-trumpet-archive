@@ -407,7 +407,7 @@ import ComposersPage from "../components/ComposersPage.jsx";
     /* swipe menu (left-side sliding) */
     .mobile-swipe-menu { display:none; position:fixed; inset:0; z-index:2100; pointer-events:none; }
     .mobile-swipe-menu[aria-hidden="false"] { display:block; pointer-events:auto; }
-    .mobile-swipe-menu .swipe-inner { position:absolute; left:0; top:64px; bottom:56px; width:84%; max-width:380px; background:white; transform:translateX(-8%); opacity:0; transition:transform 220ms ease, opacity 220ms ease; box-shadow: 6px 0 18px rgba(0,0,0,0.12); border-top-right-radius:12px; border-bottom-right-radius:12px; overflow:auto; }
+  .mobile-swipe-menu .swipe-inner { position:absolute; left:0; top:64px; bottom:56px; width:84%; max-width:380px; background:white; transform:translateX(-8%); opacity:0; transition:transform 220ms ease, opacity 220ms ease; box-shadow: 6px 0 18px rgba(0,0,0,0.12); border-top-right-radius:12px; border-bottom-right-radius:12px; overflow:auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
     .mobile-swipe-menu[aria-hidden="false"] .swipe-inner { transform:translateX(0); opacity:1; }
     .swm-close { position:absolute; right:10px; top:8px; }
     .swm-item { display:block; width:100%; text-align:left; margin:8px 0; padding:10px 12px; border-radius:8px; border:1px solid #e6e9ef; background:#fff; }
@@ -732,6 +732,31 @@ import ComposersPage from "../components/ComposersPage.jsx";
         </div>
       </div>
     </div>
+
+    <script>
+      // Lock body scroll when mobile swipe menu is open so the panel can scroll independently on touch devices
+      (function(){
+        var menu = document.getElementById('mobile-swipe-menu');
+        var openButtons = [document.getElementById('mf-filters')];
+        var closeBtn = document.getElementById('swm-close');
+        function lockBody(){
+          try{ document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden'; }catch(_){ }
+        }
+        function unlockBody(){
+          try{ document.documentElement.style.overflow = ''; document.body.style.overflow = ''; }catch(_){ }
+        }
+        function openMenu(){ if (!menu) return; menu.setAttribute('aria-hidden','false'); menu.querySelector('.swipe-inner') && menu.querySelector('.swipe-inner').focus && menu.querySelector('.swipe-inner').focus(); lockBody(); }
+        function closeMenu(){ if (!menu) return; menu.setAttribute('aria-hidden','true'); unlockBody(); }
+        try{
+          if (openButtons && openButtons[0]) openButtons.forEach(b => { if (!b) return; b.addEventListener('click', function(e){ e.preventDefault && e.preventDefault(); openMenu(); }); });
+        }catch(_){ }
+        try{ if (closeBtn) closeBtn.addEventListener('click', function(e){ e.preventDefault && e.preventDefault(); closeMenu(); }); }catch(_){ }
+        // close when tapping outside the swipe-inner
+        try{ menu && menu.addEventListener('click', function(e){ if (e.target === menu) { closeMenu(); } }); }catch(_){ }
+        // prevent touch move on body when menu is open but allow it inside the swipe-inner
+        document.addEventListener('touchmove', function(e){ if (!menu) return; if (menu.getAttribute('aria-hidden') === 'false'){ var si = menu.querySelector('.swipe-inner'); if (si && si.contains(e.target)) { return; } e.preventDefault && e.preventDefault(); } }, { passive: false });
+      })();
+    </script>
 
   <!--
     Client runtime (heavy): /public/composers-results.client.js
