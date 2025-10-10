@@ -17,66 +17,66 @@ import ComposersPage from "../components/ComposersPage.jsx";
       margin: 0;
       color: #0f172a;
       background-color: var(--bg);
-      background-image: none;
-      /* ensure there's room for the fixed footer and device safe-area inset */
-      padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)); /* reserve space for fixed footer */
-      padding-top: 112px; /* reserve space for fixed header + search strip */
-    }
+      <script>
+        // Mobile overlay helpers: use position:fixed scroll-lock (preserve scrollY) and allow overlays to scroll independently
+        (function(){
+          var quickMenu = document.getElementById('mobile-swipe-menu');
+          var quickClose = document.getElementById('swm-close');
+          var mfFiltersBtn = document.getElementById('mf-filters');
+          var currentScroll = 0;
 
-    /* Ensure the fixed footer is visible on all screen sizes (override mobile-only rules) */
-    #fixed-footer { display: block !important; visibility: visible !important; z-index: 99999 !important; }
+          function lockBody(){
+            try{
+              currentScroll = window.scrollY || window.pageYOffset || 0;
+              document.documentElement.style.height = '100%';
+              document.documentElement.style.overflow = 'hidden';
+              document.body.style.position = 'fixed';
+              document.body.style.top = '-' + currentScroll + 'px';
+              document.body.style.left = '0';
+              document.body.style.right = '0';
+              document.body.style.width = '100%';
+            }catch(_){ }
+          }
+          function unlockBody(){
+            try{
+              document.body.style.position = '';
+              document.body.style.top = '';
+              document.body.style.left = '';
+              document.body.style.right = '';
+              document.body.style.width = '';
+              document.documentElement.style.overflow = '';
+              document.documentElement.style.height = '';
+              window.scrollTo(0, currentScroll);
+            }catch(_){ }
+          }
 
-    header {
-      background:white; 
-      border-bottom:1px solid #e6e9ef; 
-      position:sticky; 
-      top:0; 
-      z-index:1000; /* ensure header sits above overlays */
-      height:64px; /* explicit height so search strip can sit flush below */
-      display:flex; align-items:center;
-    }
+          function openQuickMenu(){ if (!quickMenu) return; quickMenu.setAttribute('aria-hidden','false'); var si = quickMenu.querySelector('.swipe-inner'); try{ si && si.focus && si.focus(); }catch(_){ } lockBody(); }
+          function closeQuickMenu(){ if (!quickMenu) return; quickMenu.setAttribute('aria-hidden','true'); unlockBody(); }
 
-  /* Header: span full width so title can be flush left; language selector sits flush right via flex */
-  /* header container: remove vertical padding so search strip sits flush */
-  header .container { width:100%; max-width:none; margin:0; padding:0 20px; }
-  /* top title absolutely flush left (no left padding) */
-  #navEnglish { display:inline-block; padding-left:0; }
-    .container { max-width:1100px; margin:0 auto; padding:20px; }
+          try{ if (quickClose) quickClose.addEventListener('click', function(e){ e && e.preventDefault && e.preventDefault(); closeQuickMenu(); }); }catch(_){ }
+          try{ quickMenu && quickMenu.addEventListener('click', function(e){ if (e.target === quickMenu) closeQuickMenu(); }); }catch(_){ }
 
-    .nav { display:flex; align-items:center; gap:18px; }
-  .logo { font-weight:800; color:var(--accent); font-size:20px; }
-  .logo a { color:inherit; text-decoration:none; display:inline-flex; gap:8px; align-items:center; }
-  .logo a:focus { outline:3px solid rgba(139,0,0,0.12); border-radius:6px; }
-    .nav-english { color:var(--accent); font-weight:800; }
-    .nav-pipe { color:#000; margin:0 8px; }
-    .nav-russian { color:var(--muted); }
+          // Filter overlay: clone the left panel into a dedicated overlay that can scroll
+          function openFilterOverlay(){
+            if (document.getElementById('mobile-filter-overlay')) return;
+            var left = document.getElementById('panel-left'); if (!left) return;
+            var overlay = document.createElement('div'); overlay.id = 'mobile-filter-overlay'; overlay.className = 'mobile-swipe-menu'; overlay.setAttribute('aria-hidden','false');
+            var inner = document.createElement('div'); inner.className = 'swipe-inner'; inner.setAttribute('role','menu'); inner.setAttribute('aria-label','Filters'); inner.setAttribute('tabindex','-1');
+            var close = document.createElement('button'); close.className = 'swm-close'; close.textContent = 'Close'; close.addEventListener('click', function(e){ e && e.preventDefault && e.preventDefault(); closeFilterOverlay(); });
+            inner.appendChild(close);
+            try{ var clone = left.cloneNode(true); clone.id = 'panel-left-mobile-clone'; clone.classList.add('mobile-overlay-clone'); clone.style.margin = '0'; clone.style.width = '100%'; clone.style.position = 'static'; inner.appendChild(clone); }catch(_){ inner.appendChild(left); }
+            overlay.appendChild(inner); document.body.appendChild(overlay);
+            lockBody(); try{ inner.focus && inner.focus(); }catch(_){ }
+            overlay.addEventListener('click', function(e){ if (e.target === overlay) closeFilterOverlay(); });
+          }
+          function closeFilterOverlay(){ var ov = document.getElementById('mobile-filter-overlay'); if (!ov) return; ov.remove(); unlockBody(); }
 
-    /* language toggle */
-    .lang-toggle { position:relative; display:inline-block; margin-right:12px; }
-    .lang-btn { background:transparent; border:1px solid #e6e9ef; padding:6px 8px; border-radius:6px; cursor:pointer; font-weight:600; }
-    .lang-dropdown { position:absolute; top:100%; right:0; background:white; border:1px solid #e6e9ef; border-radius:6px; padding:6px; box-shadow:0 6px 18px rgba(16,24,40,0.06); display:none; min-width:140px; }
-    .lang-dropdown.open { display:block; }
-    .lang-option { padding:6px 8px; cursor:pointer; }
-    .lang-option:hover { background:#f3f4f6; }
+          try{ if (mfFiltersBtn) mfFiltersBtn.addEventListener('click', function(e){ e && e.preventDefault && e.preventDefault(); openFilterOverlay(); }); }catch(_){ }
 
-    /* Hero & search panel (reduced to essentials used by results page) */
-    .search-bar { display:flex; gap:8px; padding:12px 20px; }
-    .search-input, #qinput { flex:1; padding:10px 12px; border-radius:8px; border:1px solid #e5e7eb; }
-    .search-cta, #qbtn { padding:10px 12px; border-radius:8px; background:var(--accent); color:white; border:none; font-weight:700; cursor:pointer; }
-
-  .filters { width:305px; }
-  .results { flex:1; }
-  .composer-box { width:345px; }
-    .section-divider { height:1px; background:#e6e9ef; margin:8px 0; }
-
-  /* Fixed translucent search strip under the navbar */
-  .search-strip { position:fixed; left:0; right:0; top:64px; z-index:1400; background: rgba(128,128,128,0.75); padding:12px 0; }
-  .search-center { max-width:1100px; margin:0 auto; padding:0 20px; display:flex; align-items:center; gap:8px; box-sizing:border-box; }
-  .search-center #qinput { flex:1; padding:12px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.12); background:white; min-width:0; }
-  .search-center #qbtn { padding:12px 16px; border-radius:10px; background:var(--accent); color:white; border:none; font-weight:700; cursor:pointer; }
-  /* three horizontal panels below the search strip
-    Layout: full-width container with 20px side padding so
-    the left panel sits 20px from the left edge and the right
+          // Note: we intentionally do NOT use a global touchmove preventDefault anymore.
+          // The overlay's .swipe-inner has `overscroll-behavior: contain` and `-webkit-overflow-scrolling: touch` so it can scroll independently.
+        })();
+      </script>
     panel sits 20px from the right edge. Left/right panels
     use fixed widths; center panel is fluid. */
     .three-panels { display:flex; gap:16px; width:100%; margin:45px 0 0 0; padding:0 20px; box-sizing:border-box; overflow-x:hidden; align-items:stretch; }
