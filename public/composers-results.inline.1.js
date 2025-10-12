@@ -384,29 +384,20 @@
 
     document.addEventListener('click', function delegatedAboutClick(ev){
       try{
+        if (!ev || !ev.target) return;
+        // ignore clicks on interactive elements
+        if (ev.target.closest && ev.target.closest('a, button')) return;
         var about = ev.target && ev.target.closest ? ev.target.closest('.about-label, .about-badge') : null;
         if (!about) return;
         if (window.innerWidth > 600) return;
         ev.preventDefault && ev.preventDefault(); ev.stopPropagation && ev.stopPropagation();
-        var composerName = '';
-        try{
-          var card = about.closest ? about.closest('.result-card') : null;
-          if (card){
-            var link = card.querySelector('.composer-link[data-name]') || card.querySelector('.composer-link');
-            if (link) composerName = (link.getAttribute && link.getAttribute('data-name')) || (link.textContent && link.textContent.trim()) || '';
-          }
-          if (!composerName){
-            var group = about.closest ? about.closest('.composer-group') : null;
-            if (group){
-              var h = group.querySelector('h3'); if (h && h.textContent) composerName = h.textContent.trim();
-            }
-          }
-        }catch(_){ composerName = ''; }
-
+        var card = about.closest ? about.closest('.result-card') : null;
+        if (!card) return;
+        var nameEl = card.querySelector && card.querySelector('.result-main b');
+        var composerName = nameEl && nameEl.textContent ? nameEl.textContent.trim() : 'Composer';
         if (composerName && window && typeof window.openComposerFromName === 'function'){
-          try{ var ok = window.openComposerFromName(composerName); if (ok) return; }catch(_){ }
+          try{ window.openComposerFromName(composerName, card); return; }catch(_){ }
         }
-        openEmptyRightPanel();
       }catch(_){ }
     }, { capture: false });
   })();

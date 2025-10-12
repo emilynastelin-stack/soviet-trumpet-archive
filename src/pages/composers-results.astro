@@ -1382,20 +1382,29 @@ import ComposersPage from "../components/ComposersPage.jsx";
     // ===== Delegated click for mobile composer cards =====
     document.addEventListener('click', function(ev){
       try{
-        if (ev.target.closest('#panel-left, #mobileSidePanel, #mf-filters, .filters-panel')) return;
-        if (window.innerWidth > 600) return;
-        if (ev.target.closest('a, button')) return;
+        if (!ev || !ev.target) return;
 
+        // Ignore clicks on links/buttons or outside the about control
+        if (ev.target.closest('a, button')) return;
         const about = ev.target.closest('.about-label, .about-badge');
         if (!about) return;
+
+        // Only handle mobile screens
+        if (window.innerWidth > 600) return;
+
         const card = about.closest('.result-card');
         if (!card) return;
 
         ev.preventDefault();
         ev.stopPropagation();
 
-        populateAndShowFromCard(card);
-      }catch(e){}
+        // --- mobile overlay only: call openComposerFromName if available ---
+        const name = card.querySelector('.result-main b') && card.querySelector('.result-main b').textContent ? card.querySelector('.result-main b').textContent.trim() : 'Composer';
+        if (window.openComposerFromName && typeof window.openComposerFromName === 'function') {
+          try{ window.openComposerFromName(name, card); }catch(e){ console.warn(e); }
+        }
+
+      } catch(e){ console.warn(e); }
     }, true);
 
     // ===== Pointerup fallback for touch =====
