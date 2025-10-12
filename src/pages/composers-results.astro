@@ -1392,110 +1392,100 @@ import ComposersPage from "../components/ComposersPage.jsx";
           window.showMobileComposerPanel = showPanel; window.hideMobileComposerPanel = hidePanel; window.populateMobilePanelFromCard = populateAndShowFromCard;
         })();
           </script>
-          <script>
-            // Mirror desktop composer panel into the mobile composer panel using the
-            // authoritative client event (composerPopulated) and a MutationObserver
-            // fallback. This ensures the mobile panel receives the full HTML that the
-            // client renders dynamically (not the brief snippet present in .result-card).
-            (function(){
-              function mirrorDesktopToMobile(html, attempt){
-                try{
-                  attempt = Number(attempt) || 0;
-                  var mobile = document.getElementById('mobilePanelContent');
-                  var panel = document.getElementById('mobileSidePanel');
-                  if (!mobile || !panel) return;
+        <script>
+(function(){
+  // Forcefully show the mobile panel and clean up ancestors
+  function showMobilePanel(panel) {
+    if (!panel) return;
 
-                  // Resolve authoritative desktop HTML: prefer explicit payload when provided
-                  var desktopHTML = '';
-                  if (html && typeof html === 'string') desktopHTML = String(html || '');
-                  else {
-                    try{ var desktop = document.getElementById('composer-content'); if (desktop) desktopHTML = desktop.innerHTML || ''; }catch(_){ desktopHTML = ''; }
-                  }
+    panel.style.display = 'block';
+    panel.style.opacity = '1';
+    panel.style.visibility = 'visible';
+    panel.style.transform = 'none';
+    panel.style.zIndex = '99999';
+    panel.setAttribute('aria-hidden', 'false');
+    if ('inert' in panel) panel.inert = false;
 
-                  // If content is empty or still the placeholder, retry a few times (desktop may populate asynchronously)
-                  if (!desktopHTML || desktopHTML.indexOf('Select a result') !== -1){
-                    if (attempt < 12) {
-                      setTimeout(function(){ try{ mirrorDesktopToMobile(html, attempt + 1); }catch(_){ } }, 150);
-                    }
-                    return;
-                  }
+    // Remove aria-hidden and display:none from ancestors
+    let anc = panel.parentElement;
+    while (anc && anc !== document.body){
+      try {
+        anc.removeAttribute('aria-hidden');
+        anc.style.display = '';
+      } catch(e){ /* ignore */ }
+      anc = anc.parentElement;
+    }
 
-                  // copy into mobile container
-                  mobile.innerHTML = desktopHTML;
+    // Remove focus from any child that might block interaction
+    const focusedChild = panel.querySelector(':focus');
+    if(focusedChild) focusedChild.blur();
+  }
 
-                  // ensure the mobile side panel is visible (override hiding styles/clipped state)
-                  try{
-                    // If any ancestor is marked aria-hidden or display:none, try to unset that so panel becomes visible
-                    try{
-                      var anc = panel.parentElement;
-                      while (anc && anc !== document.body){
-                        try{ if (anc.getAttribute && anc.getAttribute('aria-hidden') === 'true') anc.removeAttribute('aria-hidden'); }catch(_){ }
-                        try{ var s = window.getComputedStyle(anc); if (s && s.display === 'none') anc.style.display = '' }catch(_){ }
-                        anc = anc.parentElement;
-                      }
-                    }catch(_){ }
+  // Mirror desktop HTML into mobile panel
+  function mirrorDesktopToMobile(html, attempt = 0){
+    const mobile = document.getElementById('mobilePanelContent');
+    const panel = document.getElementById('mobileSidePanel');
+    if (!mobile || !panel) return;
 
-                    panel.style.display = 'block';
-                    panel.style.opacity = '1';
-                    panel.style.visibility = 'visible';
-                    panel.style.transform = 'none';
-                    panel.style.zIndex = '99999';
-                    // If a descendant (like the close button) currently holds focus while the
-                    // panel is aria-hidden, the browser may block making it interactive.
-                    try{
-                      var closeBtn = panel.querySelector && panel.querySelector('#closePanelBtn');
-                      if (closeBtn && document.activeElement === closeBtn){ try{ closeBtn.blur(); }catch(_){ } }
-                    }catch(_){ }
-                    // Unset aria-hidden so the panel becomes visible/interactive to assistive tech
-                    try{ panel.setAttribute('aria-hidden', 'false'); }catch(_){ }
-                    // Clear inert if available so the panel can receive focus/events
-                    try{ if ('inert' in panel) panel.inert = false; }catch(_){ }
-                  }catch(_){ }
-                }catch(e){ try{ console.debug('mirrorDesktopToMobile error', e); }catch(_){ } }
-              }
+    let desktopHTML = '';
+    if (html && typeof html === 'string') desktopHTML = html;
+    else {
+      const desktop = document.getElementById('composer-content');
+      if (desktop) desktopHTML = desktop.innerHTML || '';
+    }
 
-              // Listen for the client-side event that contains the full composer HTML
-              try{
-                document.addEventListener('composerPopulated', function(e){
-                  try{
-                    var payloadHtml = null;
-                    if (e && e.detail && e.detail.html) payloadHtml = e.detail.html;
-                    // Mirror and force-panel-visible only when meaningful content exists
-                    if (payloadHtml || document.getElementById('composer-content')){
-                      mirrorDesktopToMobile(payloadHtml);
-                      try{ console.debug('composerPopulated -> mobile updated'); }catch(_){ }
-                    }
-                  }catch(err){ try{ console.debug('composerPopulated handler error', err); }catch(_){ } }
-                });
-              }catch(_){ }
+    // Retry if content is not ready yet
+    if (!desktopHTML || desktopHTML.includes('Select a result')){
+      if(attempt < 15){
+        setTimeout(()=>mirrorDesktopToMobile(html, attempt+1), 150);
+      }
+      return;
+    }
 
-              // Observe #composer-content for dynamic updates as a fallback
-              function attachComposerObserver(){
-                try{
-                  var desktop = document.getElementById('composer-content');
-                  if (!desktop) return false;
-                  var mo = new MutationObserver(function(){
-                    try{ mirrorDesktopToMobile(); }catch(_){ }
-                  });
-                  mo.observe(desktop, { childList: true, subtree: true, characterData: true });
-                  try{ console.debug('composer-content observer attached'); }catch(_){ }
-                  return true;
-                }catch(e){ return false; }
-              }
+    // Copy content and ensure panel is visible
+    mobile.innerHTML = desktopHTML;
+    showMobilePanel(panel);
+  }
 
-              // Fallback: copy immediately on DOM ready if desktop panel already has content
-              document.addEventListener('DOMContentLoaded', function(){
-                try{ mirrorDesktopToMobile(); }catch(_){ }
-              });
+  // Listen to the authoritative client event
+  document.addEventListener('composerPopulated', function(e){
+    const payloadHtml = e?.detail?.html || null;
+    mirrorDesktopToMobile(payloadHtml);
+    console.debug('✅ Mobile panel updated via composerPopulated');
+  });
 
-              // Try to attach observer now; if #composer-content is not available, retry briefly
-              (function waitForComposer(){
-                if (attachComposerObserver()) return;
-                setTimeout(waitForComposer, 400);
-              })();
+  // Observe desktop panel as a fallback
+  function attachDesktopObserver(){
+    const desktop = document.getElementById('composer-content');
+    if(!desktop) return false;
 
-            })();
-      </script>
+    const mo = new MutationObserver(()=>mirrorDesktopToMobile());
+    mo.observe(desktop, { childList: true, subtree: true, characterData: true });
+    console.debug('👀 Desktop observer attached');
+    return true;
+  }
+
+  (function waitForDesktop(){
+    if(!attachDesktopObserver()) setTimeout(waitForDesktop, 400);
+  })();
+
+  // Hook cards: trigger desktop population when clicked
+  document.querySelectorAll('.result-card').forEach(card => {
+    card.addEventListener('click', ()=>{
+      const title = card.querySelector('.result-main strong')?.textContent;
+      if(!title) return;
+      if(typeof window.openComposerFromName === 'function'){
+        window.openComposerFromName(title, card);
+      }
+    });
+  });
+
+  // Initial attempt if desktop panel already has content
+  document.addEventListener('DOMContentLoaded', ()=>mirrorDesktopToMobile());
+
+})();
+</script>
+
       <script>
         (function(){
           // Guard against double-injection
