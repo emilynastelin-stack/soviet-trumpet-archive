@@ -1039,8 +1039,27 @@ import ComposersPage from "../components/ComposersPage.jsx";
         try {
           const base = document.querySelector('#panel-left-mobile-clone') || document.querySelector('#panel-left');
           if (!base) return [];
+
           return Array.from(base.querySelectorAll(selector + ' input[type=checkbox]:checked'))
-            .map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || (cb.nextSibling && cb.nextSibling.textContent) || cb.value || '').trim())
+            .map(cb => {
+              try {
+                // Prefer explicit data attributes (data-val or data-value) when available.
+                const dataVal = cb.dataset && cb.dataset.val ? cb.dataset.val : (cb.getAttribute && (cb.getAttribute('data-val') || cb.getAttribute('data-value')));
+                // If no data attribute, attempt to read nearby label text (supports <label><input/>Text</label>)
+                let labelText = '';
+                try {
+                  const lbl = cb.closest && cb.closest('label');
+                  if (lbl && lbl.textContent) labelText = lbl.textContent;
+                  else if (cb.nextSibling && cb.nextSibling.textContent) labelText = cb.nextSibling.textContent;
+                  else if (cb.parentElement && cb.parentElement.tagName === 'LABEL' && cb.parentElement.textContent) labelText = cb.parentElement.textContent;
+                } catch (_){ /* ignore */ }
+
+                const raw = dataVal || labelText || cb.value || '';
+                // decode only when it appears encoded; decodeURIComponent is safe on plain strings here
+                try { return decodeURIComponent(String(raw)).trim(); } catch(_) { return String(raw).trim(); }
+              } catch (_){ return ''; }
+            })
+            .map(s => (s || '').trim())
             .filter(Boolean);
         } catch (e) { return []; }
       }
