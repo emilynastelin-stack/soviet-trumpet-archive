@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Composer panel debug (standalone)</title>
+  <style>
+    /* Extracted and trimmed styles for the composer panels (desktop + mobile) */
+    :root { --accent:#8b0000; --muted:#6b7280; --bg:#f7f9fc; }
+    * { box-sizing:border-box; }
+    body { font-family: Inter, system-ui, "Segoe UI", Roboto, Arial; margin:0; color:#0f172a; background:var(--bg); padding:20px; }
+    .three-panels { display:flex; gap:16px; padding:20px; box-sizing:border-box; }
+    .panel { background:white; border-radius:8px; padding:16px; box-shadow:0 6px 12px rgba(15,23,42,0.06); min-height:140px; }
+    .three-panels .panel:first-child { width:270px; flex:0 0 270px; }
+    .three-panels .panel:nth-child(2) { flex:1 1 auto; min-width:0; }
+    .three-panels .panel:last-child { width:345px; flex:0 0 345px; }
+    .filter-panel { background:#f9fafb; border-right:1px solid #e5e7eb; }
+    .panel-title { font-weight:700; color:var(--accent); margin:0 0 8px; }
+    .panel-divider { height:1px; background:#e6e9ef; margin:8px 0 12px 0; }
+    .filter-box { display:flex; flex-direction:column; gap:12px; }
+    .filter-group { background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:12px; }
+    .filter-options label { display:flex; align-items:center; gap:6px; cursor:pointer; padding:4px 6px; border-radius:6px; }
+    input[type="checkbox"] { width:15px; height:15px; }
+    .result-card { border-bottom:1px solid #e6e9ef; padding:12px 0; display:flex; justify-content:space-between; }
+    .result-main { flex:1 1 auto; margin-right:12px; }
+    .result-right { text-align:right; }
+
+    /* mobile panel styles (simulate small screens) */
+    #mobileSidePanel { display:none; background:white; padding:16px; position:fixed; z-index:1300; box-shadow:0 -6px 18px rgba(0,0,0,0.08); font-size:15px; }
+    @media (max-width:800px){
+      #mobileSidePanel { display:block; top:0; bottom:0; right:0; width:calc(100vw - 60px); max-width:92%; padding:20px; border-left:1px solid #e5e7eb; border-radius:8px 0 0 8px; overflow:auto; height:100vh; }
+      .three-panels .panel:first-child, .three-panels .panel:last-child { display:none; }
+      .three-panels .panel:nth-child(2) { width:100%; }
+    }
+
+    /* a small visual indicator when mirrored */
+    .mobile-updated { outline: 3px solid rgba(34,197,94,0.28); transition: outline 300ms ease; }
+
+    .mobile-toggle { display:none; }
+    @media (max-width:800px){ .mobile-toggle { display:inline-block; position:fixed; left:12px; top:12px; z-index:2000; } }
+  </style>
+</head>
+<body>
+  <button id="togglePanelBtn" class="mobile-toggle" aria-label="Open mobile panel">☰</button>
+
+  <div class="three-panels">
+    <aside class="panel filter-panel" id="panel-left">
+      <h3 class="filter-title">Filters</h3>
+      <div class="filter-box">
+        <div class="filter-group" data-group="country">
+          <h4>Country</h4>
+          <div class="filter-options" id="filter-country">
+            <label><input type="checkbox" name="country" value="Russia" data-val="Russia"> Russia</label>
+            <label><input type="checkbox" name="country" value="Ukraine" data-val="Ukraine"> Ukraine</label>
+            <label><input type="checkbox" name="country" value="Belarus" data-val="Belarus"> Belarus</label>
+          </div>
+        </div>
+        <div class="filter-group" data-group="decade">
+          <h4>Decade</h4>
+          <div class="filter-options" id="filter-decade">
+            <label><input type="checkbox" name="decade" value="1920s" data-val="1920s"> 1920s</label>
+            <label><input type="checkbox" name="decade" value="1930s" data-val="1930s"> 1930s</label>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="panel" id="panel-center">
+      <h3 class="panel-title">Results</h3>
+      <div class="panel-divider"></div>
+      <div id="results-list">
+        <div class="result-card">
+          <div class="result-main"><b>Shostakovich, Dmitri</b><div class="meta">Symphony No.1 (1926)</div></div>
+          <div class="result-right">
+            <button class="about-label">About this composer</button>
+            <button class="more-composer-btn">More from this composer</button>
+          </div>
+        </div>
+        <div class="result-card">
+          <div class="result-main"><b>Tchaikovsky, Pyotr</b><div class="meta">Scherzo (1880)</div></div>
+          <div class="result-right">
+            <button class="about-label">About this composer</button>
+            <button class="more-composer-btn">More from this composer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-right">
+      <h3 class="panel-title">Composer information</h3>
+      <div class="panel-divider"></div>
+      <div id="composer-content" style="margin-top:8px">Select a result to view composer details.</div>
+      <div id="more-from-composer" style="margin-top:16px; display:none;"></div>
+      <div style="margin-top:12px;"><button id="clear-composer" style="display:none;padding:6px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear composer</button></div>
+    </div>
+  </div>
+
+  <!-- Mobile side panel (mirror target) -->
+  <div id="mobileSidePanel" aria-hidden="true" role="region" style="display:none">
+    <button id="closePanelBtn" aria-label="Close" style="border:0;background:transparent;font-size:18px;cursor:pointer;">✕</button>
+    <div id="mobilePanelContent" style="margin-top:12px">Select a composer to view details.</div>
+    <div id="mirror-badge" style="position:fixed; right:calc(8px + env(safe-area-inset-right,0px)); top:8px; background:#16a34a; color:#fff; padding:6px 10px; border-radius:999px; font-weight:700; font-size:12px; display:none; z-index:999999">MIRRORED</div>
+  </div>
+
+  <script>
+  // --- Mock runtime helper that populates the desktop composer panel and emits composerPopulated ---
+  function openComposerFromName(name, card){
+    try{
+      const content = document.getElementById('composer-content');
+      if (!content) return false;
+      // Create some sample HTML to simulate the authoritative client-provided markup
+      const html = `
+        <div class="composer-card">
+          <h4>${name}</h4>
+          <p><strong>Biography</strong>: Sample biography for ${name}.</p>
+          <p><strong>Notable works</strong>: Example piece A, Example piece B.</p>
+        </div>
+      `;
+      content.innerHTML = html;
+      // Also populate more-from-composer
+      const mfc = document.getElementById('more-from-composer'); if(mfc){ mfc.style.display='block'; mfc.innerHTML = '<em>More works loaded</em>'; }
+      // Dispatch the event with the HTML payload (authoritative)
+      try{ document.dispatchEvent(new CustomEvent('composerPopulated', { detail: { name: name, html: html } })); }catch(e){ console.debug('dispatch composerPopulated failed', e); }
+      return true;
+    }catch(e){ console.warn('openComposerFromName error', e); return false; }
+  }
+
+  // --- mirrorDesktopToMobile from your supplied script (defensive) ---
+  function mirrorDesktopToMobile(html) {
+    try {
+      const mobile = document.getElementById('mobilePanelContent');
+      const panel = document.getElementById('mobileSidePanel');
+      const badge = document.getElementById('mirror-badge');
+      if (!mobile || !panel) return;
+
+      const desktopHTML = html || document.getElementById('composer-content')?.innerHTML || '';
+      if (!desktopHTML || desktopHTML.includes('Select a result')) return;
+
+      mobile.innerHTML = desktopHTML;
+
+      panel.style.display = 'block';
+      panel.style.opacity = '1';
+      panel.style.visibility = 'visible';
+      panel.style.zIndex = '99999';
+      panel.setAttribute('aria-hidden', 'false');
+      if ('inert' in panel) panel.inert = false;
+
+      // update badge with mirrored composer name if available
+      try{
+        const h4 = mobile.querySelector && mobile.querySelector('h4');
+        if (h4 && badge) { badge.textContent = 'MIRRORED: ' + (h4.textContent || '').trim(); badge.style.display = 'block'; }
+        else if (badge) { badge.textContent = 'MIRRORED'; badge.style.display = 'block'; }
+        setTimeout(()=>{ if (badge) badge.style.display = 'none'; }, 2500);
+      }catch(_){ }
+
+      // visual flash for debugging
+      panel.classList.add('mobile-updated');
+      setTimeout(()=>panel.classList.remove('mobile-updated'), 800);
+    } catch (err) {
+      console.debug('mirrorDesktopToMobile error', err);
+    }
+  }
+
+  document.addEventListener('composerPopulated', e => {
+    const html = e?.detail?.html;
+    mirrorDesktopToMobile(html);
+    console.log('✅ Mobile panel updated (debug page)');
+  });
+
+  // Hook result cards to call openComposerFromName
+  document.querySelectorAll('.result-card').forEach(card => {
+    card.addEventListener('click', (ev)=>{
+      // If clicking the explicit more button, call runtime; otherwise assume card click opens mobile panel too
+      const more = card.querySelector('.more-composer-btn');
+      const title = card.querySelector('.result-main b')?.textContent || 'Unknown';
+      if (ev.target === more || ev.target.closest('.more-composer-btn')){
+        openComposerFromName(title, card);
+        return;
+      }
+      // for general card click, also call openComposerFromName and mirror
+      openComposerFromName(title, card);
+      // show mobile panel too
+      mirrorDesktopToMobile();
+    });
+  });
+
+  // Toggle / close mobile panel helpers
+  function showPanel(){ const p = document.getElementById('mobileSidePanel'); if(!p) return; p.style.display='block'; p.setAttribute('aria-hidden','false'); }
+  function hidePanel(){ const p = document.getElementById('mobileSidePanel'); if(!p) return; p.style.display='none'; p.setAttribute('aria-hidden','true'); }
+  document.getElementById('togglePanelBtn')?.addEventListener('click', (e)=>{ e && e.preventDefault && e.preventDefault(); showPanel(); });
+  document.getElementById('closePanelBtn')?.addEventListener('click', (e)=>{ e && e.preventDefault && e.preventDefault(); hidePanel(); });
+
+  // basic openFilterOverlay / closeFilterOverlay to mirror mobile overlay wiring
+  function openFilterOverlay(){
+    if (document.getElementById('mobile-filter-overlay')) return;
+    const left = document.getElementById('panel-left'); if(!left) return;
+    const overlay = document.createElement('div'); overlay.id = 'mobile-filter-overlay'; overlay.style.position='fixed'; overlay.style.inset='0'; overlay.style.background='rgba(0,0,0,0.45)'; overlay.style.zIndex='100000';
+    const inner = document.createElement('div'); inner.style.position='absolute'; inner.style.top='64px'; inner.style.right='0'; inner.style.left='auto'; inner.style.width='calc(100vw - 60px)'; inner.style.maxWidth='92%'; inner.style.background='white'; inner.style.padding='16px'; inner.style.boxSizing='border-box'; inner.style.borderRadius='8px 0 0 8px';
+    const clone = left.cloneNode(true); clone.id = 'panel-left-mobile-clone'; clone.classList.add('mobile-overlay-clone'); clone.style.margin='0'; clone.style.width='100%'; clone.style.position='relative';
+    inner.appendChild(clone);
+    overlay.appendChild(inner);
+    overlay.addEventListener('click', function(e){ if (e.target === overlay) closeFilterOverlay(); });
+    document.body.appendChild(overlay);
+    // lock body
+    document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden';
+  }
+  function closeFilterOverlay(){ const ov = document.getElementById('mobile-filter-overlay'); if(!ov) return; ov.remove(); document.documentElement.style.overflow=''; document.body.style.overflow=''; }
+  document.getElementById('mf-filters')?.addEventListener('click', (e)=>{ e && e.preventDefault && e.preventDefault(); openFilterOverlay(); });
+
+  // Initial small-screen attempt: if the desktop composer already has content, copy it to mobile
+  window.addEventListener('DOMContentLoaded', ()=>{
+    const desktop = document.getElementById('composer-content');
+    if (desktop && desktop.innerHTML && !String(desktop.innerHTML).includes('Select a result')){
+      mirrorDesktopToMobile(desktop.innerHTML);
+    }
+  });
+  </script>
+
+  <div style="margin-top:30px;font-size:13px;color:#6b7280">This is a standalone test page that reproduces the composer panel markup, CSS and wiring for desktop and mobile overlay mirroring. Open this file in a browser to test interactions without changing the site.</div>
+</body>
+</html>

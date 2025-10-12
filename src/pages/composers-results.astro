@@ -438,7 +438,7 @@ import ComposersPage from "../components/ComposersPage.jsx";
   /* On small screens make the mobile panel a right-side sliding panel matching the filter width (270px) */
       @media (max-width: 600px) {
     #mobileSidePanel {
-      display: block;
+    display: block;
       /* span the full viewport vertically */
       top: 0; /* extend to very top */
       bottom: 0; /* extend to very bottom */
@@ -449,6 +449,7 @@ import ComposersPage from "../components/ComposersPage.jsx";
   max-width: 92%;
       /* match filter panel styling */
       background: #f9fafb;
+      color: inherit;
       /* include safe-area padding so content doesn't collide with device insets */
       padding: calc(20px + env(safe-area-inset-top, 0px)) 20px calc(20px + env(safe-area-inset-bottom, 0px));
       border-left: 1px solid #e5e7eb;
@@ -1300,66 +1301,63 @@ import ComposersPage from "../components/ComposersPage.jsx";
               var title = '';
               try{ var b = main && main.querySelector('b'); if(b) title = (b.textContent || '').trim(); }catch(_){ }
 
-              // helper to copy the desktop #composer-content into the mobile panel
-              function copyComposerContentToMobile(){
+              // The mobile panel must only update from the authoritative client event
+              // We intentionally do not copy desktop innerHTML or poll for changes here.
+              function setMobileLoading(){
                 try{
-                  var content = document.getElementById('composer-content');
                   var mobile = document.getElementById('mobilePanelContent');
                   if (!mobile) return;
-                  // If the client has populated the desktop composer panel, prefer that HTML
-                  if (content && content.innerHTML && content.innerHTML.indexOf('Select a result') === -1){
-                    mobile.innerHTML = content.innerHTML;
-                    return;
-                  }
-                  // Otherwise copy the card's visible main area or the title
-                  if (main && main.innerHTML){ mobile.innerHTML = main.innerHTML; return; }
-                  if (title) { mobile.textContent = title; }
+                  mobile.innerHTML = '<div style="padding:12px">Loading composer details...</div>';
                 }catch(_){ }
               }
 
-              // If client helper exists, call it and then copy populated content when available.
+              // If client helper exists, call it and then wait for the authoritative event.
               // Prefer openComposerFromName (returns truthy if it handled the UI).
               var helperTried = false;
               if (title && window && typeof window.openComposerFromName === 'function'){
                 helperTried = true;
                 try{
+                  try{ console.debug && console.debug('[mobile] calling openComposerFromName for', title); }catch(_){ }
                   var ok = window.openComposerFromName(title, card);
                   if (ok){
-                    // Listen once for a composerPopulated event (client may emit this)
-                    var handled = false;
+                    // Only update mobile panel when the authoritative event fires.
+                    // Show a loading placeholder while we wait.
+                    setMobileLoading();
                     var onPop = function(e){
-                      handled = true;
                       try{
                         var mobile = document.getElementById('mobilePanelContent');
-                        if (mobile){
-                          if (e && e.detail && e.detail.html){ mobile.innerHTML = e.detail.html; }
-                          else { copyComposerContentToMobile(); }
+                        if (mobile && e && e.detail && e.detail.html){
+                          mobile.innerHTML = e.detail.html;
                         }
                       }catch(_){ }
                       document.removeEventListener('composerPopulated', onPop);
                     };
                     document.addEventListener('composerPopulated', onPop);
-                    // Fallback: if event doesn't fire within 600ms, copy whatever is available
-                    setTimeout(function(){ if (!handled) copyComposerContentToMobile(); }, 600);
                     showPanel();
                     return;
                   }
-                }catch(_){ }
+                  }catch(_){ }
               }
 
               // Another possible helper: populateComposerBox
+              // If populateComposerBox exists, call it and wait for the authoritative event.
               if (!helperTried && title && window && typeof window.populateComposerBox === 'function'){
                 try{
+                  setMobileLoading();
+                  var onPop2 = function(e){
+                    try{ var mobile = document.getElementById('mobilePanelContent'); if (mobile && e && e.detail && e.detail.html) mobile.innerHTML = e.detail.html; }catch(_){ }
+                    document.removeEventListener('composerPopulated', onPop2);
+                  };
+                  document.addEventListener('composerPopulated', onPop2);
                   window.populateComposerBox(title, card);
-                  // allow a short delay for the client to populate desktop panel, then copy
-                  setTimeout(function(){ copyComposerContentToMobile(); }, 300);
                   showPanel();
                   return;
                 }catch(_){ }
               }
 
-              // Final fallback: copy card content immediately and show
-              copyComposerContentToMobile();
+              // Final: show a loading placeholder and the panel; authoritative content
+              // will be applied only when the client emits composerPopulated.
+              setMobileLoading();
               showPanel();
             }catch(e){ console.warn('populateFromCard failed', e); }
           }
@@ -1368,24 +1366,67 @@ import ComposersPage from "../components/ComposersPage.jsx";
             var t = document.getElementById('togglePanelBtn'); if(t) t.addEventListener('click', function(ev){ ev.preventDefault && ev.preventDefault(); showPanel(); });
             var c = document.getElementById('closePanelBtn'); if(c) c.addEventListener('click', function(ev){ ev.preventDefault && ev.preventDefault(); hidePanel(); });
 
-            // Delegated click handler for result cards; on mobile, clicking a card opens the mobile panel.
-            // On desktop (wide screens) we intentionally do NOT open the composer when clicking anywhere
-            // on the card; desktop should only open composer via the explicit "more" button.
-            var results = document.getElementById('results-list');
-            if (results){
-              results.addEventListener('click', function(ev){
+           // Delegated click handler for result cards; only open the mobile panel when the
+// small 'about' control is clicked (so taps elsewhere on the card don't open it).
+// On desktop (wide screens) we intentionally do NOT open the composer when clicking
+// anywhere on the card; desktop should only open composer via the explicit "more" button.
+document.addEventListener('click', function(ev) {
+  try {
+    // Skip all clicks inside the filter or composer panels
+    if (ev.target.closest('#panel-left, #mobileSidePanel, #mf-filters, .filters-panel')) return;
+
+    // Only handle mobile screens
+    if (window && window.innerWidth > 600) return;
+
+    console.debug?.('[mobile] document click handler fired');
+    if (!ev || !ev.target) return;
+
+    // Ignore clicks on links or buttons
+    if (ev.target.closest('a, button')) return;
+
+    // Only proceed when the click is inside the small 'about' control
+    const about = ev.target.closest('.about-label, .about-badge');
+    if (!about) return;
+
+    const card = about.closest('.result-card');
+    if (!card) return;
+
+    // Prevent click bubbling *only* for these composer card triggers
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    console.debug?.('[mobile] tapped about control for', card.querySelector('.result-main b')?.textContent);
+    populateAndShowFromCard(card);
+  } catch (e) {}
+}, true);
+
+
+            // Some mobile browsers or overlays may not fire click in the expected way.
+            // Add a pointerup handler (touch-capable) as a fallback. Debounce very short to
+            // avoid double-invocation alongside the click handler.
+            (function(){
+              let lastHandled = 0;
+              document.addEventListener('pointerup', function(ev){
                 try{
-                  // Only handle clicks that should open the mobile composer panel on small screens
+                  if (Date.now() - lastHandled < 300) return; // debounce
                   try{ if (window && window.innerWidth > 600) return; }catch(_){ }
-                  // ignore clicks on interactive controls (links/buttons) so we don't double-handle them
+                  if (!ev) return;
+                  // only treat touch pointers here to avoid duplicate mouse events
+                  if (ev.pointerType && ev.pointerType !== 'touch') return;
+                  // Ignore pointerups on links or buttons
                   if (ev.target && ev.target.closest && ev.target.closest('a, button')) return;
-                  var card = ev.target && ev.target.closest ? ev.target.closest('.result-card') : null;
+                  // Only proceed when the pointerup is inside the small 'about' control
+                  var about = ev.target && ev.target.closest ? ev.target.closest('.about-label, .about-badge') : null;
+                  if (!about) return;
+                  var card = about.closest ? about.closest('.result-card') : null;
                   if (!card) return;
+                  lastHandled = Date.now();
+                  try{ console.debug && console.debug('[mobile] pointerup detected on about control for', card.querySelector('.result-main b')?.textContent); }catch(_){ }
                   ev.preventDefault && ev.preventDefault(); ev.stopPropagation && ev.stopPropagation();
                   populateAndShowFromCard(card);
-                }catch(e){ /* ignore */ }
+                }catch(e){ }
               }, true);
-            }
+            })();
           });
 
           // expose to other scripts
@@ -1393,95 +1434,56 @@ import ComposersPage from "../components/ComposersPage.jsx";
         })();
           </script>
         <script>
-(function(){
-  // Forcefully show the mobile panel and clean up ancestors
-  function showMobilePanel(panel) {
-    if (!panel) return;
+ (function() {
+  const panel = document.getElementById('mobileSidePanel');
+  const mobileContent = document.getElementById('mobilePanelContent');
 
+  if (!panel || !mobileContent) {
+    console.warn('❌ Mobile panel or content div not found');
+    return;
+  }
+
+  // Helper to show the mobile panel
+  function showMobilePanel() {
     panel.style.display = 'block';
     panel.style.opacity = '1';
     panel.style.visibility = 'visible';
-    panel.style.transform = 'none';
     panel.style.zIndex = '99999';
-    panel.setAttribute('aria-hidden', 'false');
     if ('inert' in panel) panel.inert = false;
-
-    // Remove aria-hidden and display:none from ancestors
-    let anc = panel.parentElement;
-    while (anc && anc !== document.body){
-      try {
-        anc.removeAttribute('aria-hidden');
-        anc.style.display = '';
-      } catch(e){ /* ignore */ }
-      anc = anc.parentElement;
-    }
-
-    // Remove focus from any child that might block interaction
-    const focusedChild = panel.querySelector(':focus');
-    if(focusedChild) focusedChild.blur();
+    panel.setAttribute('aria-hidden', 'false');
   }
 
-  // Mirror desktop HTML into mobile panel
-  function mirrorDesktopToMobile(html, attempt = 0){
-    const mobile = document.getElementById('mobilePanelContent');
-    const panel = document.getElementById('mobileSidePanel');
-    if (!mobile || !panel) return;
+  // Helper to update mobile content with composer HTML
+  function updateMobileContent(html) {
+    if (!html || html.includes('Select a result')) return;
 
-    let desktopHTML = '';
-    if (html && typeof html === 'string') desktopHTML = html;
-    else {
-      const desktop = document.getElementById('composer-content');
-      if (desktop) desktopHTML = desktop.innerHTML || '';
-    }
+    // Wrap it for consistent styling
+    mobileContent.innerHTML = `<div class="composer-card">${html}</div>`;
 
-    // Retry if content is not ready yet
-    if (!desktopHTML || desktopHTML.includes('Select a result')){
-      if(attempt < 15){
-        setTimeout(()=>mirrorDesktopToMobile(html, attempt+1), 150);
-      }
-      return;
-    }
-
-    // Copy content and ensure panel is visible
-    mobile.innerHTML = desktopHTML;
-    showMobilePanel(panel);
+    // Optional visual debug flash
+    mobileContent.style.outline = '3px solid magenta';
+    setTimeout(() => mobileContent.style.outline = '', 1000);
   }
 
-  // Listen to the authoritative client event
-  document.addEventListener('composerPopulated', function(e){
-    const payloadHtml = e?.detail?.html || null;
-    mirrorDesktopToMobile(payloadHtml);
-    console.debug('✅ Mobile panel updated via composerPopulated');
+  // 1️⃣ Pre-populate if desktop already has content
+  const desktop = document.getElementById('composer-content');
+  if (desktop && desktop.innerHTML && !desktop.innerHTML.includes('Select a result')) {
+    showMobilePanel();
+    updateMobileContent(desktop.innerHTML);
+    console.log('✅ Mobile panel initialized with existing desktop content');
+  } else {
+    console.log('ℹ️ Mobile panel waiting for composerPopulated events');
+  }
+
+  // 2️⃣ Listen for composerPopulated events from desktop panel
+  document.addEventListener('composerPopulated', e => {
+    const html = e?.detail?.html;
+    if (!html) return;
+
+    showMobilePanel();
+    updateMobileContent(html);
+    console.log('✅ Mobile panel updated from composerPopulated event');
   });
-
-  // Observe desktop panel as a fallback
-  function attachDesktopObserver(){
-    const desktop = document.getElementById('composer-content');
-    if(!desktop) return false;
-
-    const mo = new MutationObserver(()=>mirrorDesktopToMobile());
-    mo.observe(desktop, { childList: true, subtree: true, characterData: true });
-    console.debug('👀 Desktop observer attached');
-    return true;
-  }
-
-  (function waitForDesktop(){
-    if(!attachDesktopObserver()) setTimeout(waitForDesktop, 400);
-  })();
-
-  // Hook cards: trigger desktop population when clicked
-  document.querySelectorAll('.result-card').forEach(card => {
-    card.addEventListener('click', ()=>{
-      const title = card.querySelector('.result-main strong')?.textContent;
-      if(!title) return;
-      if(typeof window.openComposerFromName === 'function'){
-        window.openComposerFromName(title, card);
-      }
-    });
-  });
-
-  // Initial attempt if desktop panel already has content
-  document.addEventListener('DOMContentLoaded', ()=>mirrorDesktopToMobile());
 
 })();
 </script>

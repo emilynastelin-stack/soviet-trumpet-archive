@@ -4,6 +4,9 @@
    race conditions when other legacy scripts also try to populate composer UI.
 */
 (function(){
+  // Defensive guard: if another copy already initialized, don't run again.
+  try{ if (typeof window !== 'undefined' && window.__mobilePanelMirrorInstalled) { return; } }catch(_){ }
+  try{ if (typeof window !== 'undefined') window.__mobilePanelMirrorInstalled = true; }catch(_){ }
   var _panelLeftPrevDisplay = null;
   var _filterBtnPrevDisabled = null;
 
@@ -16,11 +19,11 @@
       try{ var sm = document.getElementById('mobile-swipe-menu'); if (sm && sm.getAttribute('aria-hidden') === 'false'){ sm.setAttribute('aria-hidden','true'); } }catch(e){ }
       p.style.display = 'block';
       try{ p.setAttribute('aria-hidden','false'); }catch(e){ }
+      // Do not copy desktop innerHTML here — wait for the authoritative composerPopulated event.
       try{
         var mobileInner = document.getElementById('composer-content-mobile-clone') || document.getElementById('mobilePanelContent');
-        var desktopInner = document.getElementById('composer-content');
-        if (mobileInner && desktopInner && desktopInner.innerHTML && String(desktopInner.innerHTML).trim().length > 10){
-          try{ mobileInner.innerHTML = desktopInner.innerHTML; }catch(e){ }
+        if (mobileInner){
+          try{ mobileInner.innerHTML = '<div style="padding:12px">Loading composer details...</div>'; }catch(e){}
         }
       }catch(e){ }
       setTimeout(function(){ try{ var closeBtn = document.getElementById('closePanelBtn'); if (closeBtn && typeof closeBtn.focus === 'function'){ closeBtn.focus({ preventScroll: true }); } }catch(e){ } }, 20);
@@ -94,7 +97,7 @@
           try{
             var desktopNowInit = document.getElementById('composer-content');
             var mobileContentInit = document.getElementById('composer-content-mobile-clone');
-            if (desktopNowInit && mobileContentInit && desktopNowInit.innerHTML && String(desktopNowInit.innerHTML).trim().length > 10){
+            if (desktopNowInit && mobileContentInit && desktopNowInit.innerHTML && String(desktopNowInit.innerHTML).trim().length > 120){
               try{ mobileContentInit.innerHTML = desktopNowInit.innerHTML; }catch(e){ }
             }
           }catch(e){ }
@@ -104,21 +107,11 @@
               window.selectedComposer = nameToUse;
               window.populateComposerBox(nameToUse, null);
               try{ if (typeof window.openComposerFromName === 'function') { window.openComposerFromName(nameToUse, null); } }catch(e){}
-              var waited = 0;
-              var interval = setInterval(function(){
-                try{
-                  var desktopContent = document.getElementById('composer-content');
-                  var mobileContent = document.getElementById('composer-content-mobile-clone');
-                  if (desktopContent && desktopContent.innerHTML && String(desktopContent.innerHTML).trim().length > 10){
-                    if (mobileContent) mobileContent.innerHTML = desktopContent.innerHTML;
-                    try{ var more = document.getElementById('more-from-composer'); var moreM = document.getElementById('more-from-composer-mobile-clone'); if (more && moreM) moreM.innerHTML = more.innerHTML; }catch(e){}
-                    clearInterval(interval);
-                    return;
-                  }
-                  waited += 100;
-                  if (waited > 3000){ clearInterval(interval); }
-                }catch(e){ clearInterval(interval); }
-              }, 100);
+              // Wait for authoritative composerPopulated event; do not poll/copy desktop contents here.
+              try{
+                var mobileContentInit = document.getElementById('composer-content-mobile-clone');
+                if (mobileContentInit) mobileContentInit.innerHTML = '<div style="padding:12px">Loading composer details...</div>';
+              }catch(e){}
             }catch(e){ }
           }
 
@@ -128,9 +121,6 @@
                 var mobileContentNow = document.getElementById('composer-content-mobile-clone');
                 if (mobileContentNow && ev && ev.detail && ev.detail.html){
                   mobileContentNow.innerHTML = ev.detail.html;
-                } else {
-                  var desktopNow = document.getElementById('composer-content');
-                  if (mobileContentNow && desktopNow) mobileContentNow.innerHTML = desktopNow.innerHTML;
                 }
                 try{ var more = document.getElementById('more-from-composer'); var moreM2 = document.getElementById('more-from-composer-mobile-clone'); if (more && moreM2) moreM2.innerHTML = more.innerHTML; }catch(e){}
               }catch(e){}
