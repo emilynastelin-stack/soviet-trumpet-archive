@@ -1391,6 +1391,54 @@ import ComposersPage from "../components/ComposersPage.jsx";
           // expose to other scripts
           window.showMobileComposerPanel = showPanel; window.hideMobileComposerPanel = hidePanel; window.populateMobilePanelFromCard = populateAndShowFromCard;
         })();
+          </script>
+          <script>
+            // Mirror desktop composer panel into the mobile composer panel so mobile shows
+            // the same authoritative content the client populates on desktop.
+            (function(){
+              function copyDesktopComposerToMobile(html){
+                try{
+                  var mobile = document.getElementById('mobilePanelContent');
+                  if (!mobile) return;
+                  if (html && typeof html === 'string'){
+                    mobile.innerHTML = html;
+                    return;
+                  }
+                  var desktop = document.getElementById('composer-content');
+                  if (!desktop) return;
+                  // Only copy meaningful content (avoid default placeholder)
+                  if (desktop.innerHTML && desktop.innerHTML.indexOf('Select a result') === -1){
+                    mobile.innerHTML = desktop.innerHTML;
+                  }
+                }catch(_){ }
+              }
+
+              // Copy immediately if content exists
+              document.addEventListener('DOMContentLoaded', function(){
+                try{ copyDesktopComposerToMobile(); }catch(_){ }
+              });
+
+              // Listen for the client-side helper event (if emitted) with HTML payload
+              try{
+                document.addEventListener('composerPopulated', function(e){
+                  try{
+                    if (e && e.detail && e.detail.html){ copyDesktopComposerToMobile(e.detail.html); }
+                    else { copyDesktopComposerToMobile(); }
+                  }catch(_){ }
+                });
+              }catch(_){ }
+
+              // Observe changes to the desktop composer area and mirror them to mobile
+              try{
+                var target = document.getElementById('composer-content');
+                if (target){
+                  var mo = new MutationObserver(function(muts){
+                    try{ copyDesktopComposerToMobile(); }catch(_){ }
+                  });
+                  mo.observe(target, { childList: true, subtree: true, characterData: true });
+                }
+              }catch(_){ }
+            })();
       </script>
       <script>
         (function(){
