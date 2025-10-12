@@ -574,7 +574,8 @@
   window.escapeHtml = escapeHtml;
 
   // Allow static buttons in the template to ask the client to filter by composer
-  window.filterByComposer = function(name){ try{ if (!name) return; window.selectedComposer = String(name || ''); window.currentPage = 1; if (typeof window.loadResults === 'function') window.loadResults(); }catch(e){ console.warn('filterByComposer failed', e); } };
+  // Composer-based filtering is disabled. Keep a safe no-op to preserve API.
+  window.filterByComposer = function(name){ try{ console.log('[client] filterByComposer called but disabled:', name); }catch(_){ } };
 
   // basic wiring
   try{

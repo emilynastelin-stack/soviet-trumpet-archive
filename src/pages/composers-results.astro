@@ -314,12 +314,6 @@ import ComposersPage from "../components/ComposersPage.jsx";
     renderResults();
     renderPagination();
   }
-
-  function filterByComposer(composerName) {
-    console.log("Filter by composer:", composerName);
-    // implement filter logic if desired
-  }
-
   // Initial render
   update();
 </script>
@@ -992,28 +986,18 @@ import ComposersPage from "../components/ComposersPage.jsx";
     })();
   </script>
   <script src="/composers-results.client.js?v=3" defer></script>
-  <!-- Bridge script (below) provides a small shim for static buttons to call
-       client-side filter functions. See the "filterByComposer" function. -->
-  <script>
-    // Bridge for static template buttons: call client runtime's filter or emulate a filter change
-    function filterByComposer(name){
-      try{
-        if (window && typeof window.filterByComposer === 'function'){
-          return window.filterByComposer(name);
-        }
-        // Fallback: check composer checkboxes if any exist, otherwise set a global and call loadResults
-        window.__filterByComposerName = name;
-        // If client exposes loadResults, trigger it
-        if (typeof window.loadResults === 'function'){
-          window.currentPage = 1;
-          return window.loadResults({ composer: name });
-        }
-        console.log('filterByComposer placeholder set:', name);
-      }catch(e){ console.warn('filterByComposer failed', e); }
-    }
-    // Expose globally for inline onclick handlers
-    window.filterByComposer = filterByComposer;
+   <!-- Bridge script (below) provides a small shim for static buttons to call
+         client-side filter functions. We intentionally disable composer filtering
+         here per product decision; keep a safe no-op to avoid runtime errors. -->
+   <script>
+    // Safe no-op bridge for static template buttons. Avoids triggering client-side
+    // filtering by composer while preserving the global API shape.
+    window.filterByComposer = function(name){
+      try{ console.log('[bridge] filterByComposer called but no-op:', name); }catch(_){ }
+      // intentionally do not set window.selectedComposer or call loadResults()
+    };
   </script>
+
     <!-- background overlay (behind everything) -->
     <div id="bg-overlay" aria-hidden="true">
       <img id="bg-img" src="https://i.imgur.com/ZENogwV.png" alt="" />
@@ -1241,198 +1225,212 @@ import ComposersPage from "../components/ComposersPage.jsx";
         <div id="mobilePanelContent" style="margin-top:12px">Select a composer to view details.</div>
       </div>
 
-      <script>
-        (function(){
-          var _panelLeftPrevDisplay = null;
-          var _filterBtnPrevDisabled = null;
-          function showPanel(){
-            try{
-              var p = document.getElementById('mobileSidePanel'); if(!p) return;
-              // collapse left filter panel if present
-              try{
-                var left = document.getElementById('panel-left');
-                if (left){ _panelLeftPrevDisplay = left.style.display || ''; left.style.display = 'none'; }
-              }catch(_){ }
-              // disable mobile filter button (mf-filters) while composer panel is open
-              try{
-                var fbtn = document.getElementById('mf-filters');
-                if (fbtn){ _filterBtnPrevDisabled = !!fbtn.disabled; fbtn.disabled = true; fbtn.setAttribute('aria-disabled','true'); fbtn.classList && fbtn.classList.add('disabled'); }
-              }catch(_){ }
-              // close swipe menu if open
-              try{ var sm = document.getElementById('mobile-swipe-menu'); if (sm && sm.getAttribute('aria-hidden') === 'false'){ sm.setAttribute('aria-hidden','true'); } }catch(_){ }
 
-              p.style.display = 'block';
-              // remove aria-hidden and move focus into the panel for accessibility
-              try{ p.setAttribute('aria-hidden','false'); }catch(_){ }
-              // small timeout to ensure element is visible before focusing
-              setTimeout(function(){ try{ var closeBtn = document.getElementById('closePanelBtn'); if (closeBtn && typeof closeBtn.focus === 'function'){ closeBtn.focus({ preventScroll: true }); } }catch(_){ } }, 20);
-              // scroll main content slightly so panel appears visually above
-              // prevent background scrolling while mobile panel is open
-              try{ document.body.classList.add('no-scroll'); document.documentElement.classList.add('no-scroll'); }catch(_){ }
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }catch(e){console.warn(e)}
-          }
-          function hidePanel(){
-            try{
-              var p = document.getElementById('mobileSidePanel'); if(!p) return;
-              // move focus back to the toggle button before hiding to avoid aria-hidden-on-focused-element
+  // === MOBILE COMPOSER PANEL LOGIC ===
+ <script>
+(function(){
+  var _panelLeftPrevDisplay = null;
+  var _filterBtnPrevDisabled = null;
+
+  function showPanel(){
+    try{
+      var p = document.getElementById('mobileSidePanel'); if(!p) return;
+      try{
+        var left = document.getElementById('panel-left');
+        if (left){ _panelLeftPrevDisplay = left.style.display || ''; left.style.display = 'none'; }
+      }catch(_){}
+      try{
+        var fbtn = document.getElementById('mf-filters');
+        if (fbtn){ _filterBtnPrevDisabled = !!fbtn.disabled; fbtn.disabled = true; fbtn.setAttribute('aria-disabled','true'); fbtn.classList && fbtn.classList.add('disabled'); }
+      }catch(_){}
+      try{ var sm = document.getElementById('mobile-swipe-menu'); if (sm && sm.getAttribute('aria-hidden') === 'false'){ sm.setAttribute('aria-hidden','true'); } }catch(_){}
+      p.style.display = 'block';
+      try{
+        // prefer inert when available to remove from accessibility tree for siblings
+        if ('inert' in p) p.inert = false;
+      }catch(_){ }
+      try{ p.setAttribute('aria-hidden','false'); }catch(_){}
+      // focus the close button after rendering so screen readers land inside the panel
+      setTimeout(function(){ try{ var closeBtn = document.getElementById('closePanelBtn'); if (closeBtn && typeof closeBtn.focus === 'function'){ closeBtn.focus({ preventScroll: true }); } }catch(_){ } }, 20);
+      try{ document.body.classList.add('no-scroll'); document.documentElement.classList.add('no-scroll'); }catch(_){}
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }catch(e){console.warn(e)}
+  }
+
+  function hidePanel(){
+    try{
+      var p = document.getElementById('mobileSidePanel'); if(!p) return;
+      try{
+        var tbtn = document.getElementById('togglePanelBtn');
+        if (tbtn && typeof tbtn.focus === 'function'){
+          tbtn.focus({ preventScroll: true });
+        }
+      }catch(_){}
+      // If any element inside the panel still has focus, move or blur focus first
+      try{
+        var active = document.activeElement;
+        if (active && p.contains(active)){
+          try{
+            var targetFocus = document.getElementById('togglePanelBtn') || document.getElementById('closePanelBtn');
+            if (targetFocus && typeof targetFocus.focus === 'function'){
+              targetFocus.focus({ preventScroll: true });
+            } else {
+              try{ active.blur && active.blur(); }catch(_){ }
+            }
+          }catch(_){ try{ active.blur && active.blur(); }catch(__){} }
+        }
+      }catch(_){ }
+      // Defer applying aria-hidden/inert to ensure focus change is processed by assistive tech
+      setTimeout(function(){
+        try{ if ('inert' in p) p.inert = true; }catch(_){ }
+        try{ p.setAttribute('aria-hidden','true'); }catch(_){}
+        try{ p.style.display = 'none'; }catch(_){ }
+      }, 0);
+      try{ document.body.classList.remove('no-scroll'); document.documentElement.classList.remove('no-scroll'); }catch(_){}
+      try{ var left = document.getElementById('panel-left'); if (left && _panelLeftPrevDisplay !== null){ left.style.display = _panelLeftPrevDisplay || ''; _panelLeftPrevDisplay = null; } }catch(_){}
+      try{ var fbtn = document.getElementById('mf-filters'); if (fbtn && _filterBtnPrevDisabled !== null){ fbtn.disabled = !!_filterBtnPrevDisabled; if (!fbtn.disabled) fbtn.removeAttribute('aria-disabled'); else fbtn.setAttribute('aria-disabled','true'); fbtn.classList && fbtn.classList.remove('disabled'); _filterBtnPrevDisabled = null; } }catch(_){}
+    }catch(e){}
+  }
+
+  function populateAndShowFromCard(card){
+    try{
+      if(!card) return;
+      var main = card.querySelector('.result-main');
+      var title = '';
+      try{ var b = main && main.querySelector('b'); if(b) title = (b.textContent || '').trim(); }catch(_){ }
+
+      function setMobileLoading(){
+        try{
+          var mobile = document.getElementById('mobilePanelContent');
+          if (!mobile) return;
+          mobile.innerHTML = '<div style="padding:12px">Loading composer details...</div>';
+        }catch(_){}
+      }
+
+      var helperTried = false;
+      if (title && window && typeof window.openComposerFromName === 'function'){
+        helperTried = true;
+        try{
+          var ok = window.openComposerFromName(title, card);
+          if (ok){
+            setMobileLoading();
+            var onPop = function(e){
               try{
-                var tbtn = document.getElementById('togglePanelBtn');
-                if (tbtn && typeof tbtn.focus === 'function'){
-                  tbtn.focus({ preventScroll: true });
+                var mobile = document.getElementById('mobilePanelContent');
+                if (mobile && e && e.detail && e.detail.html){
+                  mobile.innerHTML = e.detail.html;
                 }
-              }catch(_){ }
-              // now hide and mark aria-hidden
-              try{ p.setAttribute('aria-hidden','true'); }catch(_){ }
-              p.style.display='none';
-              try{ document.body.classList.remove('no-scroll'); document.documentElement.classList.remove('no-scroll'); }catch(_){ }
-              // restore left filter panel display
-              try{ var left = document.getElementById('panel-left'); if (left && _panelLeftPrevDisplay !== null){ left.style.display = _panelLeftPrevDisplay || ''; _panelLeftPrevDisplay = null; } }catch(_){ }
-              // restore mobile filter button disabled state
-              try{ var fbtn = document.getElementById('mf-filters'); if (fbtn && _filterBtnPrevDisabled !== null){ fbtn.disabled = !!_filterBtnPrevDisabled; if (!fbtn.disabled) fbtn.removeAttribute('aria-disabled'); else fbtn.setAttribute('aria-disabled','true'); fbtn.classList && fbtn.classList.remove('disabled'); _filterBtnPrevDisabled = null; } }catch(_){ }
-            }catch(e){}
+              }catch(_){}
+              document.removeEventListener('composerPopulated', onPop);
+            };
+            document.addEventListener('composerPopulated', onPop);
+            showPanel();
+            return;
           }
+        }catch(_){}
+      }
 
-          // Try to populate the mobile panel from a result-card element
-          function populateAndShowFromCard(card){
-            try{
-              if(!card) return;
-              var main = card.querySelector('.result-main');
-              var title = '';
-              try{ var b = main && main.querySelector('b'); if(b) title = (b.textContent || '').trim(); }catch(_){ }
+      if (!helperTried && title && window && typeof window.populateComposerBox === 'function'){
+        try{
+          setMobileLoading();
+          var onPop2 = function(e){
+            try{ var mobile = document.getElementById('mobilePanelContent'); if (mobile && e && e.detail && e.detail.html) mobile.innerHTML = e.detail.html; }catch(_){}
+            document.removeEventListener('composerPopulated', onPop2);
+          };
+          document.addEventListener('composerPopulated', onPop2);
+          window.populateComposerBox(title, card);
+          showPanel();
+          return;
+        }catch(_){}
+      }
 
-              // The mobile panel must only update from the authoritative client event
-              // We intentionally do not copy desktop innerHTML or poll for changes here.
-              function setMobileLoading(){
-                try{
-                  var mobile = document.getElementById('mobilePanelContent');
-                  if (!mobile) return;
-                  mobile.innerHTML = '<div style="padding:12px">Loading composer details...</div>';
-                }catch(_){ }
-              }
+      setMobileLoading();
+      showPanel();
+    }catch(e){ console.warn('populateFromCard failed', e); }
+  }
 
-              // If client helper exists, call it and then wait for the authoritative event.
-              // Prefer openComposerFromName (returns truthy if it handled the UI).
-              var helperTried = false;
-              if (title && window && typeof window.openComposerFromName === 'function'){
-                helperTried = true;
-                try{
-                  try{ console.debug && console.debug('[mobile] calling openComposerFromName for', title); }catch(_){ }
-                  var ok = window.openComposerFromName(title, card);
-                  if (ok){
-                    // Only update mobile panel when the authoritative event fires.
-                    // Show a loading placeholder while we wait.
-                    setMobileLoading();
-                    var onPop = function(e){
-                      try{
-                        var mobile = document.getElementById('mobilePanelContent');
-                        if (mobile && e && e.detail && e.detail.html){
-                          mobile.innerHTML = e.detail.html;
-                        }
-                      }catch(_){ }
-                      document.removeEventListener('composerPopulated', onPop);
-                    };
-                    document.addEventListener('composerPopulated', onPop);
-                    showPanel();
-                    return;
-                  }
-                  }catch(_){ }
-              }
+  document.addEventListener('DOMContentLoaded', function(){
+    // ===== Store all cards once on page load =====
+    const allCards = Array.from(document.querySelectorAll('.result-card'));
+    console.log('All cards stored:', allCards.length);
 
-              // Another possible helper: populateComposerBox
-              // If populateComposerBox exists, call it and wait for the authoritative event.
-              if (!helperTried && title && window && typeof window.populateComposerBox === 'function'){
-                try{
-                  setMobileLoading();
-                  var onPop2 = function(e){
-                    try{ var mobile = document.getElementById('mobilePanelContent'); if (mobile && e && e.detail && e.detail.html) mobile.innerHTML = e.detail.html; }catch(_){ }
-                    document.removeEventListener('composerPopulated', onPop2);
-                  };
-                  document.addEventListener('composerPopulated', onPop2);
-                  window.populateComposerBox(title, card);
-                  showPanel();
-                  return;
-                }catch(_){ }
-              }
+    // ===== Filter checkboxes =====
+    const filterCheckboxes = document.querySelectorAll('.filter-checkbox');
+    filterCheckboxes.forEach(cb => {
+      cb.addEventListener('change', applyFilters);
+    });
 
-              // Final: show a loading placeholder and the panel; authoritative content
-              // will be applied only when the client emits composerPopulated.
-              setMobileLoading();
-              showPanel();
-            }catch(e){ console.warn('populateFromCard failed', e); }
-          }
+    function applyFilters() {
+      const activeFilters = Array.from(filterCheckboxes)
+        .filter(cb => cb.checked)
+        .map(cb => cb.value);
+      console.log('Active filters:', activeFilters);
 
-          document.addEventListener('DOMContentLoaded', function(){
-            var t = document.getElementById('togglePanelBtn'); if(t) t.addEventListener('click', function(ev){ ev.preventDefault && ev.preventDefault(); showPanel(); });
-            var c = document.getElementById('closePanelBtn'); if(c) c.addEventListener('click', function(ev){ ev.preventDefault && ev.preventDefault(); hidePanel(); });
+      allCards.forEach(card => {
+        const cardCountry = card.dataset.country;
+        const showByCountry = activeFilters.length === 0 || activeFilters.includes(cardCountry);
+        card.style.display = showByCountry ? '' : 'none';
+      });
+    }
 
-           // Delegated click handler for result cards; only open the mobile panel when the
-// small 'about' control is clicked (so taps elsewhere on the card don't open it).
-// On desktop (wide screens) we intentionally do NOT open the composer when clicking
-// anywhere on the card; desktop should only open composer via the explicit "more" button.
-document.addEventListener('click', function(ev) {
-  try {
-    // Skip all clicks inside the filter or composer panels
-    if (ev.target.closest('#panel-left, #mobileSidePanel, #mf-filters, .filters-panel')) return;
+    // ===== Mobile panel toggle buttons =====
+    const t = document.getElementById('togglePanelBtn');
+    if(t) t.addEventListener('click', function(ev){ ev.preventDefault(); showPanel(); });
+    const c = document.getElementById('closePanelBtn');
+    if(c) c.addEventListener('click', function(ev){ ev.preventDefault(); hidePanel(); });
 
-    // Only handle mobile screens
-    if (window && window.innerWidth > 600) return;
+    // ===== Delegated click for mobile composer cards =====
+    document.addEventListener('click', function(ev){
+      try{
+        if (ev.target.closest('#panel-left, #mobileSidePanel, #mf-filters, .filters-panel')) return;
+        if (window.innerWidth > 600) return;
+        if (ev.target.closest('a, button')) return;
 
-    console.debug?.('[mobile] document click handler fired');
-    if (!ev || !ev.target) return;
+        const about = ev.target.closest('.about-label, .about-badge');
+        if (!about) return;
+        const card = about.closest('.result-card');
+        if (!card) return;
 
-    // Ignore clicks on links or buttons
-    if (ev.target.closest('a, button')) return;
+        ev.preventDefault();
+        ev.stopPropagation();
 
-    // Only proceed when the click is inside the small 'about' control
-    const about = ev.target.closest('.about-label, .about-badge');
-    if (!about) return;
+        populateAndShowFromCard(card);
+      }catch(e){}
+    }, true);
 
-    const card = about.closest('.result-card');
-    if (!card) return;
+    // ===== Pointerup fallback for touch =====
+    (function(){
+      let lastHandled = 0;
+      document.addEventListener('pointerup', function(ev){
+        try{
+          if (Date.now() - lastHandled < 300) return;
+          if (window.innerWidth > 600) return;
+          if (!ev) return;
+          if (ev.pointerType && ev.pointerType !== 'touch') return;
+          if (ev.target.closest('a, button')) return;
 
-    // Prevent click bubbling *only* for these composer card triggers
-    ev.preventDefault();
-    ev.stopPropagation();
+          const about = ev.target.closest('.about-label, .about-badge');
+          if (!about) return;
+          const card = about.closest('.result-card');
+          if (!card) return;
 
-    console.debug?.('[mobile] tapped about control for', card.querySelector('.result-main b')?.textContent);
-    populateAndShowFromCard(card);
-  } catch (e) {}
-}, true);
+          lastHandled = Date.now();
+          ev.preventDefault();
+          ev.stopPropagation();
+          populateAndShowFromCard(card);
+        }catch(e){}
+      }, true);
+    })();
+  });
+
+  // ===== Expose to other scripts =====
+  window.showMobileComposerPanel = showPanel;
+  window.hideMobileComposerPanel = hidePanel;
+  window.populateMobilePanelFromCard = populateAndShowFromCard;
+})();
+</script>
 
 
-            // Some mobile browsers or overlays may not fire click in the expected way.
-            // Add a pointerup handler (touch-capable) as a fallback. Debounce very short to
-            // avoid double-invocation alongside the click handler.
-            (function(){
-              let lastHandled = 0;
-              document.addEventListener('pointerup', function(ev){
-                try{
-                  if (Date.now() - lastHandled < 300) return; // debounce
-                  try{ if (window && window.innerWidth > 600) return; }catch(_){ }
-                  if (!ev) return;
-                  // only treat touch pointers here to avoid duplicate mouse events
-                  if (ev.pointerType && ev.pointerType !== 'touch') return;
-                  // Ignore pointerups on links or buttons
-                  if (ev.target && ev.target.closest && ev.target.closest('a, button')) return;
-                  // Only proceed when the pointerup is inside the small 'about' control
-                  var about = ev.target && ev.target.closest ? ev.target.closest('.about-label, .about-badge') : null;
-                  if (!about) return;
-                  var card = about.closest ? about.closest('.result-card') : null;
-                  if (!card) return;
-                  lastHandled = Date.now();
-                  try{ console.debug && console.debug('[mobile] pointerup detected on about control for', card.querySelector('.result-main b')?.textContent); }catch(_){ }
-                  ev.preventDefault && ev.preventDefault(); ev.stopPropagation && ev.stopPropagation();
-                  populateAndShowFromCard(card);
-                }catch(e){ }
-              }, true);
-            })();
-          });
-
-          // expose to other scripts
-          window.showMobileComposerPanel = showPanel; window.hideMobileComposerPanel = hidePanel; window.populateMobilePanelFromCard = populateAndShowFromCard;
-        })();
-          </script>
         <script>
  (function() {
   const panel = document.getElementById('mobileSidePanel');

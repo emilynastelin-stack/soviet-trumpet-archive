@@ -17,8 +17,9 @@
       try{ var left = document.getElementById('panel-left'); if (left){ _panelLeftPrevDisplay = left.style.display || ''; left.style.display = 'none'; } }catch(e){ }
       try{ var fbtn = document.getElementById('mf-filters'); if (fbtn){ _filterBtnPrevDisabled = !!fbtn.disabled; fbtn.disabled = true; fbtn.setAttribute('aria-disabled','true'); fbtn.classList && fbtn.classList.add('disabled'); } }catch(e){ }
       try{ var sm = document.getElementById('mobile-swipe-menu'); if (sm && sm.getAttribute('aria-hidden') === 'false'){ sm.setAttribute('aria-hidden','true'); } }catch(e){ }
-      p.style.display = 'block';
-      try{ p.setAttribute('aria-hidden','false'); }catch(e){ }
+  p.style.display = 'block';
+  try{ if ('inert' in p) p.inert = false; }catch(e){ }
+  try{ p.setAttribute('aria-hidden','false'); }catch(e){ }
       // Do not copy desktop innerHTML here — wait for the authoritative composerPopulated event.
       try{
         var mobileInner = document.getElementById('composer-content-mobile-clone') || document.getElementById('mobilePanelContent');
@@ -35,9 +36,18 @@
     try{
       var p = document.getElementById('mobileSidePanel'); if(!p) return;
       try{ var tbtn = document.getElementById('togglePanelBtn'); if (tbtn && typeof tbtn.focus === 'function'){ tbtn.focus({ preventScroll: true }); } }catch(e){ }
-      try{ var active = document.activeElement; if (active && p.contains(active)){ try{ active.blur(); }catch(e){ } } }catch(e){ }
-      try{ p.setAttribute('aria-hidden','true'); }catch(e){ }
-      p.style.display='none';
+      try{
+        var active = document.activeElement;
+        if (active && p.contains(active)){
+          try{
+            var targetFocus = document.getElementById('togglePanelBtn') || document.getElementById('closePanelBtn');
+            if (targetFocus && typeof targetFocus.focus === 'function'){
+              targetFocus.focus({ preventScroll: true });
+            } else { try{ active.blur && active.blur(); }catch(_){ } }
+          }catch(_){ try{ active.blur && active.blur(); }catch(__){} }
+        }
+      }catch(e){ }
+      setTimeout(function(){ try{ if ('inert' in p) p.inert = true; }catch(e){} try{ p.setAttribute('aria-hidden','true'); }catch(e){} try{ p.style.display='none'; }catch(e){} }, 0);
       try{ var left = document.getElementById('panel-left'); if (left && _panelLeftPrevDisplay !== null){ left.style.display = _panelLeftPrevDisplay || ''; _panelLeftPrevDisplay = null; } }catch(e){ }
       try{ var fbtn = document.getElementById('mf-filters'); if (fbtn && _filterBtnPrevDisabled !== null){ fbtn.disabled = !!_filterBtnPrevDisabled; if (!fbtn.disabled) fbtn.removeAttribute('aria-disabled'); else fbtn.setAttribute('aria-disabled','true'); fbtn.classList && fbtn.classList.remove('disabled'); _filterBtnPrevDisabled = null; } }catch(e){ }
     }catch(e){}
@@ -194,69 +204,99 @@
   // Force English locale on this results page to keep filter labels consistent
   try{ localStorage.setItem('locale','en'); }catch(e){}
 
-  // Defensive shim: ensure a callable openComposerFromName exists before the heavy client loads.
+  // Mobile-only composer overlay: opens info panel without filtering
   (function(){
     try{
       if (window && typeof window.openComposerFromName !== 'function'){
         window.openComposerFromName = function(name, row){
           try{
-            window.selectedComposer = String(name || '');
-            var content = document.getElementById('composer-content');
-            if (content) { content.textContent = String(name || ''); }
-            if (window.innerWidth <= 600){
-              if (!document.querySelector('.mobile-overlay.right')){
-                var overlay = document.createElement('div');
-                overlay.className = 'mobile-overlay right';
-                overlay.setAttribute('role','dialog'); overlay.setAttribute('aria-modal','true');
-                overlay.style.position = 'fixed'; overlay.style.inset = '0'; overlay.style.zIndex = '1990'; overlay.style.background = 'rgba(0,0,0,0.18)';
-                var inner = document.createElement('div');
-                inner.className = 'overlay-inner overlay-right-inner';
-                inner.style.position = 'absolute'; inner.style.top = '0'; inner.style.bottom = '0'; inner.style.right = '0'; inner.style.left = 'auto';
-                inner.style.width = 'min(92%, 420px)'; inner.style.maxWidth = '420px'; inner.style.zIndex = '1995'; inner.style.background = 'white'; inner.style.boxSizing = 'border-box'; inner.style.padding = '16px';
-                var panel = document.getElementById('panel-right');
-                if (panel){
-                  var clone = panel.cloneNode(true);
-                  clone.id = 'panel-right-mobile-clone'; clone.classList.add('mobile-overlay-clone'); clone.style.margin = '0'; clone.style.padding = '0'; clone.style.width = '100%';
-                  inner.appendChild(clone);
-                } else {
-                  inner.innerHTML = '<div style="padding:12px">Composer</div>';
-                }
-                overlay.appendChild(inner);
-                document.body.appendChild(overlay);
-                // helper to restore body scroll for this inline runtime
-                function inlineRestoreBodyFromOverlay(o){
-                  try{
-                    if (!o) return;
-                    // if any overlays remain, don't unlock yet
-                    try{ var stillOpen = !!document.querySelector('.mobile-overlay, .mobile-swipe-menu, #mobileSidePanel'); if (stillOpen) return; }catch(_){ }
-                    try{ if (window.__mobileOverlayLock === 'filters' || window.__mobileOverlayLock === 'composer') window.__mobileOverlayLock = null; }catch(_){ }
-                    try{ var s = o.__savedScrollY || 0; document.body.style.position=''; document.body.style.top=''; document.body.style.left=''; document.body.style.right=''; document.body.style.width=''; document.documentElement.style.overflow=''; document.body.style.overflow=''; if (s) try{ window.scrollTo(0,s); }catch(_2){} }catch(_){ }
-                  }catch(_){ }
-                }
-                overlay.addEventListener('click', function(ev){ if (ev.target === overlay) { try{ inlineRestoreBodyFromOverlay(overlay); }catch(_){ } try{ overlay.remove(); }catch(_){} } });
+            // Only proceed on small screens
+            if (window.innerWidth > 600) return false;
+
+            // Avoid opening multiple overlays
+            if (document.querySelector('.mobile-overlay.right')) return true;
+
+            // Create overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'mobile-overlay right';
+            overlay.setAttribute('role','dialog');
+            overlay.setAttribute('aria-modal','true');
+            overlay.style.position = 'fixed';
+            overlay.style.inset = '0';
+            overlay.style.zIndex = '1990';
+            overlay.style.background = 'rgba(0,0,0,0.18)';
+
+            const inner = document.createElement('div');
+            inner.className = 'overlay-inner overlay-right-inner';
+            inner.style.position = 'absolute';
+            inner.style.top = '0';
+            inner.style.bottom = '0';
+            inner.style.right = '0';
+            inner.style.left = 'auto';
+            inner.style.width = 'min(92%, 420px)';
+            inner.style.maxWidth = '420px';
+            inner.style.zIndex = '1995';
+            inner.style.background = 'white';
+            inner.style.boxSizing = 'border-box';
+            inner.style.padding = '16px';
+
+            // Minimal info panel, no filtering
+            const content = document.createElement('div');
+            content.style.padding = '12px';
+            content.textContent = name || 'Composer';
+            inner.appendChild(content);
+
+            overlay.appendChild(inner);
+            document.body.appendChild(overlay);
+
+            // Lock body scroll while overlay is open
+            try{
+              window.__mobileOverlayLock = 'composer';
+              const scrollY = window.scrollY || document.documentElement.scrollTop || 0;
+              overlay.__savedScrollY = scrollY;
+              document.body.style.position = 'fixed';
+              document.body.style.top = `-${scrollY}px`;
+              document.body.style.left = '0';
+              document.body.style.right = '0';
+              document.body.style.width = '100%';
+              document.documentElement.style.overflow = 'hidden';
+              document.body.style.overflow = 'hidden';
+            } catch(_){ }
+
+            // Close overlay if user clicks outside inner panel
+            overlay.addEventListener('click', function(ev){
+              if (ev.target === overlay){
+                document.body.style.position = '';
+                document.body.style.top = '';
+                document.body.style.left = '';
+                document.body.style.right = '';
+                document.body.style.width = '';
+                document.documentElement.style.overflow = '';
+                document.body.style.overflow = '';
+                window.__mobileOverlayLock = null;
+                overlay.remove();
               }
-            } else {
-              var elp = document.getElementById('panel-right'); if (elp) elp.scrollIntoView({behavior:'smooth', block:'center'});
-            }
+            });
+
             return true;
-          }catch(e){ return false; }
+          } catch(e){ 
+            console.warn('Mobile composer overlay failed', e);
+            return false;
+          }
         };
       }
-    }catch(e){ /* ignore */ }
+    }catch(e){ console.warn(e); }
   })();
 
   // Bridge for static template buttons
   function filterByComposer(name){
     try{
-      if (window && typeof window.filterByComposer === 'function'){
+      if (window && typeof window.filterByComposer === 'function' && window.filterByComposer !== filterByComposer){
         return window.filterByComposer(name);
       }
+      // store attempted name for debugging but do not trigger client filtering
       window.__filterByComposerName = name;
-      if (typeof window.loadResults === 'function'){
-        window.currentPage = 1;
-        return window.loadResults({ composer: name });
-      }
-      console.log('filterByComposer placeholder set:', name);
+      try{ console.log('[inline1] filterByComposer called but filtering disabled:', name); }catch(_){ }
     }catch(e){ console.warn('filterByComposer failed', e); }
   }
   window.filterByComposer = filterByComposer;

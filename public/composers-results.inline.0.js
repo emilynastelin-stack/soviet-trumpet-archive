@@ -92,8 +92,9 @@
     renderPagination();
   }
 
+  // No-op placeholder to avoid composer-based filtering on static inline example
   function filterByComposer(composerName) {
-    console.log("Filter by composer:", composerName);
+    try{ console.log('[inline] filterByComposer called but disabled:', composerName); }catch(_){ }
   }
 
   // Initial render
