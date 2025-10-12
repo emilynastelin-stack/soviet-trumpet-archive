@@ -1440,6 +1440,16 @@ import ComposersPage from "../components/ComposersPage.jsx";
                     panel.style.visibility = 'visible';
                     panel.style.transform = 'none';
                     panel.style.zIndex = '99999';
+                    // If a descendant (like the close button) currently holds focus while the
+                    // panel is aria-hidden, the browser may block making it interactive.
+                    try{
+                      var closeBtn = panel.querySelector && panel.querySelector('#closePanelBtn');
+                      if (closeBtn && document.activeElement === closeBtn){ try{ closeBtn.blur(); }catch(_){ } }
+                    }catch(_){ }
+                    // Unset aria-hidden so the panel becomes visible/interactive to assistive tech
+                    try{ panel.setAttribute('aria-hidden', 'false'); }catch(_){ }
+                    // Clear inert if available so the panel can receive focus/events
+                    try{ if ('inert' in panel) panel.inert = false; }catch(_){ }
                   }catch(_){ }
                 }catch(e){ try{ console.debug('mirrorDesktopToMobile error', e); }catch(_){ } }
               }
