@@ -1393,51 +1393,97 @@ import ComposersPage from "../components/ComposersPage.jsx";
         })();
           </script>
           <script>
-            // Mirror desktop composer panel into the mobile composer panel so mobile shows
-            // the same authoritative content the client populates on desktop.
+            // Mirror desktop composer panel into the mobile composer panel using the
+            // authoritative client event (composerPopulated) and a MutationObserver
+            // fallback. This ensures the mobile panel receives the full HTML that the
+            // client renders dynamically (not the brief snippet present in .result-card).
             (function(){
-              function copyDesktopComposerToMobile(html){
+              function mirrorDesktopToMobile(html, attempt){
                 try{
+                  attempt = Number(attempt) || 0;
                   var mobile = document.getElementById('mobilePanelContent');
-                  if (!mobile) return;
-                  if (html && typeof html === 'string'){
-                    mobile.innerHTML = html;
+                  var panel = document.getElementById('mobileSidePanel');
+                  if (!mobile || !panel) return;
+
+                  // Resolve authoritative desktop HTML: prefer explicit payload when provided
+                  var desktopHTML = '';
+                  if (html && typeof html === 'string') desktopHTML = String(html || '');
+                  else {
+                    try{ var desktop = document.getElementById('composer-content'); if (desktop) desktopHTML = desktop.innerHTML || ''; }catch(_){ desktopHTML = ''; }
+                  }
+
+                  // If content is empty or still the placeholder, retry a few times (desktop may populate asynchronously)
+                  if (!desktopHTML || desktopHTML.indexOf('Select a result') !== -1){
+                    if (attempt < 12) {
+                      setTimeout(function(){ try{ mirrorDesktopToMobile(html, attempt + 1); }catch(_){ } }, 150);
+                    }
                     return;
                   }
-                  var desktop = document.getElementById('composer-content');
-                  if (!desktop) return;
-                  // Only copy meaningful content (avoid default placeholder)
-                  if (desktop.innerHTML && desktop.innerHTML.indexOf('Select a result') === -1){
-                    mobile.innerHTML = desktop.innerHTML;
-                  }
-                }catch(_){ }
+
+                  // copy into mobile container
+                  mobile.innerHTML = desktopHTML;
+
+                  // ensure the mobile side panel is visible (override hiding styles/clipped state)
+                  try{
+                    // If any ancestor is marked aria-hidden or display:none, try to unset that so panel becomes visible
+                    try{
+                      var anc = panel.parentElement;
+                      while (anc && anc !== document.body){
+                        try{ if (anc.getAttribute && anc.getAttribute('aria-hidden') === 'true') anc.removeAttribute('aria-hidden'); }catch(_){ }
+                        try{ var s = window.getComputedStyle(anc); if (s && s.display === 'none') anc.style.display = '' }catch(_){ }
+                        anc = anc.parentElement;
+                      }
+                    }catch(_){ }
+
+                    panel.style.display = 'block';
+                    panel.style.opacity = '1';
+                    panel.style.visibility = 'visible';
+                    panel.style.transform = 'none';
+                    panel.style.zIndex = '99999';
+                  }catch(_){ }
+                }catch(e){ try{ console.debug('mirrorDesktopToMobile error', e); }catch(_){ } }
               }
 
-              // Copy immediately if content exists
-              document.addEventListener('DOMContentLoaded', function(){
-                try{ copyDesktopComposerToMobile(); }catch(_){ }
-              });
-
-              // Listen for the client-side helper event (if emitted) with HTML payload
+              // Listen for the client-side event that contains the full composer HTML
               try{
                 document.addEventListener('composerPopulated', function(e){
                   try{
-                    if (e && e.detail && e.detail.html){ copyDesktopComposerToMobile(e.detail.html); }
-                    else { copyDesktopComposerToMobile(); }
-                  }catch(_){ }
+                    var payloadHtml = null;
+                    if (e && e.detail && e.detail.html) payloadHtml = e.detail.html;
+                    // Mirror and force-panel-visible only when meaningful content exists
+                    if (payloadHtml || document.getElementById('composer-content')){
+                      mirrorDesktopToMobile(payloadHtml);
+                      try{ console.debug('composerPopulated -> mobile updated'); }catch(_){ }
+                    }
+                  }catch(err){ try{ console.debug('composerPopulated handler error', err); }catch(_){ } }
                 });
               }catch(_){ }
 
-              // Observe changes to the desktop composer area and mirror them to mobile
-              try{
-                var target = document.getElementById('composer-content');
-                if (target){
-                  var mo = new MutationObserver(function(muts){
-                    try{ copyDesktopComposerToMobile(); }catch(_){ }
+              // Observe #composer-content for dynamic updates as a fallback
+              function attachComposerObserver(){
+                try{
+                  var desktop = document.getElementById('composer-content');
+                  if (!desktop) return false;
+                  var mo = new MutationObserver(function(){
+                    try{ mirrorDesktopToMobile(); }catch(_){ }
                   });
-                  mo.observe(target, { childList: true, subtree: true, characterData: true });
-                }
-              }catch(_){ }
+                  mo.observe(desktop, { childList: true, subtree: true, characterData: true });
+                  try{ console.debug('composer-content observer attached'); }catch(_){ }
+                  return true;
+                }catch(e){ return false; }
+              }
+
+              // Fallback: copy immediately on DOM ready if desktop panel already has content
+              document.addEventListener('DOMContentLoaded', function(){
+                try{ mirrorDesktopToMobile(); }catch(_){ }
+              });
+
+              // Try to attach observer now; if #composer-content is not available, retry briefly
+              (function waitForComposer(){
+                if (attachComposerObserver()) return;
+                setTimeout(waitForComposer, 400);
+              })();
+
             })();
       </script>
       <script>
