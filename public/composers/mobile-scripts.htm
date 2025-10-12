@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mobile scripts debug page - composers</title>
+  <style>
+    body{ font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; margin:0; padding:16px; background:#f6f7fb; }
+    .toolbar{ position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid #e6e9ef; padding:8px 12px; display:flex; gap:8px; justify-content:center; z-index:5000}
+    .toolbar button{ padding:8px 12px; border-radius:8px; border:1px solid #ddd; background:#fff; cursor:pointer }
+    #panel-left, #panel-right{ padding:12px; background:#fff; border-radius:8px; margin-bottom:12px }
+    #results-list{ margin-top:12px }
+    .result-card{ background:#fff; padding:10px; border-radius:8px; margin-bottom:8px }
+    #mobileSidePanel{ display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.18); }
+    #mobileSidePanel .panel-inner{ display:none; position:absolute; right:0; top:0; width:min(92%,420px); height:100vh; background:#fff; padding:12px; box-sizing:border-box }
+  </style>
+</head>
+<body>
+  <h1>Mobile scripts debug page (alias)</h1>
+  <p>This page is an alias at <code>/composers/mobile-scripts.htm</code> and includes the mobile-side scripts as-is (no modifications). It provides minimal DOM elements they expect so overlays and clone logic can run in a browser/mobile emulation.</p>
+
+  <!-- Desktop left filter panel (the scripts clone this element for mobile overlays) -->
+  <div id="panel-left" aria-label="Left filter panel">
+    <h3>Filters (desktop panel)</h3>
+    <div id="filter-country" class="filter-group">
+      <!-- populated by populateCountryCheckboxes() -->
+    </div>
+    <div id="filter-republic" class="filter-group">
+      <!-- republic checkboxes -->
+    </div>
+    <div id="filter-decade" class="filter-group"></div>
+    <div id="filter-type" class="filter-group"></div>
+    <div id="filter-gender" class="filter-group"></div>
+  </div>
+
+  <!-- Desktop right composer panel (scripts clone this into mobile overlay) -->
+  <div id="panel-right" aria-label="Composer panel">
+    <div id="composer-content">
+      <strong>Composer content (desktop)</strong>
+      <p>Composer: Example Composer</p>
+    </div>
+    <div id="more-from-composer">More from composer</div>
+    <button id="clear-composer">Clear composer</button>
+  </div>
+
+  <!-- Results list (used by mobile scripts) -->
+  <div id="results-list">
+    <div class="result-card">
+      <div class="result-main"><b>Piece A</b><div>Composer: Example Composer</div></div>
+      <div class="result-right"></div>
+    </div>
+    <div class="result-card">
+      <div class="result-main"><b>Piece B</b><div>Composer: Another Composer</div></div>
+      <div class="result-right"></div>
+    </div>
+  </div>
+
+  <!-- Mobile side panel structure expected by the inline mobile script -->
+  <div id="mobileSidePanel" aria-hidden="true">
+    <div class="panel-inner" id="mobilePanelContent">
+      <button id="closePanelBtn" type="button">Close</button>
+      <div id="composer-content-mobile-clone"></div>
+      <div id="panel-right-mobile-clone"></div>
+    </div>
+  </div>
+
+  <!-- Footer toolbar with mobile filter button(s) the scripts bind to -->
+  <div class="toolbar" role="toolbar">
+    <button id="mf-filters" title="Filters">Filters</button>
+    <button id="mf-center" title="Center">Center</button>
+    <button id="mf-composers" title="Composers">Composers</button>
+  </div>
+
+  <!-- Toggle button used by some inline scripts -->
+  <button id="togglePanelBtn" style="display:none">Toggle panel</button>
+
+  <!-- Load mobile-side scripts from the public folder (kept unmodified)
+       Use root-relative paths so this file works at /composers/mobile-scripts.htm -->
+  <script src="/composers-results.inline.1.js"></script>
+  <script src="/composers-results.client.js"></script>
+
+  <p style="font-size:0.9rem;color:#6b7280;margin-top:12px">Open your browser devtools and emulate a mobile viewport to exercise overlays (scripts are not modified).</p>
+</body>
+</html>

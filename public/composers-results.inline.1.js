@@ -233,7 +233,17 @@
                 }
                 overlay.appendChild(inner);
                 document.body.appendChild(overlay);
-                overlay.addEventListener('click', function(ev){ if (ev.target === overlay) overlay.remove(); });
+                // helper to restore body scroll for this inline runtime
+                function inlineRestoreBodyFromOverlay(o){
+                  try{
+                    if (!o) return;
+                    // if any overlays remain, don't unlock yet
+                    try{ var stillOpen = !!document.querySelector('.mobile-overlay, .mobile-swipe-menu, #mobileSidePanel'); if (stillOpen) return; }catch(_){ }
+                    try{ if (window.__mobileOverlayLock === 'filters' || window.__mobileOverlayLock === 'composer') window.__mobileOverlayLock = null; }catch(_){ }
+                    try{ var s = o.__savedScrollY || 0; document.body.style.position=''; document.body.style.top=''; document.body.style.left=''; document.body.style.right=''; document.body.style.width=''; document.documentElement.style.overflow=''; document.body.style.overflow=''; if (s) try{ window.scrollTo(0,s); }catch(_2){} }catch(_){ }
+                  }catch(_){ }
+                }
+                overlay.addEventListener('click', function(ev){ if (ev.target === overlay) { try{ inlineRestoreBodyFromOverlay(overlay); }catch(_){ } try{ overlay.remove(); }catch(_){} } });
               }
             } else {
               var elp = document.getElementById('panel-right'); if (elp) elp.scrollIntoView({behavior:'smooth', block:'center'});
@@ -332,14 +342,14 @@
       inner.style.width = 'min(92%, 420px)'; inner.style.maxWidth = '420px'; inner.style.zIndex = '1995'; inner.style.background = 'white'; inner.style.boxSizing = 'border-box'; inner.style.padding = '12px';
       var header = document.createElement('div'); header.style.display = 'flex'; header.style.alignItems = 'center'; header.style.justifyContent = 'space-between';
       var title = document.createElement('div'); title.textContent = '';
-      var closeBtn = document.createElement('button'); closeBtn.type = 'button'; closeBtn.innerHTML = '✕'; closeBtn.style.border = '0'; closeBtn.style.background = 'transparent'; closeBtn.style.fontSize = '1.1rem'; closeBtn.style.cursor = 'pointer';
-      closeBtn.addEventListener('click', function(){ try{ overlay.remove(); }catch(_){} });
+  var closeBtn = document.createElement('button'); closeBtn.type = 'button'; closeBtn.innerHTML = '✕'; closeBtn.style.border = '0'; closeBtn.style.background = 'transparent'; closeBtn.style.fontSize = '1.1rem'; closeBtn.style.cursor = 'pointer';
+  closeBtn.addEventListener('click', function(){ try{ inlineRestoreBodyFromOverlay(overlay); }catch(_){ } try{ overlay.remove(); }catch(_){} });
       header.appendChild(title); header.appendChild(closeBtn);
       inner.appendChild(header);
       var body = document.createElement('div'); body.style.minHeight = '40vh'; body.style.color = '#111'; inner.appendChild(body);
       overlay.appendChild(inner);
       document.body.appendChild(overlay);
-      overlay.addEventListener('click', function(ev){ if (ev.target === overlay) overlay.remove(); });
+  overlay.addEventListener('click', function(ev){ if (ev.target === overlay) { try{ inlineRestoreBodyFromOverlay(overlay); }catch(_){ } try{ overlay.remove(); }catch(_){} } });
     }
 
     document.addEventListener('click', function delegatedAboutClick(ev){

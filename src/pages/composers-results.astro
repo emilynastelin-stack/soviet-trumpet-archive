@@ -1032,61 +1032,111 @@ import ComposersPage from "../components/ComposersPage.jsx";
     });
     </script>
     <script>
-    // Republic-change fallback: if the main client runtime provides window.loadResults, call it.
-    // Otherwise perform a minimal /api/sheets fetch + filter by the 'Soviet republic' column and render basic results.
+    // General-purpose, clone-aware checkbox syncing and DOM fallback filtering.
+    // Prefers the mobile clone (#panel-left-mobile-clone) when present, falls back to #panel-left.
     document.addEventListener('DOMContentLoaded', ()=>{
-      const esc = (s)=> String(s==null? '': s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-      const getCheckedRepublics = ()=> Array.from(document.querySelectorAll('#filter-republic input[type=checkbox]:checked')).map(cb=> decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || '').trim()).filter(Boolean);
-      async function fallbackFilterAndRender(){
-        const checked = getCheckedRepublics();
-        if (typeof window.loadResults === 'function'){
-          // client runtime available and should handle filtering correctly
-          try{ window.currentPage = 1; window.loadResults(); }catch(e){ console.warn('loadResults call failed', e); }
-          return;
-        }
-        // fetch and do a minimal filter/render
-        try{
-          const res = await fetch('/api/sheets', { headers: { 'Accept': 'application/json' } });
-          const raw = await res.json().catch(()=>null);
-          const rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.rows) ? raw.rows : raw);
-          const normalizedChecked = checked.map(c=> c.toLowerCase());
-          const filtered = (rows || []).filter(r => {
-            const val = ( (r && (r['Soviet republic'] || r['Soviet Republic'] || r['Republic'] || r['Republic/Region'])) || '' ).toString().toLowerCase();
-            if (!normalizedChecked.length) return true;
-            return normalizedChecked.some(sc => val.includes(sc));
-          });
-          const container = document.getElementById('results-list');
-          if (!container) return;
-          container.innerHTML = '';
-          if (!filtered.length){ container.innerHTML = '<div class="result-item">No results</div>'; return; }
-          const pageSize = window.PAGE_SIZE || 25;
-          filtered.slice(0, pageSize).forEach(r => {
-            const title = r.Title || r.Compositions || r.title || '';
-            const author = r['Composer'] || r.Composer || r.composer || '';
-            const published = r.Published || r.Year || r['Date'] || r['Published'] || '';
-            const pieceType = r['Type'] || r['Type of piece'] || r.Type || '';
-            const republic = r['Soviet republic'] || r['Soviet Republic'] || r['Republic'] || r['Republic/Region'] || '';
-            const div = document.createElement('div'); div.className = 'result-card';
-            div.innerHTML = `
-              <div class="result-main">
-                <b>${esc(title)}</b>
-                <div style="margin-top:6px;color:#6b7280;font-size:0.95rem">
-                  ${pieceType ? esc(pieceType) + (published ? ' · ' : '') : ''}${published ? esc(published) : ''}
-                </div>
-                <div style="margin-top:8px"><strong>Composer:</strong> ${esc(author)}</div>
-                ${republic ? `<div style="margin-top:6px;color:#6b7280;font-size:0.9rem">${esc(republic)}</div>` : ''}
-              </div>
-              <div class="result-right"></div>
-            `;
-            // No server-side 'View' anchor: the client runtime will render interactive controls
-            container.appendChild(div);
-          });
-        }catch(e){ console.error('Fallback republic filter failed', e); }
+      function getChecked(selector) {
+        try {
+          const base = document.querySelector('#panel-left-mobile-clone') || document.querySelector('#panel-left');
+          if (!base) return [];
+          return Array.from(base.querySelectorAll(selector + ' input[type=checkbox]:checked'))
+            .map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || (cb.nextSibling && cb.nextSibling.textContent) || cb.value || '').trim())
+            .filter(Boolean);
+        } catch (e) { return []; }
       }
-      // attach listeners to static republic checkboxes
-      try{ document.querySelectorAll('#filter-republic input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ fallbackFilterAndRender(); })); }catch(e){}
-      // also run once on load to apply any pre-selected boxes
-      setTimeout(()=>{ try{ fallbackFilterAndRender(); }catch(_){} }, 50);
+
+      function cardMatches(card, q, countries, decades, types, genders, republics){
+        try{
+          const txt = (card.textContent || '').toLowerCase();
+          if (q && !txt.includes(q)) return false;
+          const anyMatch = (list) => { if (!list || !list.length) return true; return list.some(v => txt.includes(String(v||'').toLowerCase())); };
+          return anyMatch(countries) && anyMatch(decades) && anyMatch(types) && anyMatch(genders) && anyMatch(republics);
+        }catch(e){ return true; }
+      }
+
+      function filterResults(){
+        try{
+          // If the heavy client runtime is present, prefer it (it will fetch /api/sheets etc.)
+          if (typeof window.loadResults === 'function'){
+            try{ window.currentPage = 1; window.loadResults(); return; }catch(_){ }
+          }
+
+          const countries = getChecked('#filter-country');
+          const republics = getChecked('#filter-republic');
+          const decades = getChecked('#filter-decade');
+          const types = getChecked('#filter-type');
+          const genders = getChecked('#filter-gender');
+          const q = document.querySelector('#qinput')?.value?.toLowerCase() || '';
+
+          document.querySelectorAll('.result-card').forEach(card => {
+            if (cardMatches(card, q, countries, decades, types, genders, republics)) {
+              card.style.display = '';
+            } else {
+              card.style.display = 'none';
+            }
+          });
+        }catch(e){ console.warn('filterResults failed', e); }
+      }
+
+      function syncCheckboxes(){
+        try{
+          function bindAll(){
+            const desktop = document.querySelector('#panel-left');
+            const mobile = document.querySelector('#panel-left-mobile-clone');
+            if (!desktop && !mobile) return;
+            const desktopBoxes = desktop ? Array.from(desktop.querySelectorAll('input[type=checkbox]')) : [];
+            const mobileBoxes = mobile ? Array.from(mobile.querySelectorAll('input[type=checkbox]')) : [];
+            const allCheckboxes = desktopBoxes.concat(mobileBoxes);
+
+            allCheckboxes.forEach(cb => {
+              if (cb.__synced) return; // avoid double-binding
+              cb.__synced = true;
+              cb.addEventListener('change', () => {
+                try{
+                  const name = cb.name;
+                  const value = cb.value;
+                  const checked = cb.checked;
+                  // find counterpart in the other panel
+                  const isDesktop = !!cb.closest('#panel-left');
+                  const targetPanel = isDesktop ? document.querySelector('#panel-left-mobile-clone') || document.querySelector('#panel-left') : document.querySelector('#panel-left') || document.querySelector('#panel-left-mobile-clone');
+                  if (targetPanel){
+                    const candidates = Array.from(targetPanel.querySelectorAll(`input[name="${name}"]`));
+                    for (let i=0;i<candidates.length;i++){
+                      if (String(candidates[i].value) === String(value) && candidates[i] !== cb){
+                        candidates[i].checked = checked;
+                        try{ candidates[i].dispatchEvent(new Event('change', { bubbles: true })); }catch(_){ }
+                        break;
+                      }
+                    }
+                  }
+                }catch(_){ }
+                // run the filter after every change
+                filterResults();
+              });
+            });
+          }
+
+          bindAll();
+          // watch for the mobile clone being added/removed and re-bind
+          try{
+            const mo = new MutationObserver((mutations)=>{
+              for (const m of mutations){
+                for (const n of Array.from(m.addedNodes || [])){
+                  if (n && n.id === 'panel-left-mobile-clone') { bindAll(); filterResults(); return; }
+                }
+              }
+            });
+            mo.observe(document.body, { childList: true, subtree: true });
+          }catch(_){ }
+        }catch(e){ }
+      }
+
+      // Wire search input
+      try{ document.querySelector('#qinput')?.addEventListener('input', filterResults); }catch(_){ }
+
+      // Initialize syncing and an initial filter pass
+      syncCheckboxes();
+      setTimeout(filterResults, 50);
     });
     </script>
     <script>
@@ -1321,5 +1371,110 @@ import ComposersPage from "../components/ComposersPage.jsx";
 
           // expose to other scripts
           window.showMobileComposerPanel = showPanel; window.hideMobileComposerPanel = hidePanel; window.populateMobilePanelFromCard = populateAndShowFromCard;
+        })();
+      </script>
+      <script>
+        (function(){
+          // Guard against double-injection
+          if (window.mobileDebugFilter) return;
+
+          // A lightweight helper that prefers the canonical loadResults() when present,
+          // but can fall back to a simple DOM-only filter for static .result-card elements.
+          window.mobileDebugFilter = {
+            filterResults() {
+              try {
+                // If the full client runtime is available, prefer it so server-driven
+                // rendering and pagination remain authoritative.
+                if (typeof window.loadResults === 'function') {
+                  // call with no rows to trigger the normal fetch/filter cycle
+                  window.loadResults();
+                  return;
+                }
+
+                // Fallback: simple DOM filter for .result-card elements on the page.
+                const qEl = document.querySelector('#qinput');
+                const q = (qEl && qEl.value || '').toLowerCase().trim();
+
+                // Read selected country filters if present. Use input[name=filter-country] when available,
+                // otherwise fall back to any checked checkbox inside #panel-left.
+                const countryChecks = Array.from(document.querySelectorAll('#panel-left input[name="filter-country"]:checked'))
+                  .map(i => (i.value || '').toLowerCase());
+                const fallbackChecks = countryChecks.length ? countryChecks : Array.from(document.querySelectorAll('#panel-left input[type="checkbox"]:checked')).map(i => (i.value||'').toLowerCase());
+
+                document.querySelectorAll('.result-card').forEach(card => {
+                  const text = (card.textContent || '').toLowerCase();
+                  let visible = true;
+                  if (q && !text.includes(q)) visible = false;
+                  if (fallbackChecks.length) {
+                    // show card only if any selected checkbox value appears in the card text
+                    if (!fallbackChecks.some(v => v && text.includes(v))) visible = false;
+                  }
+                  card.style.display = visible ? '' : 'none';
+                });
+              } catch (err) {
+                // defensive: don't let a debug helper break the page
+                console.warn('mobileDebugFilter.filterResults error', err);
+              }
+            },
+
+            attachBindings(root){
+              try {
+                const container = (root && root.querySelector) ? root : document;
+
+                // Attach to qinput (search) if present
+                const qEl = container.querySelector('#qinput') || document.querySelector('#qinput');
+                if (qEl && !qEl.__mobileDebugBound) {
+                  qEl.addEventListener('input', () => window.mobileDebugFilter.filterResults());
+                  qEl.__mobileDebugBound = true;
+                }
+
+                // Attach to all checkboxes inside #panel-left (desktop filter panel)
+                const checkboxSelector = '#panel-left input[type="checkbox"]';
+                Array.from(document.querySelectorAll(checkboxSelector)).forEach(cb => {
+                  if (cb.__mobileDebugBound) return;
+                  cb.addEventListener('change', () => window.mobileDebugFilter.filterResults());
+                  cb.__mobileDebugBound = true;
+                });
+
+                // Also attach to any cloned overlay inputs (they usually carry class mobile-overlay-clone),
+                // but clones might be created later — a MutationObserver below will re-run attachBindings.
+              } catch (err) {
+                console.warn('mobileDebugFilter.attachBindings error', err);
+              }
+            }
+          };
+
+          // Run on DOMContentLoaded to bind visible inputs immediately.
+          document.addEventListener('DOMContentLoaded', function(){
+            try {
+              window.mobileDebugFilter.attachBindings(document);
+            } catch (e) {
+              console.warn('mobileDebugFilter init failed', e);
+            }
+          });
+
+          // Observe for dynamically added clones/overlays and attach bindings when they appear.
+          try {
+            const obs = new MutationObserver(mutations => {
+              for (const m of mutations) {
+                if (!m.addedNodes) continue;
+                for (const n of m.addedNodes) {
+                  if (!(n instanceof HTMLElement)) continue;
+                  if (n.classList && n.classList.contains('mobile-overlay-clone')) {
+                    // attach within the clone
+                    window.mobileDebugFilter.attachBindings(n);
+                  } else {
+                    // occasionally clones are nested; search inside the added subtree
+                    const clone = n.querySelector && n.querySelector('.mobile-overlay-clone');
+                    if (clone) window.mobileDebugFilter.attachBindings(clone);
+                  }
+                }
+              }
+            });
+            obs.observe(document.body || document.documentElement, { childList: true, subtree: true });
+          } catch (e) {
+            // ignore observer failures on very old browsers
+          }
+
         })();
       </script>

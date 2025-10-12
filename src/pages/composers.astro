@@ -330,11 +330,112 @@
         <div class="copyright">© 2025 Archive of Soviet Trumpet Music</div>
       </div>
     </div>
-</div>
+  </div>
 
   
 
-
   
+  <script>
+  // Add clone-aware checkbox syncing and simple DOM filtering if a filter panel exists.
+  (function(){
+    document.addEventListener('DOMContentLoaded', function(){
+      // Only install on pages that include the panel-left or its mobile clone
+      if (!document.querySelector('#panel-left') && !document.querySelector('#panel-left-mobile-clone')) return;
+
+      function getChecked(selector) {
+        try {
+          const base = document.querySelector('#panel-left-mobile-clone') || document.querySelector('#panel-left');
+          if (!base) return [];
+          return Array.from(base.querySelectorAll(selector + ' input[type=checkbox]:checked'))
+            .map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || (cb.nextSibling && cb.nextSibling.textContent) || cb.value || '').trim())
+            .filter(Boolean);
+        } catch (e) { return []; }
+      }
+
+      function cardMatches(card, q, countries, decades, types, genders, republics){
+        try{
+          const txt = (card.textContent || '').toLowerCase();
+          if (q && !txt.includes(q)) return false;
+          const anyMatch = (list) => { if (!list || !list.length) return true; return list.some(v => txt.includes(String(v||'').toLowerCase())); };
+          return anyMatch(countries) && anyMatch(decades) && anyMatch(types) && anyMatch(genders) && anyMatch(republics);
+        }catch(e){ return true; }
+      }
+
+      function filterResults(){
+        try{
+          if (typeof window.loadResults === 'function'){
+            try{ window.currentPage = 1; window.loadResults(); return; }catch(_){ }
+          }
+          const countries = getChecked('#filter-country');
+          const republics = getChecked('#filter-republic');
+          const decades = getChecked('#filter-decade');
+          const types = getChecked('#filter-type');
+          const genders = getChecked('#filter-gender');
+          const q = (document.querySelector('#q') || document.querySelector('#qinput'))?.value?.toLowerCase() || '';
+
+          document.querySelectorAll('.result-card').forEach(card => {
+            if (cardMatches(card, q, countries, decades, types, genders, republics)) {
+              card.style.display = '';
+            } else {
+              card.style.display = 'none';
+            }
+          });
+        }catch(e){ console.warn('filterResults failed', e); }
+      }
+
+      function syncCheckboxes(){
+        try{
+          function bindAll(){
+            const desktop = document.querySelector('#panel-left');
+            const mobile = document.querySelector('#panel-left-mobile-clone');
+            if (!desktop && !mobile) return;
+            const desktopBoxes = desktop ? Array.from(desktop.querySelectorAll('input[type=checkbox]')) : [];
+            const mobileBoxes = mobile ? Array.from(mobile.querySelectorAll('input[type=checkbox]')) : [];
+            const allCheckboxes = desktopBoxes.concat(mobileBoxes);
+
+            allCheckboxes.forEach(cb => {
+              if (cb.__synced) return;
+              cb.__synced = true;
+              cb.addEventListener('change', () => {
+                try{
+                  const name = cb.name; const value = cb.value; const checked = cb.checked;
+                  const isDesktop = !!cb.closest('#panel-left');
+                  const targetPanel = isDesktop ? document.querySelector('#panel-left-mobile-clone') || document.querySelector('#panel-left') : document.querySelector('#panel-left') || document.querySelector('#panel-left-mobile-clone');
+                  if (targetPanel){
+                    const candidates = Array.from(targetPanel.querySelectorAll(`input[name="${name}"]`));
+                    for (let i=0;i<candidates.length;i++){
+                      if (String(candidates[i].value) === String(value) && candidates[i] !== cb){
+                        candidates[i].checked = checked;
+                        try{ candidates[i].dispatchEvent(new Event('change', { bubbles: true })); }catch(_){ }
+                        break;
+                      }
+                    }
+                  }
+                }catch(_){ }
+                filterResults();
+              });
+            });
+          }
+          bindAll();
+          try{
+            const mo = new MutationObserver((mutations)=>{
+              for (const m of mutations){
+                for (const n of Array.from(m.addedNodes || [])){
+                  if (n && n.id === 'panel-left-mobile-clone') { bindAll(); filterResults(); return; }
+                }
+              }
+            });
+            mo.observe(document.body, { childList: true, subtree: true });
+          }catch(_){ }
+        }catch(e){ }
+      }
+
+      try{ (document.querySelector('#q') || document.querySelector('#qinput'))?.addEventListener('input', filterResults); }catch(_){ }
+      syncCheckboxes();
+      setTimeout(filterResults, 50);
+    });
+  })();
+  </script>
+
 </body>
 </html>
