@@ -252,13 +252,13 @@
         const lab = (localized && localized[i]) ? localized[i] : val;
         const id = 'country_cb_' + i;
   const wrapper = document.createElement('div');
-  wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" name="country" data-val="${encodeURIComponent(val)}" id="${id}" /> ${lab}</label>`;
+  wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" name="country" data-val="${encodeURIComponent(val)}" id="${id}" value="${escapeHtml(val)}" /> ${lab}</label>`;
         container.appendChild(wrapper);
       }
   // wire up change handlers for checkboxes; no Select/Clear controls are created
   container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', (e)=>{ try{ const val = decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val')||''); window.lastAppliedFilter = { kind: 'country', value: val }; }catch(_){} window.currentPage = 1; window.loadResults(); }));
     }catch(e){
-  container.innerHTML = fallbackCountries.map((c,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" name="country" data-val="${encodeURIComponent(c)}" id="country_cb_f${i}" /> ${c}</label>`).join('');
+  container.innerHTML = fallbackCountries.map((c,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" name="country" data-val="${encodeURIComponent(c)}" id="country_cb_f${i}" value="${escapeHtml(c)}" /> ${c}</label>`).join('');
       const controlsWrap = document.createElement('div');
       controlsWrap.style.marginTop = '8px';
       controlsWrap.innerHTML = `<button id="country-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="country-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`;
@@ -288,7 +288,7 @@
         const lab = (localized && localized[i]) ? localized[i] : val;
         const id = 'decade_cb_' + i;
   const wrapper = document.createElement('div');
-  wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" name="decade" data-val="${encodeURIComponent(val)}" id="${id}" /> ${lab}</label>`;
+  wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" name="decade" data-val="${encodeURIComponent(val)}" id="${id}" value="${escapeHtml(val)}" /> ${lab}</label>`;
         container.appendChild(wrapper);
       }
   // wire up change handlers for checkboxes; no Select/Clear controls are created
@@ -298,7 +298,7 @@
       if (!hasDecadeHeading) {
         const title = document.createElement('div'); title.className = 'list-title'; title.textContent = 'Decade'; container.appendChild(title);
       }
-  container.innerHTML += fallbackDecades.map((d,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" name="decade" data-val="${encodeURIComponent(d)}" id="decade_cb_f${i}" /> ${d}</label>`).join('');
+  container.innerHTML += fallbackDecades.map((d,i)=>`<label style="display:block;margin-bottom:6px;"><input type="checkbox" name="decade" data-val="${encodeURIComponent(d)}" id="decade_cb_f${i}" value="${escapeHtml(d)}" /> ${d}</label>`).join('');
       const controlsWrap = document.createElement('div'); controlsWrap.style.marginTop = '8px'; controlsWrap.innerHTML = `<button id="decade-select-all" style="margin-right:6px;padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Select All</button><button id="decade-clear" style="padding:4px 8px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear</button>`; container.appendChild(controlsWrap);
       container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
     }
@@ -326,7 +326,7 @@
           const lab = localized && localized[i] ? localized[i] : val;
           const id = 'type_cb_' + i;
           const wrapper = document.createElement('div');
-          wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" name="type" data-val="${encodeURIComponent(val)}" id="${id}" /> ${lab}</label>`;
+          wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" name="type" data-val="${encodeURIComponent(val)}" id="${id}" value="${escapeHtml(val)}" /> ${lab}</label>`;
           container.appendChild(wrapper);
         });
   // wire up change handlers for checkboxes; no Select/Clear controls are created
@@ -348,7 +348,7 @@
       list.forEach((val,i)=>{
         const id = 'type_cb_dyn_' + i;
         const wrapper = document.createElement('div');
-  wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" name="type" data-val="${encodeURIComponent(val)}" id="${id}" /> ${val}</label>`;
+  wrapper.innerHTML = `<label style="display:block;margin-bottom:6px;"><input type="checkbox" name="type" data-val="${encodeURIComponent(val)}" id="${id}" value="${escapeHtml(val)}" /> ${val}</label>`;
         container.appendChild(wrapper);
       });
     container.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', ()=>{ window.currentPage = 1; window.loadResults(); }));
