@@ -1428,16 +1428,49 @@ import ComposersPage from "../components/ComposersPage.jsx";
                   qEl.__mobileDebugBound = true;
                 }
 
-                // Attach to all checkboxes inside #panel-left (desktop filter panel)
-                const checkboxSelector = '#panel-left input[type="checkbox"]';
-                Array.from(document.querySelectorAll(checkboxSelector)).forEach(cb => {
-                  if (cb.__mobileDebugBound) return;
-                  cb.addEventListener('change', () => window.mobileDebugFilter.filterResults());
-                  cb.__mobileDebugBound = true;
-                });
+                // Generic binder for checkboxes that syncs counterpart (desktop <-> mobile clone)
+                function bindCheckbox(cb){
+                  if (!cb || cb.__mobileDebugBound) return;
+                  const handler = function onChange(){
+                    try{
+                      // If this change was induced by the sync mechanism, consume the flag and do nothing
+                      if (cb.__mobileDebugSyncing){ cb.__mobileDebugSyncing = false; return; }
 
-                // Also attach to any cloned overlay inputs (they usually carry class mobile-overlay-clone),
-                // but clones might be created later — a MutationObserver below will re-run attachBindings.
+                      const name = cb.name;
+                      const value = cb.value;
+                      const checked = cb.checked;
+                      const inDesktop = !!cb.closest('#panel-left');
+                      const desktopPanel = document.querySelector('#panel-left');
+                      const mobilePanel = document.querySelector('#panel-left-mobile-clone');
+                      const targetPanel = inDesktop ? (mobilePanel || desktopPanel) : (desktopPanel || mobilePanel);
+                      if (targetPanel){
+                        const match = Array.from(targetPanel.querySelectorAll(`input[name="${name}"]`)).find(x => String(x.value) === String(value));
+                        if (match && match !== cb){
+                          try{
+                            // Mark the counterpart so its handler ignores the induced change
+                            match.__mobileDebugSyncing = true;
+                            if (match.checked !== checked) {
+                              match.checked = checked;
+                              try{ match.dispatchEvent(new Event('change', { bubbles: true })); }catch(_){ }
+                            }
+                          }catch(_){ }
+                        }
+                      }
+                    }catch(_){ }
+                    // Finally, update results based on the new state
+                    try{ window.mobileDebugFilter.filterResults(); }catch(_){ }
+                  };
+                  cb.addEventListener('change', handler);
+                  cb.__mobileDebugBound = true;
+                }
+
+                // Attach to all checkboxes inside #panel-left and any clone within the given container
+                const checkboxSelector = 'input[type="checkbox"]';
+                Array.from(container.querySelectorAll(checkboxSelector)).forEach(cb => bindCheckbox(cb));
+
+                // Also ensure top-level panel-left and clone checkboxes are bound (in case root was a subtree)
+                try{ Array.from(document.querySelectorAll('#panel-left input[type="checkbox"], #panel-left-mobile-clone input[type="checkbox"]')).forEach(cb => bindCheckbox(cb)); }catch(_){ }
+
               } catch (err) {
                 console.warn('mobileDebugFilter.attachBindings error', err);
               }
