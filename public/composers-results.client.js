@@ -1132,7 +1132,9 @@
     // Notify other UI code (for example the mobile-side panel) that composer content was populated.
     try{ console.debug && console.debug('[client] composer populated, dispatching event for:', dispFound); }catch(_){ }
     try{
-      var ev = new CustomEvent('composerPopulated', { detail: { name: dispFound, html: (content && content.innerHTML) ? content.innerHTML : '' } });
+      // include a structured row object (rowObj) when available so listeners
+      // can render fields directly instead of injecting HTML
+      var ev = new CustomEvent('composerPopulated', { detail: { name: dispFound, html: (content && content.innerHTML) ? content.innerHTML : '', row: (typeof rowObj !== 'undefined' ? rowObj : null) } });
       document.dispatchEvent(ev);
     }catch(_){ }
     try{ if (typeof window.onComposerPopulated === 'function') { try{ console.debug && console.debug('[client] calling window.onComposerPopulated for:', dispFound); window.onComposerPopulated(dispFound); }catch(_){ } } }catch(_){ }

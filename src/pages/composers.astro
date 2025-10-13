@@ -65,6 +65,7 @@
     }
     .search-panel.fixed { position:fixed; left:50%; transform:translateX(-50%); z-index:22; width:min(900px,calc(100% - 32px)); }
 
+    /* Extend the tint box to sit behind the fixed header (pull up under the navbar) */
     .tint-box {
       min-height:100vh;
       display:flex;
@@ -75,9 +76,12 @@
       width:900px;
       max-width:calc(100% - 32px);
       margin:0 auto;
-      padding-top:0;
+      /* Pull the tint-box up so it sits behind the fixed navbar (header height is 64px)
+         and add equivalent padding so content stays visually correct. */
+      margin-top: -64px;
+      padding-top: 64px;
       position:relative;
-      z-index:10;
+      z-index:8; /* sit below the header (1000) but above background */
     }
     .tint-box .container { background:transparent; width:100%; }
 

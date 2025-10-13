@@ -1,0 +1,178 @@
+// /src/scripts/mobile-panel.js
+// Handles mobile composer panel open/close and detail rendering
+
+console.log("[mobile-panel] initializing");
+
+document.addEventListener("DOMContentLoaded", () => {
+  console.log("[mobile-panel] DOM ready");
+
+  // Panel setup
+  let panel = document.getElementById("mobileSidePanel");
+
+  function ensurePanel() {
+    if (panel) return panel;
+    panel = document.createElement("div");
+    panel.id = "mobileSidePanel";
+    panel.className = "mobile-side-panel";
+    Object.assign(panel.style, {
+      position: "fixed",
+      top: "0",
+      right: "0",
+      bottom: "0",
+      width: "min(92%, 420px)",
+      maxWidth: "420px",
+      background: "#fff",
+      zIndex: "1999",
+      boxSizing: "border-box",
+      padding: "16px",
+      display: "none",
+      overflow: "auto",
+      borderLeft: "1px solid #eee",
+      borderRadius: "8px 0 0 8px",
+    });
+
+    const inner = document.createElement("div");
+    inner.className = "mobile-panel-inner";
+    panel.appendChild(inner);
+    document.body.appendChild(panel);
+    return panel;
+  }
+
+  function showPanel() {
+    ensurePanel();
+    panel.style.display = "block";
+    panel.style.opacity = "1";
+    panel.setAttribute("aria-hidden", "false");
+    document.body.classList.add("no-scroll");
+    document.documentElement.classList.add("no-scroll");
+  }
+
+  function hidePanel() {
+    if (!panel) return;
+    panel.style.display = "none";
+    panel.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("no-scroll");
+    document.documentElement.classList.remove("no-scroll");
+  }
+
+  // Stop clicks inside panel from closing it
+  document.addEventListener(
+    "click",
+    (e) => {
+      if (panel && panel.contains(e.target)) {
+        e.stopPropagation();
+      }
+    },
+    true
+  );
+
+  function escapeHtml(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function buildHtmlFromRow(r) {
+    if (!r) return "";
+    const get = (k) =>
+      r[k] ??
+      r[k?.toLowerCase?.()] ??
+      r[`column${k}`] ??
+      r[`col${k}`] ??
+      "";
+    const composer = get("Composer") || get("A");
+    const lifespan = get("Lifespan") || get("B");
+    const ru = get("C");
+    const dLabel = get("D") || "Detail";
+    const dVal = get("E");
+    const country = get("F");
+    const sov = get("G");
+    const gender = get("H");
+    const notes = get("I");
+
+    return `
+      <h1>${escapeHtml(composer)}</h1>
+      ${lifespan ? `<p><i>${escapeHtml(lifespan)}</i></p>` : ""}
+      <p><b>Russian:</b> ${escapeHtml(ru)}</p>
+      <p><b>${escapeHtml(dLabel)}:</b> ${escapeHtml(dVal)}</p>
+      <p><b>Country:</b> ${escapeHtml(country)}</p>
+      <p><b>Soviet Republic:</b> ${escapeHtml(sov)}</p>
+      <p><b>Gender:</b> ${escapeHtml(gender)}</p>
+      <p><b>Notes:</b> ${escapeHtml(notes)}</p>
+    `;
+  }
+
+  function updateMobileContent(html) {
+    ensurePanel();
+    const inner =
+      document.querySelector("#composer-mobile-inner") ||
+      panel.querySelector(".mobile-panel-inner");
+    if (inner) inner.innerHTML = html;
+  }
+
+  function populateMobilePanelFromCard(card) {
+    if (!card) return;
+    showPanel();
+
+    const title =
+      card.querySelector(".result-main b")?.textContent?.trim() ||
+      card.dataset?.name ||
+      "";
+
+    updateMobileContent("<div style='padding:12px'>Loading composer...</div>");
+
+    try {
+      if (typeof window.openComposerFromName === "function") {
+        window.openComposerFromName(title, card);
+      } else if (typeof window.populateComposerBox === "function") {
+        window.populateComposerBox(title);
+      }
+    } catch (_) {}
+  }
+
+  // Listen for cards being clicked
+  document.addEventListener(
+    "click",
+    (ev) => {
+      if (window.innerWidth > 600) return;
+      const card = ev.target.closest(".result-card");
+      if (!card) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      populateMobilePanelFromCard(card);
+    },
+    true
+  );
+
+  // Close panel when clicking outside
+  document.addEventListener("click", (ev) => {
+    if (panel && panel.style.display === "block" && !panel.contains(ev.target)) {
+      hidePanel();
+    }
+  });
+
+  // Listen for composerPopulated events
+  document.addEventListener(
+    "composerPopulated",
+    (e) => {
+      const d = e?.detail || {};
+      if (d.html) {
+        updateMobileContent(d.html);
+        showPanel();
+      } else if (d.row && typeof d.row === "object") {
+        updateMobileContent(buildHtmlFromRow(d.row));
+        showPanel();
+      }
+    },
+    { passive: true }
+  );
+
+  // Debug helpers
+  window.__mobilePanelShow = showPanel;
+  window.__mobilePanelHide = hidePanel;
+
+  console.log("[mobile-panel] ready");
+});

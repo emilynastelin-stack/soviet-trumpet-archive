@@ -234,6 +234,22 @@ export async function GET(request) {
   } catch (err) {
     console.error('GViz fallback fetch failed:', err && err.message ? err.message : err);
   }
+  // Local static fallback: if a packaged `api-sheets.json` exists in the project root,
+  // return it so developers can run the site without Google credentials.
+  try {
+    const localJsonPath = path.resolve('./api-sheets.json');
+    if (fs.existsSync(localJsonPath)) {
+      try {
+        const raw = fs.readFileSync(localJsonPath, 'utf8');
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return jsonResponse(parsed, 200, 'local:api-sheets.json');
+        }
+      } catch (e) {
+        console.error('Failed to parse local api-sheets.json fallback:', e && e.message ? e.message : e);
+      }
+    }
+  } catch (e) { /* ignore */ }
 
   return jsonResponse({ error: 'Missing credentials', message: 'Place a service account JSON at ./secrets/service-account.json or set GOOGLE_API_KEY in environment for a public sheet.' }, 500, '');
 }

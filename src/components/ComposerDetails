@@ -1,0 +1,112 @@
+---
+const composer = Astro.props.composer || null;
+---
+
+<!--
+  This component listens for the `composerPopulated` event from the runtime.
+  When triggered, it updates both desktop and mobile content areas.
+  It starts with a default message until a composer is selected.
+-->
+
+<div class="composer-results" id="composer-details">
+  <div id="desktopContent" class="composer-content desktop-view">
+    <div id="composer-desktop-inner">Select a composer to see details</div>
+  </div>
+
+  <div id="mobileContent" class="composer-content mobile-view">
+    <div id="composer-mobile-inner">Select a composer to see details</div>
+  </div>
+
+  <button id="clearComposerBtn" type="button">Clear composer</button>
+</div>
+
+<script type="module">
+  (function(){
+    const root = document.getElementById('composer-details');
+    if (!root) return;
+    const desktopInner = document.getElementById('composer-desktop-inner');
+    const mobileInner = document.getElementById('composer-mobile-inner');
+    const clearBtn = document.getElementById('clearComposerBtn');
+
+    function clear() {
+      if (desktopInner) desktopInner.innerHTML = 'Select a composer to see details';
+      if (mobileInner) mobileInner.innerHTML = 'Select a composer to see details';
+      if (window?.populateComposerBox) window.populateComposerBox('', null);
+    }
+
+    // Fill content helper
+    window.__composeDetailsFill = function(html){
+      if (desktopInner) desktopInner.innerHTML = html || '';
+      if (mobileInner) mobileInner.innerHTML = html || '';
+    };
+
+    // When runtime dispatches event, render details
+    document.addEventListener('composerPopulated', (ev) => {
+      const d = ev?.detail || {};
+      if (d.row && typeof d.row === 'object'){
+        const r = d.row;
+        const normalize = (k) => String(k || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '').trim();
+        const map = {};
+        Object.keys(r).forEach(k => { map[normalize(k)] = r[k]; });
+
+        const pick = (aliases) => aliases.map(normalize).map(a => map[a]).find(v => v && String(v).trim() !== '') || '';
+
+        const composerName = pick(['Composer','Name','Имя','columnA','a']);
+        const lifespan = pick(['Lifespan','Life span','Born','Died','Years','columnB','b']);
+        const ru = pick(['Russian','C','columnC']);
+        const dLabel = pick(['D','columnD']) || 'Detail';
+        const dVal = pick(['E','columnE']);
+        const country = pick(['Country','Nationality','F','columnF']);
+        const sovRep = pick(['Soviet republic','Republic','G','columnG']);
+        const gender = pick(['Gender','H','columnH']);
+        const notes = pick(['Notes','I','columnI']);
+        const learn = pick(['Learn more','Link','URL']);
+
+        const html = `
+          <h1>${escapeHtml(composerName)}</h1>
+          ${lifespan ? `<p><i>${escapeHtml(lifespan)}</i></p>` : ''}
+          <div>${escapeHtml(ru)}</div>
+          <p><strong>${escapeHtml(dLabel)}:</strong> ${escapeHtml(dVal)}</p>
+          <div style="margin-top:8px">
+            <p><strong>Country:</strong> ${escapeHtml(country)}</p>
+            <p><strong>Soviet Republic:</strong> ${escapeHtml(sovRep)}</p>
+            <p><strong>Gender:</strong> ${escapeHtml(gender)}</p>
+            <p><strong>Notes:</strong> ${escapeHtml(notes)}</p>
+            ${learn ? `<p><a href="${escapeHtml(learn)}" target="_blank" rel="noopener">Learn more</a></p>` : ''}
+          </div>
+        `;
+        window.__composeDetailsFill(html);
+        return;
+      }
+
+      const html = d.html || d.htmlString || '';
+      if (html) window.__composeDetailsFill(String(html));
+    }, { passive: true });
+
+    if (clearBtn) clearBtn.addEventListener('click', clear);
+
+    // Mirror any pre-populated content (SSR or fallback)
+    const remote = document.getElementById('composer-content');
+    if (remote?.innerHTML?.trim()) {
+      window.__composeDetailsFill(remote.innerHTML);
+    }
+
+    function escapeHtml(s){
+      return String(s || '')
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;');
+    }
+  })();
+</script>
+
+<style>
+  .desktop-view { display: block; }
+  .mobile-view { display: none; }
+  @media (max-width: 768px) {
+    .desktop-view { display: none; }
+    .mobile-view { display: block; }
+  }
+</style>

@@ -1,0 +1,71 @@
+import React, { useState, useEffect } from 'react';
+
+// Props:
+// - composers: full list of composer objects
+// - onFiltered: optional callback to pass the filtered list back to parent
+function ComposerFilter({ composers = [], onFiltered }) {
+  const [search, setSearch] = useState('');
+  const [selectedCountries, setSelectedCountries] = useState([]);
+
+  // Normalize composers array safety
+  const list = Array.isArray(composers) ? composers : [];
+
+  // Gather unique countries from composers for checkbox list
+  const allCountries = Array.from(new Set(list.map(c => (c && c.country) || '')).values())
+    .filter(Boolean)
+    .sort();
+
+  // Filter function used in effects and user interactions
+  const computeFiltered = () => {
+    const q = (search || '').toLowerCase();
+    return list.filter(c => {
+      const name = (c && (c.name || c.fullName || c.title)) || '';
+      const country = (c && c.country) || '';
+      const matchesSearch = !q || name.toLowerCase().includes(q) || country.toLowerCase().includes(q);
+      const matchesCountry = selectedCountries.length === 0 || selectedCountries.includes(country);
+      return matchesSearch && matchesCountry;
+    });
+  };
+
+  // Whenever filters change, call callback and dispatch a CustomEvent
+  useEffect(() => {
+    const filtered = computeFiltered();
+    try { if (typeof onFiltered === 'function') onFiltered(filtered); } catch (e) { console.warn(e); }
+    try { window.latestFiltered = filtered; } catch (e) { /* ignore */ }
+    try { document.dispatchEvent(new CustomEvent('composerFiltered', { detail: { filtered } })); } catch (e) { /* ignore */ }
+  }, [search, selectedCountries, composers]);
+
+  // Handle checkbox toggle
+  const toggleCountry = (country) => {
+    setSelectedCountries(prev => (prev.includes(country) ? prev.filter(c => c !== country) : [...prev, country]));
+  };
+
+  return (
+    <div className="composer-filter">
+      <input
+        type="text"
+        id="qinput"
+        placeholder="Search composers..."
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        className="search-input"
+      />
+      <div className="country-filters">
+        {allCountries.map(country => (
+          <label key={country} style={{ display: 'block', marginTop: '4px' }}>
+            <input
+              type="checkbox"
+              value={country}
+              checked={selectedCountries.includes(country)}
+              onChange={() => toggleCountry(country)}
+            />
+            {country}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default ComposerFilter;
+export { ComposerFilter };

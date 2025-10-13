@@ -79,13 +79,78 @@ import ComposersPage from "../components/ComposersPage.jsx";
     the left panel sits 20px from the left edge and the right
     panel sits 20px from the right edge. Left/right panels
     use fixed widths; center panel is fluid. */
-    .three-panels { display:flex; gap:16px; width:100%; margin:45px 0 0 0; padding:0 20px; box-sizing:border-box; overflow-x:hidden; align-items:stretch; }
-  /* left filter panel (anchored 20px from left) */
-  .three-panels .panel:first-child { width:270px; flex:0 0 270px; }
-  /* center results panel (flexible) */
-  .three-panels .panel:nth-child(2) { flex:1 1 auto; min-width:0; }
-  /* right composer panel (anchored 20px from right) */
-  .three-panels .panel:last-child { width:345px; flex:0 0 345px; }
+   /* Remove container padding so left edge aligns to viewport
+      Enforce with !important to avoid being overridden elsewhere. Also
+      set panels roughly 100px below the search strip (search strip top is 64px). */
+  /* Results panel: flexes normally between them */
+  .three-panels .panel:nth-child(2) {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* Composer panel: fixed width, stays flush to right edge with 15px margin */
+  /* Full-width layout: left and right panels anchored 15px from viewport edges; center fills space between */
+  .three-panels {
+    display: grid;
+    grid-template-columns: 370px 1fr 445px; /* side panels increased by 100px each */
+    gap: 15px;
+    width: 100%;
+    padding: 0 15px; /* 15px gutters to viewport edges */
+    box-sizing: border-box;
+    overflow-x: hidden;
+    align-items: stretch; /* stretch panels to equal height */
+    position: relative;
+    transform: translateZ(0); /* create a new stacking context for transforms */
+  }
+
+  .three-panels .panel:first-child {
+    width: 370px; /* widened left panel */
+  }
+
+  .three-panels .panel:nth-child(2) {
+    min-width: 0; /* allow center to shrink appropriately */
+  }
+
+  .three-panels .panel:last-child {
+    width: 445px; /* widened right panel */
+  }
+
+  /* Make each panel a vertical flex container so inner boxes can expand to full height */
+  .three-panels .panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+  }
+
+  /* Make the element immediately after the panel divider fill remaining panel height */
+  .three-panels .panel > .panel-divider + * {
+    flex: 1 1 auto;
+    min-height: 0; /* allow children to scroll when necessary */
+    overflow: auto;
+  }
+
+  /* Filter panel: ensure the composer filter root and its inner .filter-box stretch */
+  .three-panels .panel.filter-panel > #composer-filter-root {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+  .three-panels .panel.filter-panel .filter-box {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  /* Composer panel: allow composer content and more-from-composer to expand */
+  .three-panels .panel#panel-right > #composer-content,
+  .three-panels .panel#panel-right > #more-from-composer {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
     /* Ensure panels constrain overflowing children and allow flex shrinking properly */
     .three-panels .panel {
       max-width: 100%;
@@ -121,6 +186,7 @@ import ComposersPage from "../components/ComposersPage.jsx";
   /* pagination styles */
   .pagination { display:flex; gap:8px; align-items:center; }
   .pagination { background: #fff; padding:6px; border-radius:6px; color: #0f172a; }
+
   /* New filter-panel styles */
   .filter-panel {
     width: 270px;
@@ -143,6 +209,27 @@ import ComposersPage from "../components/ComposersPage.jsx";
     display: flex;
     flex-direction: column;
     gap: 20px;
+  }
+
+  /* desktop-only helper: hide by default, show on wider viewports */
+  .desktop-only { display: none; }
+  @media (min-width: 600px) {
+    .desktop-only { display: inline-block !important; }
+  }
+
+  /* Composer panel bottom controls container: stick to bottom of the right panel */
+  .composer-bottom {
+    margin-top: 12px; /* stick just below composer info */
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Ensure composer content does not stretch to consume the whole panel height
+     which would push the bottom controls to the page bottom. */
+  .three-panels .panel#panel-right > #composer-content {
+    flex: 0 0 auto;
+    overflow: visible;
   }
 
   .filter-group {
@@ -342,12 +429,13 @@ import ComposersPage from "../components/ComposersPage.jsx";
   /* Desktop footer remains visible by default; on mobile it will be hidden. */
   /* We define explicit mobile rules below to ensure predictable layout. */
   @media (max-width:600px) {
-    /* Hide the large desktop header and the fixed footer bar on small screens */
-    header { display: none !important; }
-    #fixed-footer { display: none !important; }
+  /* Hide the large desktop header on small screens but KEEP the fixed footer visible */
+  header { display: none !important; }
+  /* Ensure the fixed footer remains visible on small screens (override any previous hide rules) */
+  #fixed-footer { display: block !important; visibility: visible !important; }
 
-    /* Show the mobile footer toolbar (replacement) */
-    .mobile-footer-toolbar { display: flex !important; }
+  /* Show the mobile footer toolbar (replacement) */
+  .mobile-footer-toolbar { display: flex !important; }
 
     /* Reserve room for the mobile topbar + search strip so content isn't hidden */
     body { padding-top: calc(56px + 64px); }
@@ -372,6 +460,23 @@ import ComposersPage from "../components/ComposersPage.jsx";
     }
 
   /* keep fixed footer visible on small screens (always in viewport) */
+
+  /* Keep the fixed footer pinned and match the composers page visual style (use a reasonable z-index). */
+  #fixed-footer {
+    position: fixed !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 1200 !important; /* match composers page */
+    pointer-events: auto !important;
+    transform: none !important;
+    visibility: visible !important;
+    display: block !important;
+    box-shadow: 0 -6px 18px rgba(11,10,10,0.25) !important;
+    padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px)) 0 !important;
+    background-color: #8b0000 !important;
+    color: #fff !important;
+  }
 
     /* Make header and search strip adapt to small screens */
     @media (max-width:600px) {
@@ -488,6 +593,18 @@ import ComposersPage from "../components/ComposersPage.jsx";
         <button id="togglePanelBtn" class="mobile-toggle" aria-label="Open mobile panel">☰</button>
       </div>
     </div>
+    
+    <script>
+      // Bridge: listen for composerFiltered events from the (hidden) island and re-dispatch a generic filtersChanged event
+      document.addEventListener('composerFiltered', function(e){
+        try{
+          var filtered = e && e.detail && e.detail.filtered ? e.detail.filtered : [];
+          try{ window.latestFiltered = filtered; }catch(_){ }
+          var ev = new CustomEvent('filtersChanged', { detail: { filtered: filtered } });
+          document.dispatchEvent(ev);
+        }catch(err){ console.warn('filters bridge failed', err); }
+      }, { passive: true });
+    </script>
   </header>
   <!-- Mobile topbar: simple white bar with left-aligned title for small screens -->
   <div class="mobile-topbar" aria-hidden="true">
@@ -499,6 +616,43 @@ import ComposersPage from "../components/ComposersPage.jsx";
     // Force English locale on this results page to keep filter labels consistent
     try{ localStorage.setItem('locale','en'); }catch(e){}
   </script>
+  <script>
+    // Compute and set .three-panels vertical offset so panels sit ~100px below the search strip.
+    (function(){
+      function setPanelsOffset(){
+        try{
+          var strip = document.querySelector('.search-strip');
+          var panels = document.querySelector('.three-panels');
+          if (!panels) return;
+          var extra = 50; // pixels below search strip (reduced to raise panels by 50px)
+          if (strip){
+            var stripRect = strip.getBoundingClientRect();
+            var stripBottom = stripRect.bottom + window.pageYOffset;
+            var panelsRect = panels.getBoundingClientRect();
+            var panelsTop = panelsRect.top + window.pageYOffset;
+            var desiredTop = stripBottom + extra;
+            var delta = desiredTop - panelsTop;
+            if (delta > 0) {
+              // clear previous layout offsets then apply a translateY for robust visual shift
+              panels.style.marginTop = '';
+              panels.style.top = '';
+              panels.style.transform = 'translateY(' + delta + 'px)';
+            }
+            // debug when requested via ?debug-panels
+            if (typeof window !== 'undefined' && window.location && window.location.search.indexOf('debug-panels') !== -1) {
+              console.info('[panels] stripBottom', stripBottom, 'panelsTop', panelsTop, 'delta', delta, 'appliedMargin', panels.style.marginTop);
+            }
+          } else {
+            panels.style.marginTop = (64 + extra) + 'px';
+          }
+        }catch(e){/* ignore */}
+      }
+      window.addEventListener('resize', setPanelsOffset);
+      document.addEventListener('DOMContentLoaded', setPanelsOffset);
+      // call immediately in case script runs after DOMContentLoaded
+      setPanelsOffset();
+    })();
+  </script>
     <!-- fixed translucent search strip centered under the navbar (flush with nav) -->
     <div class="search-strip" aria-hidden="false">
       <div class="search-center">
@@ -508,10 +662,13 @@ import ComposersPage from "../components/ComposersPage.jsx";
     </div>
     <!-- three horizontal panels, 20px below the search strip -->
     <div class="three-panels" role="region" aria-label="Quick panels">
-      <aside class="panel filter-panel" id="panel-left">
+      <aside class="panel filter-panel" id="panel-left" aria-label="Filters">
         <h3 class="filter-title">Filters</h3>
 
-        <div class="filter-box">
+        <!-- Mount-point for the ComposerFilter React island. A minimal accessible fallback is included for no-JS. -->
+        <div id="composer-filter-root" aria-live="polite">
+          <div class="filter-fallback">
+            <div class="filter-box">
 
           <!-- COUNTRY -->
           <div class="filter-group" data-group="country">
@@ -627,8 +784,49 @@ import ComposersPage from "../components/ComposersPage.jsx";
                  </div>
           </div>
 
+            </div>
+          </div>
         </div>
+
+        <noscript>
+          <div class="filter-noscript">
+            <p>Enable JavaScript to use the interactive filters.</p>
+          </div>
+        </noscript>
       </aside>
+
+      <script type="module">
+        import mount from '/src/components/mountComposerFilter.js';
+        document.addEventListener('DOMContentLoaded', function(){
+          try{
+            const rootEl = document.getElementById('composer-filter-root');
+            if (!rootEl) return;
+            // Provide server-injected data if available
+            const init = (window && window.__INIT_DATA__ && Array.isArray(window.__INIT_DATA__)) ? window.__INIT_DATA__ : null;
+            if (init) {
+              // mount visible with server-provided data
+              mount(rootEl, init, { headless: false });
+            } else {
+              // Fetch composers and mount visibly once data arrives; if fetch fails mount with empty list
+              fetch('/api/sheets').then(r => r.ok ? r.json() : Promise.reject(r)).then(json => {
+                const rows = Array.isArray(json) ? json : [];
+                try{
+                  // mount the interactive filter UI with fetched rows
+                  mount(rootEl, rows, { headless: false });
+                }catch(_){
+                  // fallback: mount an empty interactive filter so UI is present
+                  try{ mount(rootEl, [], { headless: false }); }catch(__){}
+                }
+                // keep compatibility: also dispatch composersLoaded for other listeners
+                try{ window.dispatchEvent(new CustomEvent('composersLoaded', { detail: { composers: rows } })); }catch(_){ }
+              }).catch(err => {
+                // on error, mount visible but empty so the user can still interact with the panel
+                try{ mount(rootEl, [], { headless: false }); }catch(_){ }
+              });
+            }
+          }catch(e){ console.error(e); }
+        });
+      </script>
   <div class="panel" id="panel-center">
         <h3 class="panel-title">Results</h3>
         <div class="panel-divider"></div>
@@ -684,12 +882,63 @@ import ComposersPage from "../components/ComposersPage.jsx";
         <h3 class="panel-title">Composer information</h3>
         <div class="panel-divider"></div>
         <div id="composer-content" style="margin-top:8px">Select a result to view composer details.</div>
-        <!-- Dedicated container for "More from this composer" so the client can toggle it
-             without being overwritten when #composer-content is replaced. -->
-        <div id="more-from-composer" style="margin-top:16px; display:none;"></div>
-        <div style="margin-top:12px;">
-          <button id="clear-composer" style="display:none;padding:6px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear composer</button>
+        <div class="composer-bottom">
+          <div style="margin-top:12px;">
+            <button id="clear-composer" class="desktop-only" style="padding:6px 10px;border-radius:6px;border:1px solid #d1d5db;background:#fff;">Clear composer</button>
+          </div>
+          <!-- Dedicated container for "More from this composer" so the client can toggle it
+               without being overwritten when #composer-content is replaced. -->
+          <div id="more-from-composer" style="margin-top:0; display:none;"></div>
         </div>
+        <script>
+        (function(){
+          function updateClearButton(){
+            try{
+              var btn = document.getElementById('clear-composer');
+              if (!btn) return;
+              var selected = (window && window.selectedComposer) ? String(window.selectedComposer || '') : '';
+              if (selected && selected.trim()) { btn.style.display = ''; } else { btn.style.display = 'none'; }
+            }catch(_){ }
+          }
+          // Wire click to clear selection and notify other codepaths
+          try{
+            var cb = document.getElementById('clear-composer');
+            if (cb) cb.addEventListener('click', function(e){
+              try{ window.selectedComposer = ''; }catch(_){ }
+              try{ document.dispatchEvent(new CustomEvent('composerCleared', { detail: {} })); }catch(_){ }
+              try{ document.dispatchEvent(new CustomEvent('filtersChanged', { detail: { filtered: window.latestFiltered || [] } })); }catch(_){ }
+              try{ cb.style.display = 'none'; }catch(_){}
+            });
+          }catch(_){ }
+          // Listen for events that indicate a composer was populated/selected
+          document.addEventListener('composerPopulated', function(e){ try{ updateClearButton(); }catch(_){ } }, { passive: true });
+          document.addEventListener('composersLoaded', function(e){ try{ updateClearButton(); }catch(_){ } }, { passive: true });
+          // Also update periodically briefly to catch cases where window.selectedComposer is set by other scripts
+          try{ setInterval(updateClearButton, 800); }catch(_){ }
+        })();
+        </script>
+        <script>
+        // When any filter checkbox is checked/unchecked, clear the composer panel
+        (function(){
+          function clearComposerUI(){
+            try{ window.selectedComposer = ''; }catch(_){ }
+            try{ var cb = document.getElementById('clear-composer'); if (cb) cb.style.display = 'none'; }catch(_){ }
+            try{ var content = document.getElementById('composer-content'); if (content) content.innerHTML = 'Select a result to view composer details.'; }catch(_){ }
+            try{ var more = document.getElementById('more-from-composer'); if (more) more.style.display = 'none'; }catch(_){ }
+            try{ document.dispatchEvent(new CustomEvent('composerCleared', { detail: {} })); }catch(_){ }
+          }
+
+          document.addEventListener('change', function(ev){
+            try{
+              var t = ev && ev.target;
+              if (!t) return;
+              if (t.matches && (t.matches('.filter-box input[type="checkbox"]') || t.matches('.filter-options input[type="checkbox"]') || t.closest && t.closest('.filter-box')) ){
+                clearComposerUI();
+              }
+            }catch(_){ }
+          }, { passive: true });
+        })();
+        </script>
       </div>
     </div>
     <!-- background overlay (moved to page top) -->
