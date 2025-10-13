@@ -121,7 +121,9 @@
   footer { margin-top:40px; padding:36px 0; }
   /* Fixed footer: larger height, left-aligned site title with subtitle, resources on the right */
   /* Reduced padding to shrink overall footer height by 20px (was 18px) */
-  #fixed-footer { position:fixed; left:0; right:0; bottom:0; background-color:#8b0000; color:white; z-index:1200; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
+  @media (min-width: 601px) {
+    #fixed-footer { position:fixed; left:0; right:0; bottom:0; background-color:#8b0000; color:white; z-index:1200; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
+  }
   /* make footer inner span the full viewport so left content can be flush to edge */
   .fixed-footer-inner { width:100%; max-width:none; margin:0; padding:0 20px; display:flex; gap:12px; justify-content:space-between; align-items:center; }
   .footer-grid { display:flex; gap:24px; flex-wrap:wrap; }
@@ -146,7 +148,7 @@
       @media (max-width:600px) {
         .mobile-footer-toolbar { display:flex; position:fixed; left:0; right:0; bottom:0; box-sizing:border-box; height:56px; background:rgba(255,255,255,0.98); align-items:center; justify-content:space-between; padding:0 12px calc(8px + env(safe-area-inset-bottom)); gap:12px; z-index:100001; box-shadow:0 -6px 18px rgba(11,15,30,0.08); backdrop-filter: blur(6px); }
         .mobile-footer-toolbar .mf-btn { flex:0 0 auto; border:1px solid #e6e9ef; background:#fff; padding:8px 12px; border-radius:10px; font-weight:700; color:var(--accent); cursor:pointer; }
-        #fixed-footer { display: none !important; visibility: hidden !important; }
+  #fixed-footer { display: none !important; visibility: hidden !important; }
         .mobile-topbar { display:flex !important; }
       }
 
