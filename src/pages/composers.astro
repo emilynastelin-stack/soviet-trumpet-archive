@@ -138,8 +138,17 @@
     .fixed-footer-right { display:flex; align-items:center; justify-content:flex-end; min-width:220px; transform: translateY(-3px); }
     .fixed-footer-right .copyright { color:rgba(255,255,255,0.9); font-size:13px; }
 
-    @media (max-width:900px) { .grid { grid-template-columns:repeat(2,1fr); } }
-    @media (max-width:600px) { .grid{grid-template-columns:1fr;} .search-row{flex-direction:column;} .container{padding:14px;} }
+      @media (max-width:900px) { .grid { grid-template-columns:repeat(2,1fr); } }
+      @media (max-width:600px) { .grid{grid-template-columns:1fr;} .search-row{flex-direction:column;} .container{padding:14px;} }
+
+      /* Mobile toolbar: show compact toolbar and hide the desktop fixed footer on small screens */
+      .mobile-footer-toolbar { display: none; }
+      @media (max-width:600px) {
+        .mobile-footer-toolbar { display:flex; position:fixed; left:0; right:0; bottom:0; box-sizing:border-box; height:56px; background:rgba(255,255,255,0.98); align-items:center; justify-content:space-between; padding:0 12px calc(8px + env(safe-area-inset-bottom)); gap:12px; z-index:100001; box-shadow:0 -6px 18px rgba(11,15,30,0.08); backdrop-filter: blur(6px); }
+        .mobile-footer-toolbar .mf-btn { flex:0 0 auto; border:1px solid #e6e9ef; background:#fff; padding:8px 12px; border-radius:10px; font-weight:700; color:var(--accent); cursor:pointer; }
+        #fixed-footer { display: none !important; visibility: hidden !important; }
+        .mobile-topbar { display:flex !important; }
+      }
 
   /* background overlay: ensure it sits behind content and doesn't intercept clicks */
   #bg-overlay { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
@@ -335,6 +344,36 @@
       </div>
     </div>
   </div>
+
+  <!-- Mobile toolbar: Filters | Hamburger menu (center) | Sources -->
+  <div class="mobile-footer-toolbar" id="mobileFooterToolbar" aria-hidden="true">
+    <button class="mf-btn" id="mf-filters">Filters</button>
+    <button class="mf-center" id="mf-hamburger" aria-label="Menu" aria-expanded="false">☰</button>
+    <button class="mf-btn" id="mf-sources">Sources</button>
+  </div>
+
+  <script>
+    // Simple mobile toolbar wiring for composers page: open a filter overlay similar to results page
+    (function(){
+      function openFilterOverlay(){
+        var left = document.getElementById('panel-left');
+        if (!left) return;
+        if (document.getElementById('mobile-filter-overlay')) return;
+        var overlay = document.createElement('div'); overlay.id = 'mobile-filter-overlay'; overlay.className = 'mobile-swipe-menu'; overlay.setAttribute('aria-hidden','false');
+        var inner = document.createElement('div'); inner.className = 'swipe-inner'; inner.setAttribute('role','menu'); inner.setAttribute('aria-label','Filters');
+        var close = document.createElement('button'); close.className = 'swm-close'; close.textContent = 'Close'; close.addEventListener('click', function(e){ e && e.preventDefault && e.preventDefault(); closeFilterOverlay(); });
+        inner.appendChild(close);
+        try{ var clone = left.cloneNode(true); clone.id = 'panel-left-mobile-clone'; clone.classList.add('mobile-overlay-clone'); clone.style.margin = '0'; clone.style.width = '100%'; clone.style.position = 'relative'; clone.style.overflow = 'auto'; clone.style.maxHeight = '100%'; clone.style.height = '100%'; inner.appendChild(clone); }catch(_){ inner.appendChild(left.cloneNode(true)); }
+        overlay.appendChild(inner); document.body.appendChild(overlay);
+        // lock body scroll
+        try{ var _s = window.scrollY || document.documentElement.scrollTop || 0; overlay.__savedScrollY = _s; document.body.style.position = 'fixed'; document.body.style.top = '-' + _s + 'px'; document.body.style.left = '0'; document.body.style.right = '0'; document.body.style.width = '100%'; document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden'; }catch(_){ }
+        overlay.addEventListener('click', function(e){ if (e.target === overlay) closeFilterOverlay(); });
+      }
+      function closeFilterOverlay(){ var ov = document.getElementById('mobile-filter-overlay'); if (!ov) return; var saved = ov.__savedScrollY || 0; try{ ov.remove(); }catch(_){ } try{ document.body.style.position = ''; document.body.style.top = ''; document.body.style.left = ''; document.body.style.right = ''; document.body.style.width = ''; document.documentElement.style.overflow = ''; document.body.style.overflow = ''; if (saved) window.scrollTo(0, saved); }catch(_){ }
+      }
+      try{ var btn = document.getElementById('mf-filters'); if (btn) btn.addEventListener('click', function(e){ e && e.preventDefault && e.preventDefault(); openFilterOverlay(); }); }catch(_){ }
+    })();
+  </script>
 
   
 
