@@ -1,0 +1,73 @@
+<footer id="fixed-footer" aria-hidden="false" role="contentinfo">
+  <div class="footer-left">
+    <div class="title">Archive of Soviet Trumpet Music</div>
+    <div class="subtitle">Архив советской трубной музыки</div>
+  </div>
+
+  <div class="fixed-footer-center">
+    <div class="links">
+      <a href="/about">About</a>
+      <a href="/contact">Make a submission</a>
+      <a href="/sources">Sources</a>
+    </div>
+  </div>
+
+  <div class="fixed-footer-right">
+    <div class="copyright">© 2025 Archive of Soviet Trumpet Music</div>
+  </div>
+</footer>
+
+<style>
+  #fixed-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #8b0000;
+    border-top: 1px solid #660000;
+    z-index: 100000;
+    padding: 8px 15px;
+    font-family: "Segoe UI", "Noto Sans", Arial, sans-serif;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-left .title {
+    font-weight: 600;
+    font-size: 14px;
+    color: white;
+  }
+  .footer-left .subtitle {
+    font-size: 13px;
+    color: white;
+  }
+
+  .fixed-footer-center .links {
+    display: flex;
+    gap: 18px;
+  }
+
+  .fixed-footer-center .links a {
+    text-decoration: none;
+    color: white;
+    font-size: 14px;
+    transition: color 0.2s;
+  }
+
+  .fixed-footer-center .links a:hover {
+    color: #ffcccc;
+  }
+
+  .fixed-footer-right .copyright {
+    font-size: 13px;
+    color: white;
+  }
+
+  @media (max-width: 768px) {
+    #fixed-footer {
+      display: none !important;
+    }
+  }
+</style>

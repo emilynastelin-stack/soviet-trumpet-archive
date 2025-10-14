@@ -1,4 +1,6 @@
 ---
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
 ---
 
 <html>
@@ -6,6 +8,10 @@
     <title>Soviet Trumpet Archive</title>
   </head>
   <body>
-    <slot />
+    <SiteHeader />
+    <main>
+      <slot />
+    </main>
+    <SiteFooter />
   </body>
 </html>

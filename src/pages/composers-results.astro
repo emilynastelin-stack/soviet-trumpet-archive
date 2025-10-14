@@ -1,5 +1,7 @@
 ---
-import ComposersPage from "../components/ComposersPage.jsx";
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import ComposersPage from '../components/ComposersPage.jsx';
 ---
 <!doctype html>
 <html lang="en">
@@ -60,6 +62,12 @@ import ComposersPage from "../components/ComposersPage.jsx";
     .lang-dropdown.open { display:block; }
     .lang-option { padding:6px 8px; cursor:pointer; }
     .lang-option:hover { background:#f3f4f6; }
+
+  /* Desktop: left-align header text and push controls (lang toggle) to the right */
+  @media (min-width: 601px) {
+    header .container.nav { justify-content: flex-start !important; }
+    header .lang-toggle { margin-left: auto; }
+  }
 
     /* Hero & search panel (reduced to essentials used by results page) */
     .search-bar { display:flex; gap:8px; padding:12px 20px; }
@@ -188,6 +196,18 @@ import ComposersPage from "../components/ComposersPage.jsx";
   /* pagination styles */
   .pagination { display:flex; gap:8px; align-items:center; }
   .pagination { background: #fff; padding:6px; border-radius:6px; color: #0f172a; }
+    .pagination .page-btn { display:inline-flex; align-items:center; justify-content:center; min-width:36px; height:36px; padding:0 10px; border-radius:8px; border:1px solid #e6e9ef; background:#fff; color:#0f172a; cursor:pointer; font-weight:600; }
+  .pagination .page-btn:hover { background:#f3f4f6; }
+  .pagination .page-btn[aria-current="true"] { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .pagination .page-ellipsis { padding:0 6px; color:var(--muted); }
+  .pagination .pager-controls { display:flex; gap:8px; align-items:center; }
+
+  /* Result card styles for center panel */
+  /* Result card styles for center panel */
+
+
+<script>
+  // Example data
 
   /* New filter-panel styles */
   .filter-panel {
@@ -311,6 +331,7 @@ import ComposersPage from "../components/ComposersPage.jsx";
 
   /* Result card styles for center panel */
   /* Result card styles for center panel */
+  
 
 <script>
   // Example data
@@ -407,16 +428,18 @@ import ComposersPage from "../components/ComposersPage.jsx";
   update();
 </script>
 
-    @media (max-width:900px) { .grid { grid-template-columns:repeat(2,1fr); } }
+  :root { --header-height: 64px; }
+  @media (max-width:900px) { .grid { grid-template-columns:repeat(2,1fr); } }
     @media (max-width:600px) { .grid{grid-template-columns:1fr;} .search-row{flex-direction:column;} .container{padding:14px;} }
 
     /* Mobile toolbar overlaying footer (visible on small screens, full-width) */
     .mobile-footer-toolbar { display:none; }
-    @media (max-width:600px) {
-  .mobile-footer-toolbar { display:flex; position:fixed; left:0; right:0; bottom:0; box-sizing:border-box; height:56px; background:rgba(255,255,255,0.98); align-items:center; justify-content:space-between; padding:0 calc(12px + env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)); gap:12px; z-index:100001; box-shadow:0 -6px 18px rgba(11,15,30,0.08); backdrop-filter: blur(6px); margin:0; pointer-events:auto; }
-  .mobile-footer-toolbar .mf-btn { flex:0 0 auto; border:1px solid #e6e9ef; background:#fff; padding:8px 12px; border-radius:10px; font-weight:700; color:var(--accent); cursor:pointer; }
+      @media (max-width:600px) {
+    .mobile-footer-toolbar { display:flex; position:fixed; left:0; right:0; bottom:0; box-sizing:border-box; height:56px; background: var(--accent); align-items:center; justify-content:space-between; padding:0 calc(12px + env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)); gap:12px; z-index:100001; box-shadow:0 -6px 18px rgba(11,15,30,0.08); backdrop-filter: blur(6px); margin:0; pointer-events:auto; }
+    /* Make toolbar controls readable on maroon background */
+    .mobile-footer-toolbar .mf-btn { flex:0 0 auto; border:1px solid rgba(255,255,255,0.12); background:transparent; padding:8px 12px; border-radius:10px; font-weight:700; color:#fff; cursor:pointer; }
       /* make hamburger inline on the bar (no red circular center) */
-      .mobile-footer-toolbar .mf-center { position:static; transform:none; width:auto; height:auto; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; background:transparent; color:var(--accent); box-shadow:none; border:1px solid #e6e9ef; padding:8px 12px; }
+  .mobile-footer-toolbar .mf-center { position:static; transform:none; width:auto; height:auto; border-radius:8px; display:inline-flex; align-items:center; justify-content:center; background:transparent; color:var(--accent); box-shadow:none; border:1px solid #e6e9ef; padding:8px 12px; }
   /* ensure toolbar overlays footer */
   /* Fixed footer: bring in the same styling used on the main composers page */
   footer { margin-top:40px; padding:36px 0; }
@@ -437,7 +460,12 @@ import ComposersPage from "../components/ComposersPage.jsx";
   #fixed-footer { display: none !important; visibility: hidden !important; }
 
   /* Show the mobile footer toolbar (replacement) */
-  .mobile-footer-toolbar { display: flex !important; }
+      .mobile-footer-toolbar { display: flex !important; }
+      /* On mobile hide the center hamburger, show the header hamburger instead */
+      @media (max-width:600px) {
+        .mobile-footer-toolbar .mf-center { display: none !important; }
+        .header-hamburger { display:inline-flex !important; }
+      }
 
     /* Reserve room for the mobile topbar + search strip so content isn't hidden */
     body { padding-top: calc(56px + 64px); }
@@ -484,7 +512,7 @@ import ComposersPage from "../components/ComposersPage.jsx";
     /* Make header and search strip adapt to small screens */
     @media (max-width:600px) {
       header .container { padding: 10px 14px; }
-      .search-strip { top:64px; }
+  .search-strip { top: var(--header-height); }
       /* limit total search control width to screen width minus 30px (15px padding each side) */
       .search-center { padding: 0; max-width: none; width: calc(100% - 30px); margin: 0 15px; }
       .search-center #qinput { border-radius:8px; width:100%; min-width:0; }
@@ -575,9 +603,13 @@ import ComposersPage from "../components/ComposersPage.jsx";
     </style>
   </head>
   <body>
+  <SiteHeader />
     <!-- background overlay removed -->
   <header style="position:fixed;left:0;right:0;top:0;z-index:1500;background:white;">
     <div class="container nav" style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <button class="header-hamburger" id="headerHamburgerResults" aria-label="Open menu" style="display:none;margin-right:8px;">☰</button>
+      </div>
       <div class="logo">
         <a href="/composers" aria-label="Back to composers" title="Back to composers">
           <span class="nav-english" id="navEnglish">Archive of Soviet Trumpet Music</span>
@@ -621,6 +653,37 @@ import ComposersPage from "../components/ComposersPage.jsx";
     try{ localStorage.setItem('locale','en'); }catch(e){}
   </script>
   <script>
+    // Mobile header hamburger -> right-side quick menu (Home / About / Sources)
+    (function(){
+      var btn = document.getElementById('headerHamburgerResults');
+      function lockBody(){ try{ document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden'; }catch(_){ } }
+      function unlockBody(){ try{ document.documentElement.style.overflow = ''; document.body.style.overflow = ''; }catch(_){ } }
+      function openMenu(){
+        try{ if (window.__mobileOverlayLock) return; }catch(_){ }
+        try{ if (document.getElementById('mobile-menu-overlay')) return; }catch(_){ }
+        var overlay = document.createElement('div'); overlay.id = 'mobile-menu-overlay'; overlay.className = 'mobile-overlay right'; overlay.setAttribute('aria-hidden','false');
+        var inner = document.createElement('div'); inner.className = 'overlay-inner'; inner.setAttribute('role','menu');
+        var close = document.createElement('button'); close.className = 'overlay-close'; close.textContent = 'Close'; close.addEventListener('click', closeMenu);
+        inner.appendChild(close);
+        var list = document.createElement('div'); list.style.padding = '16px'; list.style.display = 'flex'; list.style.flexDirection = 'column'; list.style.gap = '12px';
+        function link(href, text){ var a = document.createElement('a'); a.href=href; a.textContent=text; a.style.display='inline-block'; a.style.padding='10px 12px'; a.style.borderRadius='8px'; a.style.background='#fff'; a.style.color='var(--accent)'; a.style.textDecoration='none'; return a; }
+        list.appendChild(link('/', 'Home'));
+        list.appendChild(link('/about', 'About'));
+        list.appendChild(link('/sources', 'Sources'));
+        inner.appendChild(list);
+        try{ overlay.style.position = 'fixed'; overlay.style.inset = '0'; overlay.style.zIndex = '100000'; overlay.style.background = 'rgba(0,0,0,0.18)'; overlay.style.pointerEvents = 'auto'; }catch(_){ }
+        try{ inner.style.position = 'absolute'; inner.style.top = '64px'; inner.style.bottom = '56px'; inner.style.right = '0'; inner.style.width = '84vw'; inner.style.maxWidth = '360px'; inner.style.background = 'white'; inner.style.boxShadow = ' -6px 0 18px rgba(0,0,0,0.12)'; inner.style.borderRadius = '12px 0 0 12px'; inner.style.overflow = 'auto'; inner.style.padding = '8px'; inner.style.boxSizing = 'border-box'; inner.style.zIndex = '100001'; }catch(_){ }
+        overlay.appendChild(inner); document.body.appendChild(overlay);
+        try{ window.__mobileOverlayLock = 'menu'; }catch(_){ }
+        try{ var _s = window.scrollY || document.documentElement.scrollTop || 0; overlay.__savedScrollY = _s; document.body.style.position = 'fixed'; document.body.style.top = '-' + _s + 'px'; document.body.style.left = '0'; document.body.style.right = '0'; document.body.style.width = '100%'; lockBody(); }catch(_){ }
+        overlay.addEventListener('click', function(e){ if (e.target === overlay) closeMenu(); });
+      }
+      function closeMenu(){ var ov = document.getElementById('mobile-menu-overlay'); if (!ov) return; try{ var saved = ov.__savedScrollY || 0; ov.remove(); try{ if (window.__mobileOverlayLock === 'menu') window.__mobileOverlayLock = null; }catch(_){ } try{ document.body.style.position = ''; document.body.style.top = ''; document.body.style.left = ''; document.body.style.right = ''; document.body.style.width = ''; unlockBody(); if (saved) window.scrollTo(0, saved); }catch(_){ } }catch(e){ try{ ov.remove(); }catch(_){ } }
+      }
+      try{ if (btn) btn.addEventListener('click', function(e){ e && e.preventDefault && e.preventDefault(); openMenu(); }); }catch(_){ }
+    })();
+  </script>
+  <script>
     // Compute and set .three-panels vertical offset so panels sit ~100px below the search strip.
     (function(){
       function setPanelsOffset(){
@@ -658,7 +721,11 @@ import ComposersPage from "../components/ComposersPage.jsx";
       // call immediately in case script runs after DOMContentLoaded
       setPanelsOffset();
     })();
-  </script>
+
+ </script>
+ 
+ <SiteFooter />
+ 
     <!-- fixed translucent search strip centered under the navbar (flush with nav) -->
     <div class="search-strip" aria-hidden="false">
       <div class="search-center">
@@ -1888,3 +1955,4 @@ import ComposersPage from "../components/ComposersPage.jsx";
 
         })();
       </script>
+      

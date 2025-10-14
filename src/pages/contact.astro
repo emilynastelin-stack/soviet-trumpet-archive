@@ -1,0 +1,58 @@
+---
+layout: "../layouts/Layout.astro"
+title: "Contact"
+---
+
+<section class="container" style="padding:28px 16px; max-width:900px; margin:16px auto;">
+  <h1>Contact</h1>
+  <p>If you'd like to reach the Archive team, please use the form below. This form will open your mail client with a pre-filled message. You can also use the plain email link if you prefer.</p>
+
+  <form id="contactForm" method="post" action="mailto:contact@example.com" encType="text/plain" style="display:grid; gap:12px;">
+    <label for="name">Your name</label>
+    <input id="name" name="name" type="text" placeholder="Jane Doe" required />
+
+    <label for="email">Your email</label>
+    <input id="email" name="email" type="email" placeholder="you@example.com" required />
+
+    <label for="subject">Subject</label>
+    <input id="subject" name="subject" type="text" placeholder="Message subject" />
+
+    <label for="message">Message</label>
+    <textarea id="message" name="message" rows="8" placeholder="Write your message here" required></textarea>
+
+    <div style="display:flex; gap:8px; align-items:center;">
+      <button type="submit" style="padding:8px 12px;">Send message</button>
+      <button type="button" id="clearContact" style="padding:8px 12px;">Clear</button>
+    </div>
+  </form>
+
+  <p style="margin-top:12px;">No JavaScript? Email us directly: <a href="mailto:contact@example.com">contact@example.com</a></p>
+</section>
+
+<script>
+  // Intercept submit to open user's mail client with prefilled body when possible.
+  (function(){
+    var form = document.getElementById('contactForm');
+    var clearBtn = document.getElementById('clearContact');
+    if (clearBtn) clearBtn.addEventListener('click', function(){ try{ form.reset(); }catch(_){ } });
+    if (!form) return;
+    form.addEventListener('submit', function(ev){
+      try{
+        // Prefer building a mailto link so no server is required.
+        var name = encodeURIComponent((document.getElementById('name')||{}).value||'');
+        var email = encodeURIComponent((document.getElementById('email')||{}).value||'');
+        var subj = encodeURIComponent((document.getElementById('subject')||{}).value||'Contact from site');
+        var msg = encodeURIComponent((document.getElementById('message')||{}).value||'');
+        var body = encodeURIComponent('Name: ' + decodeURIComponent(name) + '\nEmail: ' + decodeURIComponent(email) + '\n\n') + '%0D%0A' + msg;
+        var to = 'contact@example.com';
+        // Build mailto and open in a new window to avoid replacing the SPA page when possible.
+        var mailto = 'mailto:' + to + '?subject=' + subj + '&body=' + body;
+        // For browsers that block window.open for mailto, fallback to location.href
+        try{ window.open(mailto); }catch(_){ window.location.href = mailto; }
+      }catch(e){ /* ignore and allow default fallback */ }
+      // Prevent default form POST which would try to open a mail client too but is less reliable.
+      ev && ev.preventDefault && ev.preventDefault();
+      return false;
+    });
+  })();
+</script>

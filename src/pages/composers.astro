@@ -1,486 +1,213 @@
-<!doctype html>
+---
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+---
+
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Soviet Trumpet Archive</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Soviet Trumpet Archive</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet" />
 
-  <!-- Server-side frontmatter notes (Astro) -->
-  <!--
-    FRONTMATTER: fetch initial rows from /api/sheets if available
-    Use Astro server-side fetch to preload DATA during page render.
-    If your dev server blocks internal requests, this can fail silently.
-  -->
+    <style>
+      :root { --accent:#8b0000; --muted:#6b7280; --bg:#f7f9fc; }
+      * { box-sizing:border-box; }
 
-  <style>
-    :root { --accent:#8b0000; --muted:#6b7280; --bg:#f7f9fc; }
-    * { box-sizing:border-box; }
-    body {
-      font-family: Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      margin: 0;
-      color: #0f172a;
-      background-color: var(--bg);
-      background-image: none;
-      padding-bottom: 64px; /* reserve space for fixed footer */
-    }
+      html, body {
+        height: 100%;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        font-family: Inter, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        color: #0f172a;
+        background-color: var(--bg);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
 
-    header {
-      background:white; 
-      border-bottom:1px solid #e6e9ef; 
-      position:sticky; 
-      top:0; 
-      z-index:1000; /* ensure header sits above overlays */
-    }
+      /* Tint box (desktop) */
+      .tint-box {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        background-color: rgba(186,171,157,0.75);
+        width: 100%;
+        max-width: 900px;
+        margin: 0 auto;
+        padding-top: 64px;
+        position: relative;
+        z-index: 10;
+      }
 
-  /* Header: span full width so title can be flush left; language selector sits flush right via flex */
-  header .container { width:100%; max-width:none; margin:0; padding:12px 20px; }
-  /* top title absolutely flush left (no left padding) */
-  #navEnglish { display:inline-block; padding-left:0; }
-    .container { max-width:1100px; margin:0 auto; padding:20px; }
+      .mast { width:100%; display:flex; justify-content:center; position:relative; z-index:20; }
+      .mast img { width:66%; max-width:532px; height:auto; object-fit:cover; display:block; z-index:25; padding-top:20px; }
 
-    .nav { display:flex; align-items:center; gap:18px; }
-    .logo { font-weight:800; color:var(--accent); font-size:20px; }
-    .nav-english { color:var(--accent); font-weight:800; }
-    .nav-pipe { color:#000; margin:0 8px; }
-    .nav-russian { color:var(--muted); }
+      /* Search panel */
+      .search-panel {
+        margin:20px auto;
+        width:calc(100% - 30px);
+        max-width:900px;
+        background:white;
+        border-radius:12px;
+        box-shadow:0 6px 18px rgba(16,24,40,0.06);
+        padding:28px;
+        display:flex;
+        flex-direction:column;
+        gap:16px;
+        position: relative;
+        z-index: 11;
+      }
 
-    /* language toggle */
-    .lang-toggle { position:relative; display:inline-block; margin-right:12px; }
-    .lang-btn { background:transparent; border:1px solid #e6e9ef; padding:6px 8px; border-radius:6px; cursor:pointer; font-weight:600; }
-    .lang-dropdown { position:absolute; top:100%; right:0; background:white; border:1px solid #e6e9ef; border-radius:6px; padding:6px; box-shadow:0 6px 18px rgba(16,24,40,0.06); display:none; min-width:140px; }
-    .lang-dropdown.open { display:block; }
-    .lang-option { padding:6px 8px; cursor:pointer; }
-    .lang-option:hover { background:#f3f4f6; }
+      .search-row { display:flex; gap:12px; flex-wrap:wrap; }
+      .search-input { flex:1; padding:14px 16px; border-radius:10px; border:1px solid #e5e7eb; font-size:16px; background-color:#fff; }
+      .search-cta { padding:12px 18px; border-radius:10px; background:var(--accent); color:white; border:none; font-weight:700; cursor:pointer; }
 
-    /* Hero & search panel */
-    .hero { min-height:auto; display:flex; align-items:flex-start; justify-content:center; padding-bottom:12px; }
-    .search-panel {
-      margin:0 auto;
-      max-width:900px;
-      background:white;
-      border-radius:12px;
-      box-shadow:0 6px 18px rgba(16,24,40,0.06);
-      padding:28px;
-    }
-    .search-panel.fixed { position:fixed; left:50%; transform:translateX(-50%); z-index:22; width:min(900px,calc(100% - 32px)); }
+      .cta-row { display:flex; gap:12px; justify-content:space-between; flex-wrap:wrap; }
+      .cta-btn { flex:1; padding:12px 16px; background:rgba(139,0,0,0.75); color:white; border:none; border-radius:10px; font-weight:700; cursor:pointer; text-align:center; transition:background 0.2s ease; }
+      .cta-btn:hover { background:rgba(161,0,0,0.75); }
 
-    /* Extend the tint box to sit behind the fixed header (pull up under the navbar) */
-    .tint-box {
-      min-height:100vh;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:flex-start;
-      background-color:rgba(186,171,157,0.75);
-      width:900px;
-      max-width:calc(100% - 32px);
-      margin:0 auto;
-      /* Pull the tint-box up so it sits behind the fixed navbar (header height is 64px)
-         and add equivalent padding so content stays visually correct. */
-      margin-top: -64px;
-      padding-top: 64px;
-      position:relative;
-      z-index:8; /* sit below the header (1000) but above background */
-    }
-    .tint-box .container { background:transparent; width:100%; }
+      /* Background overlay */
+      #bg-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        overflow: hidden;
+        pointer-events: none;
+      }
 
-    .mast { width:100%; display:flex; justify-content:center; margin:0; position:relative; z-index:20; }
-    .mast img { position:relative; width:66%; max-width:532px; height:auto; object-fit:cover; display:block; z-index:25; border-radius:0; background:transparent; }
+      #bg-img-desktop {
+        position: absolute;
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+        pointer-events: none;
+        transition: opacity 0.4s ease;
+        opacity: 1;
+      }
 
-    .search-row { display:flex; gap:12px; }
-    .search-input { flex:1; padding:14px 16px; border-radius:10px; border:1px solid #e5e7eb; font-size:16px; }
-    .search-cta { padding:12px 18px; border-radius:10px; background:var(--accent); color:white; border:none; font-weight:700; cursor:pointer; }
-    .adv { margin-top:10px; color:var(--muted); font-size:14px; }
+      #bg-img-mobile {
+        position: absolute;
+        width: 100vw;
+        height: 100vh;
+        object-fit: cover;
+        pointer-events: none;
+        transition: opacity 0.4s ease;
+        opacity: 0;
+      }
 
-  .filters { display:flex; gap:12px; margin-top:18px; flex-wrap:wrap; padding-left: calc(1rem + 15px); }
-    .filters select, .filters .small-btn, .filters .reset-btn { padding:8px 10px; border-radius:8px; border:1px solid #d1d5db; background:white; cursor:pointer; }
-
-    .grid { display:grid; grid-template-columns:1fr; gap:12px; margin-top:18px; }
-    .card { background:white; border-radius:8px; box-shadow:0 6px 8px rgba(15,23,42,0.04); display:block; overflow:hidden; }
-    .card + .card { margin-top:6px; }
-    .card-header { padding:14px 18px; border-radius:8px 8px 0 0; cursor:pointer; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #e6e9ef; background:#fbfbfb; }
-    .card-header h4 { margin:0; font-size:16px; }
-  .card-content { padding:12px 20px 16px 28px; background:#ffffff; overflow:hidden; max-height:0; transition: max-height 0.25s ease; }
-    .card-content p { margin:6px 0; }
-    .card-content ul { margin:6px 0 0 18px; }
-    .card.open .card-content { max-height:1000px; }
-    .muted { color:var(--muted); font-size:14px; }
-
-    .results-meta { display:flex; justify-content:space-between; align-items:center; margin-top:18px; }
-    .cta-row { text-align:left; display:flex; gap:8px; align-items:center; }
-    .cta-row .cta-add { color:#8b0000; font-weight:600; text-decoration:none; background:#fff; padding:6px 10px; border-radius:6px; border:1px solid rgba(0,0,0,0.06); box-shadow:0 2px 6px rgba(0,0,0,0.04); display:inline-flex; align-items:center; }
-    .cta-row .cta-add .chev { display:inline-block; margin-left:8px; transition:transform .15s ease; }
-    .cta-row .cta-add:hover .chev { transform: translateX(4px); }
-    /* inline spinner for status messages */
-    .spinner { display:inline-block; width:16px; height:16px; vertical-align:middle; margin-right:8px; }
-    .spinner svg { width:100%; height:100%; animation:spin 1s linear infinite; }
-    @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
-    .results-count { font-weight:600; }
-
-  footer { margin-top:40px; padding:36px 0; }
-  /* Fixed footer: larger height, left-aligned site title with subtitle, resources on the right */
-  /* Reduced padding to shrink overall footer height by 20px (was 18px) */
-  @media (min-width: 601px) {
-    #fixed-footer { position:fixed; left:0; right:0; bottom:0; background-color:#8b0000; color:white; z-index:1200; box-shadow:0 -6px 18px rgba(11,10,10,0.2); padding:8px 0 0 0; }
-  }
-  /* make footer inner span the full viewport so left content can be flush to edge */
-  .fixed-footer-inner { width:100%; max-width:none; margin:0; padding:0 20px; display:flex; gap:12px; justify-content:space-between; align-items:center; }
-  .footer-grid { display:flex; gap:24px; flex-wrap:wrap; }
-  .footer-left { display:flex; flex-direction:column; transform: translateY(-5px); }
-  /* bottom title flush left with slightly reduced top padding to balance centered alignment */
-  .footer-left .title { font-weight:700; color:white; font-size:16px; line-height:1.1; padding:12px 0 0 0; margin-left:0; }
-  .footer-left .subtitle { color:rgba(255,255,255,0.8); font-size:13px; margin-top:0; margin-left:0; padding-left:0; }
-  .fixed-footer-right { display:flex; align-items:center; }
-  .fixed-footer-right .small { font-size:13px; color:white; margin-left:8px; }
-    /* layout: left title, centered links, right copyright */
-    .fixed-footer-center { flex:1; display:flex; align-items:center; justify-content:center; transform: translateY(-3px); }
-    .fixed-footer-center .links { color:white; font-size:13px; text-align:center; }
-    .fixed-footer-center .links a { color:inherit; text-decoration:none; margin:0 8px; }
-    .fixed-footer-right { display:flex; align-items:center; justify-content:flex-end; min-width:220px; transform: translateY(-3px); }
-    .fixed-footer-right .copyright { color:rgba(255,255,255,0.9); font-size:13px; }
-
-      @media (max-width:900px) { .grid { grid-template-columns:repeat(2,1fr); } }
-      @media (max-width:600px) { .grid{grid-template-columns:1fr;} .search-row{flex-direction:column;} .container{padding:14px;} }
-
-      /* Mobile toolbar: show compact toolbar and hide the desktop fixed footer on small screens */
-      .mobile-footer-toolbar { display: none; }
       @media (max-width:600px) {
-        .mobile-footer-toolbar { display:flex; position:fixed; left:0; right:0; bottom:0; box-sizing:border-box; height:56px; background:rgba(255,255,255,0.98); align-items:center; justify-content:space-between; padding:0 12px calc(8px + env(safe-area-inset-bottom)); gap:12px; z-index:100001; box-shadow:0 -6px 18px rgba(11,15,30,0.08); backdrop-filter: blur(6px); }
-        .mobile-footer-toolbar .mf-btn { flex:0 0 auto; border:1px solid #e6e9ef; background:#fff; padding:8px 12px; border-radius:10px; font-weight:700; color:var(--accent); cursor:pointer; }
-  #fixed-footer { display: none !important; visibility: hidden !important; }
-        .mobile-topbar { display:flex !important; }
-      }
+        #bg-img-desktop { opacity:0; }
+        #bg-img-mobile { opacity:1; }
 
-  /* background overlay: ensure it sits behind content and doesn't intercept clicks */
-  #bg-overlay { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
-  #bg-overlay img { position:absolute; left:0; top:0; width:100vw; height:100vh; object-fit:cover; will-change:left,top,width,height; pointer-events:none; }
-  /* Make sure interactive UI elements are clickable above the overlay */
-  /* Note: header keeps its own z-index above the overlay; don't include header here to avoid accidental overrides */
-  .search-panel, .search-panel.fixed, .search-cta, .search-input, .cta-row a, .lang-btn, .lang-dropdown, .filters select, .small-btn, .reset-btn { position:relative; z-index:2000; pointer-events:auto; }
-  </style>
-</head>
-<body>
-  <!-- background overlay (restored) -->
-  <div id="bg-overlay" aria-hidden="true">
-    <img id="bg-img" src="https://i.imgur.com/ZENogwV.png" alt="" />
-  </div>
-  <!-- Inject server-side fetched initial data to avoid client fetch failures -->
-  <!-- Astro frontmatter fetch: attempt to load /api/sheets server-side during render -->
-  <!-- If this file is served from another host/port in production, update BASE accordingly. -->
-  <script>
-    (function(){
-      try{
-        // Attempt to read preloaded data injected by the server render (Astro frontmatter)
-        // Note: If server couldn't load data, this global may be undefined.
-        // window.__INIT_DATA__ will be set below by server-side rendering when available.
-      }catch(e){}
-    })();
-  </script>
-
-  <script>
-    // Restore filters from composers-results if the user used "Return to search"
-    (function(){
-      try{
-        const raw = sessionStorage.getItem('composers-previous-filters');
-        if (!raw) return;
-        const state = JSON.parse(raw);
-        // Apply q
-        if (state.q !== undefined && state.q !== null) {
-          const qEl = document.getElementById('q'); if (qEl) qEl.value = state.q;
+        /* Hide tint box on mobile */
+        .tint-box {
+          display: flex;
+          background-color: transparent;
+          z-index: 11
+          padding-top: 64px
+          width: 100%
+          max-width: 900px
+          margin: 0 auto;
+       .mast {
+          width: 100%;
+          max-width: none; /* remove restriction */
+          padding-top: 16px;
+          z-index: 11;
+          display: flex;
+          justify-content: center;
         }
-        // Apply simple selects and trigger search if present
-        try{
-          const searchBtn = document.getElementById('searchBtn');
-          if (state.countries && Array.isArray(state.countries) && state.countries.length){
-            const cf = document.getElementById('countryFilter'); if (cf) { try{ cf.value = decodeURIComponent(state.countries[0]) || cf.value; }catch(e){} }
-          }
-          if (state.decades && Array.isArray(state.decades) && state.decades.length){ const df = document.getElementById('decadeFilter'); if (df) df.value = decodeURIComponent(state.decades[0]) || df.value; }
-          if (state.q && searchBtn){ setTimeout(()=>{ try{ searchBtn.click(); }catch(e){} }, 60); }
-        }catch(e){}
-        // remove stored state once applied
-        sessionStorage.removeItem('composers-previous-filters');
-      }catch(e){ /* ignore */ }
-    })();
-  </script>
 
-  <script>
-    (function(){
-      // Position the background image to cover the viewport. No adjustment controls are included.
-      const img = document.getElementById('bg-img');
-      if (!img) return;
-      const BG_Y_ADJUST_KEY = 'bg_y_adjust';
-      let BG_Y_ADJUST = (function(){ try{ const v = parseInt(localStorage.getItem(BG_Y_ADJUST_KEY)); return Number.isFinite(v) ? v : 18; }catch(e){ return 18; } })();
-      let _pending = false;
-      function applyFocus(){ if (_pending) return; _pending = true; requestAnimationFrame(()=>{ try{
-        const vw = Math.max(window.innerWidth || document.documentElement.clientWidth, 0);
-        const vh = Math.max(window.innerHeight || document.documentElement.clientHeight, 0);
-        img.style.width = vw + 'px';
-        img.style.height = vh + 'px';
-        img.style.left = '0px';
-        img.style.top = (typeof BG_Y_ADJUST === 'number' ? BG_Y_ADJUST : 0) + 'px';
-      }catch(e){ console.error('applyFocus error', e); }finally{ _pending = false; } }); }
-      window.addEventListener('resize', applyFocus);
-      window.addEventListener('load', ()=>{ setTimeout(applyFocus, 80); });
-      if (document.fonts && document.fonts.ready) { document.fonts.ready.then(()=> setTimeout(applyFocus, 60)).catch(()=>{}); }
-      setTimeout(applyFocus, 250);
-      if (img.complete) applyFocus(); else img.addEventListener('load', applyFocus);
-    })();
-  </script>
-  <!-- background controls removed -->
-  <!-- full-width navbar (moved outside tint box so it spans the viewport) -->
-  <header>
-    <div class="container nav" style="display:flex;justify-content:space-between;align-items:center">
-      <div class="logo">
-        <span class="nav-english" id="navEnglish">Archive of Soviet Trumpet Music</span>
-        <span class="nav-pipe">|</span>
-        <span class="nav-russian" id="navRussian">Архив советской трубной музыки</span>
+      .mast img {
+           width: 95%; /* fill available width */
+          max-width: none; /* remove restriction */
+          height: auto;
+        }
+
+        /* Mobile search panel adjustments */
+        .search-panel {
+          position: relative;
+          z-index: 13;
+          width:calc(100% - 20px);
+          background-color: white;
+          padding:16px;
+        }
+        .search-row { flex-direction:row; }
+        .search-cta { background:#8b0000; flex:0 auto; }
+
+        .cta-row { display:none; }
+      }
+
+      /* Mobile footer */
+      .mobile-footer {
+        display:none;
+      }
+      @media (max-width:600px){
+        .mobile-footer {
+          display:flex;
+          position: fixed;
+          bottom:0;
+          left:0;
+          right:0;
+          background:#8b0000;
+          color:white;
+          font-size:14px;
+          justify-content:center;
+          align-items:center;
+          height:50px;
+          z-index:100005;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- SiteHeader includes mobile section internally -->
+    <SiteHeader />
+
+    <!-- Background overlay -->
+    <div id="bg-overlay" aria-hidden="true">
+      <img id="bg-img-desktop" src="https://i.imgur.com/ZENogwV.png" alt="Desktop Background" />
+      <img id="bg-img-mobile" src="https://i.imgur.com/9MP7c2f.png" alt="Mobile Background" />
+    </div>
+
+    <!-- Tint box and main content -->
+    <div class="tint-box">
+      <div class="mast">
+        <img src="/assets/logo.png" alt="Soviet Trumpet Logo" />
       </div>
-      <div class="lang-toggle" id="langToggle">
-  <button class="lang-btn" id="langBtn">EN ▾</button>
-        <div class="lang-dropdown" id="langDropdown">
-          <div class="lang-option" data-locale="en">English</div>
-          <div class="lang-option" data-locale="de">Deutsch</div>
+
+      <div class="search-panel">
+        <h1 style="margin:0; font-size:18px; text-align:center; font-family:'Segoe UI', Arial, sans-serif;">Catalog of Soviet-Era trumpet music</h1>
+
+        <form id="searchForm" action="/composers-results" method="get">
+          <div class="search-row">
+            <input id="q" name="q" class="search-input" placeholder="Search composers, countries, or pieces..." />
+            <button id="searchBtn" type="submit" class="search-cta">Search</button>
+          </div>
+        </form>
+
+        <div class="cta-row">
+          <button class="cta-btn">Make additions to the archive</button>
+          <button class="cta-btn">About this project</button>
+          <button class="cta-btn">Randomize</button>
         </div>
       </div>
     </div>
-  </header>
-  <!-- Mobile topbar: simple white bar with left-aligned title for small screens -->
-  <div class="mobile-topbar" aria-hidden="true">
-    <div class="mobile-topbar-inner">
-      <div class="mobile-title">Archive of Soviet Trumpet Music</div>
-    </div>
-  </div>
-  <!-- translucent centered box that spans the full page height -->
-  <div class="tint-box">
-  <!-- mast: centered image placed inside the tint box -->
-  <div class="mast">
-    <img src="/assets/logo.png" alt="Soviet Trumpet Logo" />
-  </div>
-  <!-- place the search panel immediately after the mast so it naturally sits below the image -->
-  <div class="container" style="padding-top:0;margin-top:0">
-    <div class="search-panel" style="margin-top:5px">
-      <h1 style="margin:0 0 6px;font-size:28px">Discover Soviet-era trumpet music</h1>
-      <p class="muted" style="margin:6px 0 18px">Search composers and pieces from across the Soviet republics.</p>
 
-      <form id="searchForm" action="/composers-results" method="get">
-      <div class="search-row">
-        <input id="q" name="q" class="search-input" placeholder="Search composers, countries, or pieces..." />
-        <button id="searchBtn" type="submit" class="search-cta">Search</button>
-      </div>
+    <!-- SiteFooter (desktop) -->
+<SiteFooter />
 
-      <!-- FILTERS -->
-      <div class="filters">
-        <select id="genderFilter" name="gender">
-          <option value="All">Filter by Gender</option>
-          <option>Male</option>
-          <option>Female</option>
-          <option>Other</option>
-        </select>
+<!-- Mobile footer -->
+<div class="mobile-footer">© 2025 Soviet Trumpet Archive</div>
 
-        <select id="countryFilter" name="country">
-          <option value="All">Filter by Country</option>
-          <option>Ukraine</option>
-          <option>Belarus</option>
-          <option>Armenia</option>
-          <option>Georgia</option>
-          <option>Latvia</option>
-          <option>Estonia</option>
-          <option>Lithuania</option>
-          <option>Kazakhstan</option>
-          <option>Uzbekistan</option>
-          <option>Other</option>
-        </select>
-
-        <a id="showAll" class="small-btn" href="/composers-results?q=&gender=All&decade=All&country=All">Show All</a>
-        <button id="resetFilters" type="button" class="reset-btn">Reset Filters</button>
-      </div>
-      </form>
-      </div>
-
-  <div class="cta-row" style="max-width:900px;margin:8px auto;padding:6px 0;justify-content:flex-start;">
-        <a href="#" class="cta-add">Make additions to the archive <span class="chev">›</span></a>
-  <a href="/about" class="cta-add">About this project <span class="chev">›</span></a>
-  <a href="#" class="cta-add">Randomize <span class="chev">›</span></a>
-      </div>
-
-      <div class="results-meta">
-        <div class="results-count" id="resultsCount"></div>
-        <div class="muted" id="statusMsg"></div>
-      </div>
-
-      <!-- debug panel removed for production -->
-
-      <div id="results" class="grid" style="margin-top:14px"></div>
-    </div>
-  </div>
-
-  <main>
-    <section class="container hero">
-      <!-- hero section left intentionally minimal; search panel sits above inside the tint box -->
-    </section>
-  </main>
-
-  <footer>
-    <div class="container footer-grid">
-      <!-- original tint-box footer removed per request; keep footer element for semantics but empty visually -->
-    </div>
-  </footer>
-
-  <!-- Fixed footer bar locked to viewport (shared with main site) -->
-  <div id="fixed-footer" aria-hidden="false" role="contentinfo">
-    <div class="fixed-footer-inner">
-      <div class="footer-left">
-        <div class="title">Archive of Soviet Trumpet Music</div>
-        <div class="subtitle">Архив советской трубной музыки</div>
-      </div>
-      <div class="fixed-footer-center">
-        <div class="links">
-          <a href="/about">About</a>
-          <a href="#">Contact</a>
-          <a href="/composers">Composers</a>
-        </div>
-      </div>
-      <div class="fixed-footer-right">
-        <div class="copyright">© 2025 Archive of Soviet Trumpet Music</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Mobile toolbar: Filters | Hamburger menu (center) | Sources -->
-  <div class="mobile-footer-toolbar" id="mobileFooterToolbar" aria-hidden="true">
-    <button class="mf-btn" id="mf-filters">Filters</button>
-    <button class="mf-center" id="mf-hamburger" aria-label="Menu" aria-expanded="false">☰</button>
-    <button class="mf-btn" id="mf-sources">Sources</button>
-  </div>
-
-  <script>
-    // Simple mobile toolbar wiring for composers page: open a filter overlay similar to results page
-    (function(){
-      function openFilterOverlay(){
-        var left = document.getElementById('panel-left');
-        if (!left) return;
-        if (document.getElementById('mobile-filter-overlay')) return;
-        var overlay = document.createElement('div'); overlay.id = 'mobile-filter-overlay'; overlay.className = 'mobile-swipe-menu'; overlay.setAttribute('aria-hidden','false');
-        var inner = document.createElement('div'); inner.className = 'swipe-inner'; inner.setAttribute('role','menu'); inner.setAttribute('aria-label','Filters');
-        var close = document.createElement('button'); close.className = 'swm-close'; close.textContent = 'Close'; close.addEventListener('click', function(e){ e && e.preventDefault && e.preventDefault(); closeFilterOverlay(); });
-        inner.appendChild(close);
-        try{ var clone = left.cloneNode(true); clone.id = 'panel-left-mobile-clone'; clone.classList.add('mobile-overlay-clone'); clone.style.margin = '0'; clone.style.width = '100%'; clone.style.position = 'relative'; clone.style.overflow = 'auto'; clone.style.maxHeight = '100%'; clone.style.height = '100%'; inner.appendChild(clone); }catch(_){ inner.appendChild(left.cloneNode(true)); }
-        overlay.appendChild(inner); document.body.appendChild(overlay);
-        // lock body scroll
-        try{ var _s = window.scrollY || document.documentElement.scrollTop || 0; overlay.__savedScrollY = _s; document.body.style.position = 'fixed'; document.body.style.top = '-' + _s + 'px'; document.body.style.left = '0'; document.body.style.right = '0'; document.body.style.width = '100%'; document.documentElement.style.overflow = 'hidden'; document.body.style.overflow = 'hidden'; }catch(_){ }
-        overlay.addEventListener('click', function(e){ if (e.target === overlay) closeFilterOverlay(); });
-      }
-      function closeFilterOverlay(){ var ov = document.getElementById('mobile-filter-overlay'); if (!ov) return; var saved = ov.__savedScrollY || 0; try{ ov.remove(); }catch(_){ } try{ document.body.style.position = ''; document.body.style.top = ''; document.body.style.left = ''; document.body.style.right = ''; document.body.style.width = ''; document.documentElement.style.overflow = ''; document.body.style.overflow = ''; if (saved) window.scrollTo(0, saved); }catch(_){ }
-      }
-      try{ var btn = document.getElementById('mf-filters'); if (btn) btn.addEventListener('click', function(e){ e && e.preventDefault && e.preventDefault(); openFilterOverlay(); }); }catch(_){ }
-    })();
-  </script>
-
-  
-
-  
-  <script>
-  // Add clone-aware checkbox syncing and simple DOM filtering if a filter panel exists.
-  (function(){
-    document.addEventListener('DOMContentLoaded', function(){
-      // Only install on pages that include the panel-left or its mobile clone
-      if (!document.querySelector('#panel-left') && !document.querySelector('#panel-left-mobile-clone')) return;
-
-      function getChecked(selector) {
-        try {
-          const base = document.querySelector('#panel-left-mobile-clone') || document.querySelector('#panel-left');
-          if (!base) return [];
-          return Array.from(base.querySelectorAll(selector + ' input[type=checkbox]:checked'))
-            .map(cb => decodeURIComponent(cb.dataset.val || cb.getAttribute('data-val') || (cb.nextSibling && cb.nextSibling.textContent) || cb.value || '').trim())
-            .filter(Boolean);
-        } catch (e) { return []; }
-      }
-
-      function cardMatches(card, q, countries, decades, types, genders, republics){
-        try{
-          const txt = (card.textContent || '').toLowerCase();
-          if (q && !txt.includes(q)) return false;
-          const anyMatch = (list) => { if (!list || !list.length) return true; return list.some(v => txt.includes(String(v||'').toLowerCase())); };
-          return anyMatch(countries) && anyMatch(decades) && anyMatch(types) && anyMatch(genders) && anyMatch(republics);
-        }catch(e){ return true; }
-      }
-
-      function filterResults(){
-        try{
-          if (typeof window.loadResults === 'function'){
-            try{ window.currentPage = 1; window.loadResults(); return; }catch(_){ }
-          }
-          const countries = getChecked('#filter-country');
-          const republics = getChecked('#filter-republic');
-          const decades = getChecked('#filter-decade');
-          const types = getChecked('#filter-type');
-          const genders = getChecked('#filter-gender');
-          const q = (document.querySelector('#q') || document.querySelector('#qinput'))?.value?.toLowerCase() || '';
-
-          document.querySelectorAll('.result-card').forEach(card => {
-            if (cardMatches(card, q, countries, decades, types, genders, republics)) {
-              card.style.display = '';
-            } else {
-              card.style.display = 'none';
-            }
-          });
-        }catch(e){ console.warn('filterResults failed', e); }
-      }
-
-      function syncCheckboxes(){
-        try{
-          function bindAll(){
-            const desktop = document.querySelector('#panel-left');
-            const mobile = document.querySelector('#panel-left-mobile-clone');
-            if (!desktop && !mobile) return;
-            const desktopBoxes = desktop ? Array.from(desktop.querySelectorAll('input[type=checkbox]')) : [];
-            const mobileBoxes = mobile ? Array.from(mobile.querySelectorAll('input[type=checkbox]')) : [];
-            const allCheckboxes = desktopBoxes.concat(mobileBoxes);
-
-            allCheckboxes.forEach(cb => {
-              if (cb.__synced) return;
-              cb.__synced = true;
-              cb.addEventListener('change', () => {
-                try{
-                  const name = cb.name; const value = cb.value; const checked = cb.checked;
-                  const isDesktop = !!cb.closest('#panel-left');
-                  const targetPanel = isDesktop ? document.querySelector('#panel-left-mobile-clone') || document.querySelector('#panel-left') : document.querySelector('#panel-left') || document.querySelector('#panel-left-mobile-clone');
-                  if (targetPanel){
-                    const candidates = Array.from(targetPanel.querySelectorAll(`input[name="${name}"]`));
-                    for (let i=0;i<candidates.length;i++){
-                      if (String(candidates[i].value) === String(value) && candidates[i] !== cb){
-                        candidates[i].checked = checked;
-                        try{ candidates[i].dispatchEvent(new Event('change', { bubbles: true })); }catch(_){ }
-                        break;
-                      }
-                    }
-                  }
-                }catch(_){ }
-                filterResults();
-              });
-            });
-          }
-          bindAll();
-          try{
-            const mo = new MutationObserver((mutations)=>{
-              for (const m of mutations){
-                for (const n of Array.from(m.addedNodes || [])){
-                  if (n && n.id === 'panel-left-mobile-clone') { bindAll(); filterResults(); return; }
-                }
-              }
-            });
-            mo.observe(document.body, { childList: true, subtree: true });
-          }catch(_){ }
-        }catch(e){ }
-      }
-
-      try{ (document.querySelector('#q') || document.querySelector('#qinput'))?.addEventListener('input', filterResults); }catch(_){ }
-      syncCheckboxes();
-      setTimeout(filterResults, 50);
-    });
-  })();
-  </script>
-
-</body>
-</html>
+<!-- Mobile search placeholder script -->
+<script is:inline>
+  if (window.matchMedia("(max-width:600px)").matches) {
+    const searchInput = document.getElementById('q');
+    if (searchInput) {
+      searchInput.placeholder = "Search on mobile...";
+    }
+  }
+</script>
